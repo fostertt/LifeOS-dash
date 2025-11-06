@@ -1,0 +1,112 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                String              @id
+  email             String?             @unique(map: "sqlite_autoindex_users_2")
+  firstName         String?             @map("first_name")
+  lastName          String?             @map("last_name")
+  profileImageUrl   String?             @map("profile_image_url")
+  createdAt         DateTime?           @map("created_at")
+  updatedAt         DateTime?           @updatedAt @map("updated_at")
+  flask_dance_oauth flask_dance_oauth[]
+  habits            Habit[]
+  items             Item[]
+
+  @@map("users")
+}
+
+model Habit {
+  id                Int               @id @default(autoincrement())
+  userId            String            @map("user_id")
+  name              String
+  description       String?
+  scheduleType      String            @map("schedule_type")
+  scheduleDays      String?           @map("schedule_days")
+  scheduledTime     String?           @map("scheduled_time")
+  parentHabitId     Int?              @map("parent_habit_id")
+  isParent          Boolean           @map("is_parent")
+  createdAt         String?           @map("created_at")
+  updatedAt         String?           @map("updated_at")
+  habit_completions HabitCompletion[]
+  parent            Habit?            @relation("HabitHierarchy", fields: [parentHabitId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  subTasks          Habit[]           @relation("HabitHierarchy")
+  user              User              @relation(fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@map("habits")
+}
+
+model HabitCompletion {
+  id             Int      @id @default(autoincrement())
+  habitId        Int      @map("habit_id")
+  completionDate DateTime @map("completion_date")
+  createdAt      String?  @map("created_at")
+  habits         Habit    @relation(fields: [habitId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@unique([habitId, completionDate], map: "sqlite_autoindex_habit_completions_1")
+  @@map("habit_completions")
+}
+
+model Item {
+  id                 Int                  @id @default(autoincrement())
+  userId             String               @map("user_id")
+  itemType           String               @map("item_type")
+  name               String
+  description        String?
+  scheduleType       String?              @map("schedule_type")
+  scheduleDays       String?              @map("schedule_days")
+  scheduledTime      Unsupported("time")? @map("scheduled_time")
+  dueDate            DateTime?            @map("due_date")
+  dueTime            Unsupported("time")? @map("due_time")
+  reminderDatetime   DateTime?            @map("reminder_datetime")
+  reminderRecurrence String?              @map("reminder_recurrence")
+  reminderDays       String?              @map("reminder_days")
+  isCompleted        Boolean?             @map("is_completed")
+  completedAt        DateTime?            @map("completed_at")
+  isDismissed        Boolean?             @map("is_dismissed")
+  dismissedAt        DateTime?            @map("dismissed_at")
+  priority           String?
+  parentItemId       Int?                 @map("parent_item_id")
+  isParent           Boolean              @map("is_parent")
+  createdAt          DateTime?            @map("created_at")
+  updatedAt          DateTime?            @updatedAt @map("updated_at")
+  recurrenceType     String?              @map("recurrence_type")
+  recurrenceInterval Int?                 @map("recurrence_interval")
+  recurrenceUnit     String?              @map("recurrence_unit")
+  recurrenceAnchor   String?              @map("recurrence_anchor")
+  completions        ItemCompletion[]
+  parent             Item?                @relation("ItemHierarchy", fields: [parentItemId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  subItems           Item[]               @relation("ItemHierarchy")
+  user               User                 @relation(fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@map("items")
+}
+
+model ItemCompletion {
+  id             Int       @id @default(autoincrement())
+  itemId         Int       @map("item_id")
+  completionDate DateTime  @map("completion_date")
+  createdAt      DateTime? @map("created_at")
+  item           Item      @relation(fields: [itemId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@unique([itemId, completionDate], map: "sqlite_autoindex_item_completions_1")
+  @@map("item_completions")
+}
+
+model flask_dance_oauth {
+  user_id             String?
+  browser_session_key String
+  id                  Int                 @id @default(autoincrement())
+  provider            String
+  created_at          DateTime
+  token               Unsupported("json")
+  users               User?               @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@unique([user_id, browser_session_key, provider], map: "sqlite_autoindex_flask_dance_oauth_1")
+}
