@@ -27,16 +27,30 @@ export default function Home() {
     null
   );
   useEffect(() => {
-    fetch("/api/habits")
-      .then((res) => res.json())
-      .then((data) => {
-        setHabits(Array.isArray(data) ? data : []);
+    const loadData = async () => {
+      try {
+        // Fetch habits
+        const habitsRes = await fetch("/api/habits");
+        const habitsData = await habitsRes.json();
+        setHabits(Array.isArray(habitsData) ? habitsData : []);
+
+        // Fetch today's completions
+        const today = new Date().toISOString().split("T")[0];
+        const completionsRes = await fetch(`/api/completions?date=${today}`);
+        const completionsData = await completionsRes.json();
+
+        if (completionsData.completedHabitIds) {
+          setCompletedToday(new Set(completionsData.completedHabitIds));
+        }
+
         setLoading(false);
-      })
-      .catch((err) => {
-        console.error("Error fetching habits:", err);
+      } catch (err) {
+        console.error("Error loading data:", err);
         setLoading(false);
-      });
+      }
+    };
+
+    loadData();
   }, []);
 
   const toggleHabit = async (habitId: number) => {
