@@ -244,9 +244,9 @@ export default function Home() {
         <div className="max-w-5xl mx-auto p-8">
           <Header />
 
-        {/* Error Banner */}
-        {error && (
-          <div className="bg-red-50 border-2 border-red-200 rounded-xl p-4 mb-6 flex items-start gap-3">
+          {/* Error Banner */}
+          {error && (
+            <div className="bg-red-50 border-2 border-red-200 rounded-xl p-4 mb-6 flex items-start gap-3">
             <svg
               className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5"
               fill="none"
@@ -283,75 +283,75 @@ export default function Home() {
               </svg>
             </button>
           </div>
-        )}
+          )}
 
-        {/* Habits Section */}
-        <div className="bg-white rounded-2xl shadow-lg p-8 mb-6">
-          <div className="flex items-center gap-3 mb-6 flex-wrap">
-            <span className="text-3xl">🎯</span>
-            <h2 className="text-2xl font-bold text-gray-800">Your Habits</h2>
-            <span className="bg-purple-100 text-purple-700 px-3 py-1 rounded-full text-sm font-semibold">
-              {habits.length} total
-            </span>
-            <span className="bg-green-100 text-green-700 px-3 py-1 rounded-full text-sm font-semibold">
-              {completedToday.size} completed today
-            </span>
-            <button
-              onClick={() => setShowTodayOnly(!showTodayOnly)}
-              className={`ml-auto px-4 py-2 rounded-full text-sm font-semibold transition-all ${
-                showTodayOnly
-                  ? "bg-purple-600 text-white hover:bg-purple-700"
-                  : "bg-gray-200 text-gray-700 hover:bg-gray-300"
-              }`}
-            >
-              {showTodayOnly ? "📅 Today" : "📋 All Habits"}
-            </button>
-          </div>
-
-          {loading ? (
-            <div className="flex items-center justify-center py-12">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600"></div>
+          {/* Habits Section */}
+          <div className="bg-white rounded-2xl shadow-lg p-8 mb-6">
+            <div className="flex items-center gap-3 mb-6 flex-wrap">
+              <span className="text-3xl">🎯</span>
+              <h2 className="text-2xl font-bold text-gray-800">Your Habits</h2>
+              <span className="bg-purple-100 text-purple-700 px-3 py-1 rounded-full text-sm font-semibold">
+                {habits.length} total
+              </span>
+              <span className="bg-green-100 text-green-700 px-3 py-1 rounded-full text-sm font-semibold">
+                {completedToday.size} completed today
+              </span>
+              <button
+                onClick={() => setShowTodayOnly(!showTodayOnly)}
+                className={`ml-auto px-4 py-2 rounded-full text-sm font-semibold transition-all ${
+                  showTodayOnly
+                    ? "bg-purple-600 text-white hover:bg-purple-700"
+                    : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+                }`}
+              >
+                {showTodayOnly ? "📅 Today" : "📋 All Habits"}
+              </button>
             </div>
-          ) : displayedHabits.length === 0 ? (
-            <div className="text-center py-16">
-              <div className="flex justify-center mb-4">
-                <div className="w-24 h-24 bg-gradient-to-br from-purple-100 to-blue-100 rounded-full flex items-center justify-center">
-                  <svg
-                    className="w-12 h-12 text-purple-600"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
-                    />
-                  </svg>
-                </div>
+
+            {loading ? (
+              <div className="flex items-center justify-center py-12">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600"></div>
               </div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">
-                {showTodayOnly
-                  ? "No habits scheduled for today"
-                  : "No habits yet"}
-              </h3>
-              <p className="text-gray-600 mb-6">
-                {showTodayOnly
-                  ? "You're all clear for today! Switch to 'All Habits' to see your full list."
-                  : "Start building better habits by creating your first one."}
-              </p>
-              {!showTodayOnly && (
-                <button
-                  onClick={() => setShowCreateModal(true)}
-                  className="px-6 py-3 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-full hover:shadow-lg transition-all hover:scale-105 font-semibold"
-                >
-                  Create Your First Habit
-                </button>
-              )}
-            </div>
-          ) : (
-            <div className="grid gap-4">
+            ) : displayedHabits.length === 0 ? (
+              <div className="text-center py-16">
+                <div className="flex justify-center mb-4">
+                  <div className="w-24 h-24 bg-gradient-to-br from-purple-100 to-blue-100 rounded-full flex items-center justify-center">
+                    <svg
+                      className="w-12 h-12 text-purple-600"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
+                      />
+                    </svg>
+                  </div>
+                </div>
+                <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                  {showTodayOnly
+                    ? "No habits scheduled for today"
+                    : "No habits yet"}
+                </h3>
+                <p className="text-gray-600 mb-6">
+                  {showTodayOnly
+                    ? "You're all clear for today! Switch to 'All Habits' to see your full list."
+                    : "Start building better habits by creating your first one."}
+                </p>
+                {!showTodayOnly && (
+                  <button
+                    onClick={() => setShowCreateModal(true)}
+                    className="px-6 py-3 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-full hover:shadow-lg transition-all hover:scale-105 font-semibold"
+                  >
+                    Create Your First Habit
+                  </button>
+                )}
+              </div>
+            ) : (
+              <div className="grid gap-4">
               {displayedHabits.map((habit) => {
                 const isCompleted = completedToday.has(habit.id);
 
@@ -514,6 +514,7 @@ export default function Home() {
               })}
             </div>
           )}
+          </div>
         </div>
 
         {/* Progress Section */}
@@ -553,6 +554,7 @@ export default function Home() {
             </div>
           </div>
         </div>
+
         {/* Create Habit Modal */}
         {showCreateModal && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
