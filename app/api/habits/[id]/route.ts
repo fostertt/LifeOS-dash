@@ -4,10 +4,11 @@ import { prisma } from '@/lib/prisma';
 // GET /api/habits/[id] - Get a single habit
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const habitId = parseInt(params.id);
+    const { id } = await params; // AWAIT params first
+    const habitId = parseInt(id);
 
     const habit = await prisma.habit.findUnique({
       where: { id: habitId },
@@ -38,17 +39,18 @@ export async function GET(
 // PATCH /api/habits/[id] - Update a habit
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const habitId = parseInt(params.id);
+    const { id } = await params; // AWAIT params first
+    const habitId = parseInt(id);
     const body = await request.json();
 
     const habit = await prisma.habit.update({
       where: { id: habitId },
       data: {
         ...body,
-        updatedAt: new Date(),
+        updatedAt: new Date().toISOString(),
       },
     });
 
@@ -65,10 +67,11 @@ export async function PATCH(
 // DELETE /api/habits/[id] - Delete a habit
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const habitId = parseInt(params.id);
+    const { id } = await params; // AWAIT params first
+    const habitId = parseInt(id);
 
     await prisma.habit.delete({
       where: { id: habitId },

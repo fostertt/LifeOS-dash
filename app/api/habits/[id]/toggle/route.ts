@@ -11,13 +11,29 @@ export async function POST(
     const habitId = parseInt(id);
     const { date } = await request.json();
 
-    const completionDate = date ? new Date(date) : new Date();
+    // Normalize to YYYY-MM-DD format, then create Date object at start of day UTC
+    let dateStr: string;
+    if (date) {
+      dateStr = date;
+    } else {
+      const today = new Date();
+      dateStr = today.toISOString().split("T")[0];
+    }
 
-    // Check if already completed
+    // Create date at start of day in UTC for consistent storage
+    const completionDate = new Date(dateStr + "T00:00:00.000Z");
+
+    // Check if already completed (use range query to handle any timezone variations)
+    const startOfDay = new Date(dateStr + "T00:00:00.000Z");
+    const endOfDay = new Date(dateStr + "T23:59:59.999Z");
+
     const existing = await prisma.habitCompletion.findFirst({
       where: {
         habitId: habitId,
-        completionDate: completionDate,
+        completionDate: {
+          gte: startOfDay,
+          lte: endOfDay,
+        },
       },
     });
 

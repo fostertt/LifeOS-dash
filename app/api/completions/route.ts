@@ -10,10 +10,19 @@ export async function GET(request: NextRequest) {
     // Get date from query params, default to today
     const searchParams = request.nextUrl.searchParams;
     const dateParam = searchParams.get("date");
-    const targetDate = dateParam ? new Date(dateParam) : new Date();
 
-    // Set to start of day to match completion dates
-    targetDate.setHours(0, 0, 0, 0);
+    // Normalize to YYYY-MM-DD format for consistent comparison
+    let dateStr: string;
+    if (dateParam) {
+      dateStr = dateParam;
+    } else {
+      const today = new Date();
+      dateStr = today.toISOString().split("T")[0];
+    }
+
+    // Create date object for start and end of day (for range query)
+    const startOfDay = new Date(dateStr + "T00:00:00.000Z");
+    const endOfDay = new Date(dateStr + "T23:59:59.999Z");
 
     // Get all habits for this user
     const habits = await prisma.habit.findMany({
@@ -23,11 +32,18 @@ export async function GET(request: NextRequest) {
 
     const habitIds = habits.map((h) => h.id);
 
-    // Get completions for these habits on the target date
+    if (habitIds.length === 0) {
+      return NextResponse.json({ completedHabitIds: [], date: dateStr });
+    }
+
+    // Get completions for these habits on the target date using range query
     const completions = await prisma.habitCompletion.findMany({
       where: {
         habitId: { in: habitIds },
-        completionDate: targetDate,
+        completionDate: {
+          gte: startOfDay,
+          lte: endOfDay,
+        },
       },
       select: {
         habitId: true,
@@ -37,7 +53,7 @@ export async function GET(request: NextRequest) {
     // Return array of completed habit IDs
     const completedHabitIds = completions.map((c) => c.habitId);
 
-    return NextResponse.json({ completedHabitIds, date: targetDate });
+    return NextResponse.json({ completedHabitIds, date: dateStr });
   } catch (error) {
     console.error("Error fetching completions:", error);
     return NextResponse.json(
