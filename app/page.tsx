@@ -1,7 +1,8 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useState } from "react";
+import ProtectedRoute from "@/components/ProtectedRoute";
+import Header from "@/components/Header";
 
 interface Habit {
   id: number;
@@ -238,25 +239,10 @@ export default function Home() {
     : habits;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 to-blue-50">
-      <div className="max-w-5xl mx-auto p-8">
-        {/* Header */}
-        <div className="mb-8 flex items-center justify-between">
-          <div>
-            <h1 className="text-4xl font-bold text-gray-900 mb-2">
-              Personal Dashboard
-            </h1>
-            <p className="text-gray-600">
-              Next.js Migration - Phase 1 Complete! 🎉
-            </p>
-          </div>
-          <Link
-            href="/week"
-            className="px-4 py-2 bg-purple-600 text-white rounded-full hover:bg-purple-700 transition-colors font-semibold"
-          >
-            📅 Week View
-          </Link>
-        </div>
+    <ProtectedRoute>
+      <div className="min-h-screen bg-gradient-to-br from-purple-50 to-blue-50">
+        <div className="max-w-5xl mx-auto p-8">
+          <Header />
 
         {/* Error Banner */}
         {error && (
@@ -848,6 +834,6 @@ export default function Home() {
           ))}
         </div>
       </div>
-    </div>
+    </ProtectedRoute>
   );
 }

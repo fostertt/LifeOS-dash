@@ -2,7 +2,8 @@
 
 import React from "react";
 import { useEffect, useState } from "react";
-import Link from "next/link";
+import ProtectedRoute from "@/components/ProtectedRoute";
+import Header from "@/components/Header";
 
 interface Habit {
   id: number;
@@ -128,21 +129,10 @@ export default function WeekView() {
   const today = new Date().toDateString();
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 to-blue-50">
-      <div className="max-w-7xl mx-auto p-8">
-        {/* Header */}
-        <div className="mb-8 flex items-center justify-between">
-          <div>
-            <h1 className="text-4xl font-bold text-gray-900 mb-2">Week View</h1>
-            <p className="text-gray-600">Your habits for the week</p>
-          </div>
-          <Link
-            href="/"
-            className="px-4 py-2 bg-purple-600 text-white rounded-full hover:bg-purple-700 transition-colors font-semibold"
-          >
-            ← Back to Today
-          </Link>
-        </div>
+    <ProtectedRoute>
+      <div className="min-h-screen bg-gradient-to-br from-purple-50 to-blue-50">
+        <div className="max-w-7xl mx-auto p-8">
+          <Header />
 
         {loading ? (
           <div className="flex items-center justify-center py-12">
@@ -241,6 +231,6 @@ export default function WeekView() {
           </div>
         )}
       </div>
-    </div>
+    </ProtectedRoute>
   );
 }
