@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { requireAuth } from "@/lib/session";
 
 // POST /api/habits/[id]/toggle - Toggle habit completion for a date
 export async function POST(
@@ -7,9 +8,30 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const user = await requireAuth();
     const { id } = await params; // AWAIT params first
     const habitId = parseInt(id);
     const { date } = await request.json();
+
+    // Check ownership
+    const habit = await prisma.habit.findUnique({
+      where: { id: habitId },
+      select: { userId: true },
+    });
+
+    if (!habit) {
+      return NextResponse.json(
+        { error: 'Habit not found' },
+        { status: 404 }
+      );
+    }
+
+    if (habit.userId !== user.id) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 403 }
+      );
+    }
 
     // Normalize to YYYY-MM-DD format, then create Date object at start of day UTC
     let dateStr: string;

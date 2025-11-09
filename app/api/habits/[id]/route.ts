@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { requireAuth } from '@/lib/session';
 
 // GET /api/habits/[id] - Get a single habit
 export async function GET(
@@ -7,6 +8,7 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const user = await requireAuth();
     const { id } = await params; // AWAIT params first
     const habitId = parseInt(id);
 
@@ -26,6 +28,14 @@ export async function GET(
       );
     }
 
+    // Check ownership
+    if (habit.userId !== user.id) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 403 }
+      );
+    }
+
     return NextResponse.json(habit);
   } catch (error) {
     console.error('Error fetching habit:', error);
@@ -42,9 +52,30 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const user = await requireAuth();
     const { id } = await params; // AWAIT params first
     const habitId = parseInt(id);
     const body = await request.json();
+
+    // Check ownership before update
+    const existing = await prisma.habit.findUnique({
+      where: { id: habitId },
+      select: { userId: true },
+    });
+
+    if (!existing) {
+      return NextResponse.json(
+        { error: 'Habit not found' },
+        { status: 404 }
+      );
+    }
+
+    if (existing.userId !== user.id) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 403 }
+      );
+    }
 
     const habit = await prisma.habit.update({
       where: { id: habitId },
@@ -70,8 +101,29 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const user = await requireAuth();
     const { id } = await params; // AWAIT params first
     const habitId = parseInt(id);
+
+    // Check ownership before delete
+    const existing = await prisma.habit.findUnique({
+      where: { id: habitId },
+      select: { userId: true },
+    });
+
+    if (!existing) {
+      return NextResponse.json(
+        { error: 'Habit not found' },
+        { status: 404 }
+      );
+    }
+
+    if (existing.userId !== user.id) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 403 }
+      );
+    }
 
     await prisma.habit.delete({
       where: { id: habitId },

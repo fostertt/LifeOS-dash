@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { requireAuth } from "@/lib/session";
 
 // GET /api/habits - Get all habits for current user
 export async function GET(request: NextRequest) {
   try {
-    // TODO: Get user ID from session/auth
-    const userId = "48868489";
+    const user = await requireAuth();
+    const userId = user.id;
 
     const habits = await prisma.habit.findMany({
       where: {
@@ -38,8 +39,8 @@ export async function GET(request: NextRequest) {
 // POST /api/habits - Create a new habit
 export async function POST(request: NextRequest) {
   try {
-    // TODO: Get user ID from session/auth
-    const userId = "48868489";
+    const user = await requireAuth();
+    const userId = user.id;
 
     const body = await request.json();
     const {

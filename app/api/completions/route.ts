@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { requireAuth } from "@/lib/session";
 
 // GET /api/completions?date=YYYY-MM-DD - Get all completions for a specific date
 export async function GET(request: NextRequest) {
   try {
-    // TODO: Get user ID from session/auth
-    const userId = "48868489";
+    const user = await requireAuth();
+    const userId = user.id;
 
     // Get date from query params, default to today
     const searchParams = request.nextUrl.searchParams;
