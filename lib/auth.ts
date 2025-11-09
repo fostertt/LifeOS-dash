@@ -12,11 +12,53 @@ export const authOptions: NextAuthOptions = {
     }),
   ],
   callbacks: {
+    async signIn({ user, account, profile }) {
+      console.log("🔐 [NextAuth] signIn callback triggered");
+      console.log("   User:", { id: user.id, email: user.email, name: user.name });
+      console.log("   Account:", { provider: account?.provider, type: account?.type });
+      console.log("   Profile:", { email: profile?.email });
+      return true;
+    },
     async session({ session, user }) {
-      if (session.user) {
+      console.log("📝 [NextAuth] session callback triggered");
+      console.log("   Session user:", session.user);
+      console.log("   Database user:", { id: user?.id, email: user?.email });
+
+      if (session.user && user) {
         session.user.id = user.id;
       }
+
+      console.log("   Final session:", session);
       return session;
+    },
+    async jwt({ token, user }) {
+      console.log("🎫 [NextAuth] jwt callback triggered");
+      console.log("   Token:", token);
+      console.log("   User:", user);
+      return token;
+    },
+  },
+  events: {
+    async signIn({ user, account, profile }) {
+      console.log("✅ [NextAuth] signIn event - User signed in successfully");
+      console.log("   User ID:", user.id);
+      console.log("   Email:", user.email);
+
+      // Check if user was created in database
+      const dbUser = await prisma.user.findUnique({
+        where: { id: user.id },
+        include: {
+          accounts: true,
+          sessions: true,
+        },
+      });
+      console.log("   Database check:", dbUser ? "✅ User found in DB" : "❌ User NOT in DB");
+      console.log("   Accounts:", dbUser?.accounts.length || 0);
+      console.log("   Sessions:", dbUser?.sessions.length || 0);
+    },
+    async session({ session }) {
+      console.log("🔄 [NextAuth] session event - Session accessed");
+      console.log("   Session:", session);
     },
   },
   pages: {
