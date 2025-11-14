@@ -184,7 +184,8 @@ export default function Home() {
       // Set time and date based on item type
       if (selectedItemType === "habit") {
         if (formTime) itemData.scheduledTime = formTime;
-        if (formRecurring) itemData.scheduleType = "daily";
+        // Habits are always daily recurring by default
+        itemData.scheduleType = "daily";
       } else if (selectedItemType === "task") {
         if (formTime) itemData.dueTime = formTime;
         if (formDay) itemData.dueDate = formDay;
