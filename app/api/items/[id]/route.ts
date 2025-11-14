@@ -6,7 +6,7 @@ import { prisma } from "@/lib/prisma";
 // GET /api/items/[id] - Get a single item
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -19,7 +19,8 @@ export async function GET(
     }
 
     const userId = session.user.id;
-    const itemId = parseInt(params.id);
+    const { id } = await params;
+    const itemId = parseInt(id);
 
     const item = await prisma.item.findFirst({
       where: {
@@ -50,7 +51,7 @@ export async function GET(
 // PATCH /api/items/[id] - Update an item
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -63,7 +64,8 @@ export async function PATCH(
     }
 
     const userId = session.user.id;
-    const itemId = parseInt(params.id);
+    const { id } = await params;
+    const itemId = parseInt(id);
     const body = await request.json();
 
     // Check if item exists and belongs to user
@@ -113,7 +115,7 @@ export async function PATCH(
 // DELETE /api/items/[id] - Delete an item
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -126,7 +128,8 @@ export async function DELETE(
     }
 
     const userId = session.user.id;
-    const itemId = parseInt(params.id);
+    const { id } = await params;
+    const itemId = parseInt(id);
 
     // Check if item exists and belongs to user
     const existingItem = await prisma.item.findFirst({
