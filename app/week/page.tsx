@@ -15,6 +15,8 @@ interface Item {
   scheduledTime?: string;
   dueDate?: string;
   dueTime?: string;
+  isCompleted?: boolean;
+  completedAt?: string;
   isParent: boolean;
   parentItemId?: number;
 }
@@ -107,9 +109,13 @@ export default function WeekView() {
         body: JSON.stringify({ date: dateStr }),
       });
 
+      if (!response.ok) {
+        throw new Error("Failed to toggle item");
+      }
+
       const data = await response.json();
 
-      // Update local state
+      // Update local state for recurring items
       setCompletions((prev) => {
         const newCompletions = new Map(prev);
         const dateCompletions = new Set(prev.get(dateStr) || new Set());
@@ -123,8 +129,12 @@ export default function WeekView() {
         newCompletions.set(dateStr, dateCompletions);
         return newCompletions;
       });
+
+      // Reload items to get updated isCompleted field for non-recurring items
+      await loadData();
     } catch (error) {
       console.error("Error toggling item:", error);
+      showToast("Failed to toggle item", "error");
     }
   };
 
@@ -508,7 +518,13 @@ export default function WeekView() {
                     >
                       <div className="space-y-2">
                         {sortedDayItems.map((item) => {
-                          const isCompleted = completions.get(dateStr)?.has(item.id) || false;
+                          // Check completion status based on item type:
+                          // - Recurring items (with scheduleType): check completions map for this date
+                          // - Non-recurring items: check isCompleted field
+                          const isRecurring = item.scheduleType && item.scheduleType !== "";
+                          const isCompleted = isRecurring
+                            ? (completions.get(dateStr)?.has(item.id) || false)
+                            : (item.isCompleted || false);
                           const itemTime = getItemTime(item);
 
                           return (

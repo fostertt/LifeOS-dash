@@ -14,6 +14,8 @@ interface Item {
   scheduledTime?: string;
   dueDate?: string;
   dueTime?: string;
+  isCompleted?: boolean;
+  completedAt?: string;
   isParent: boolean;
   parentItemId?: number;
 }
@@ -75,7 +77,7 @@ export default function Home() {
       const itemsData = await itemsRes.json();
       setItems(Array.isArray(itemsData) ? itemsData : []);
 
-      // Fetch today's completions
+      // Fetch today's completions for recurring items (habits)
       const today = new Date().toISOString().split("T")[0];
       const completionsRes = await fetch(`/api/completions?date=${today}`);
       if (!completionsRes.ok) {
@@ -103,8 +105,13 @@ export default function Home() {
         body: JSON.stringify({ date: new Date().toISOString().split("T")[0] }),
       });
 
+      if (!response.ok) {
+        throw new Error("Failed to toggle item");
+      }
+
       const data = await response.json();
 
+      // Update local state for recurring items (habits)
       if (data.completed) {
         setCompletedToday((prev) => new Set(prev).add(itemId));
       } else {
@@ -114,8 +121,12 @@ export default function Home() {
           return newSet;
         });
       }
+
+      // Reload items to get updated isCompleted field for non-recurring items
+      await loadData();
     } catch (error) {
       console.error("Error toggling item:", error);
+      showToast("Failed to toggle item", "error");
     }
   };
 
@@ -508,7 +519,13 @@ export default function Home() {
             ) : (
               <div className="grid gap-4">
                 {sortedItems.map((item) => {
-                  const isCompleted = completedToday.has(item.id);
+                  // Check completion status based on item type:
+                  // - Recurring items (with scheduleType): check completedToday set
+                  // - Non-recurring items: check isCompleted field
+                  const isRecurring = item.scheduleType && item.scheduleType !== "";
+                  const isCompleted = isRecurring
+                    ? completedToday.has(item.id)
+                    : item.isCompleted || false;
                   const itemTime = getItemTime(item);
 
                   return (

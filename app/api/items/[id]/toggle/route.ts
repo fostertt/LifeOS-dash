@@ -42,36 +42,54 @@ export async function POST(
       return NextResponse.json({ error: "Item not found" }, { status: 404 });
     }
 
-    // Parse the date
-    const completionDate = new Date(date);
+    // Determine if this is a recurring item (habit with schedule) or one-time item (task/reminder)
+    const isRecurring = item.scheduleType && item.scheduleType !== "";
 
-    // Check if completion exists for this date
-    const existingCompletion = await prisma.itemCompletion.findFirst({
-      where: {
-        itemId,
-        completionDate,
-      },
-    });
+    if (isRecurring) {
+      // For recurring items (habits): use ItemCompletion table to track by date
+      const completionDate = new Date(date);
 
-    if (existingCompletion) {
-      // Remove completion
-      await prisma.itemCompletion.delete({
+      // Check if completion exists for this date
+      const existingCompletion = await prisma.itemCompletion.findFirst({
         where: {
-          id: existingCompletion.id,
-        },
-      });
-
-      return NextResponse.json({ completed: false });
-    } else {
-      // Add completion
-      await prisma.itemCompletion.create({
-        data: {
           itemId,
           completionDate,
         },
       });
 
-      return NextResponse.json({ completed: true });
+      if (existingCompletion) {
+        // Remove completion
+        await prisma.itemCompletion.delete({
+          where: {
+            id: existingCompletion.id,
+          },
+        });
+
+        return NextResponse.json({ completed: false });
+      } else {
+        // Add completion
+        await prisma.itemCompletion.create({
+          data: {
+            itemId,
+            completionDate,
+          },
+        });
+
+        return NextResponse.json({ completed: true });
+      }
+    } else {
+      // For non-recurring items (tasks/reminders): toggle isCompleted field
+      const newCompletedState = !item.isCompleted;
+
+      await prisma.item.update({
+        where: { id: itemId },
+        data: {
+          isCompleted: newCompletedState,
+          completedAt: newCompletedState ? new Date() : null,
+        },
+      });
+
+      return NextResponse.json({ completed: newCompletedState });
     }
   } catch (error) {
     console.error("Error toggling item completion:", error);
