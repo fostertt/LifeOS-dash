@@ -86,7 +86,7 @@ export async function POST(
         where: { id: itemId },
         data: {
           isCompleted: newCompletedState,
-          completedAt: newCompletedState ? new Date() : null,
+          completedAt: newCompletedState ? new Date().toISOString() : null,
         },
       });
 
