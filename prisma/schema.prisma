@@ -3,12 +3,12 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
 model User {
-  id                String              @id @default(cuid())
+  id                String              @id @default(uuid())
   email             String?             @unique(map: "sqlite_autoindex_users_2")
   emailVerified     DateTime?           @map("email_verified")
   name              String?
@@ -32,7 +32,7 @@ model User {
 
 // NextAuth.js models
 model Account {
-  id                String  @id @default(cuid())
+  id                String  @id @default(uuid())
   userId            String  @map("user_id")
   type              String
   provider          String
@@ -52,7 +52,7 @@ model Account {
 }
 
 model Session {
-  id           String   @id @default(cuid())
+  id           String   @id @default(uuid())
   sessionToken String   @unique @map("session_token")
   userId       String   @map("user_id")
   expires      DateTime
@@ -72,7 +72,7 @@ model VerificationToken {
 
 // Multi-tenancy models
 model Family {
-  id          String       @id @default(cuid())
+  id          String       @id @default(uuid())
   name        String
   createdAt   DateTime     @default(now()) @map("created_at")
   updatedAt   DateTime     @updatedAt @map("updated_at")
@@ -84,7 +84,7 @@ model Family {
 }
 
 model FamilyUser {
-  id        String   @id @default(cuid())
+  id        String   @id @default(uuid())
   familyId  String   @map("family_id")
   userId    String   @map("user_id")
   role      String   @default("member") // "owner", "admin", "member"
