@@ -2,6 +2,7 @@
 
 import React from "react";
 import { useEffect, useState } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import Header from "@/components/Header";
 
@@ -34,6 +35,27 @@ interface Toast {
 type ItemType = "habit" | "task" | "reminder";
 
 export default function WeekView() {
+  const searchParams = useSearchParams();
+  const router = useRouter();
+
+  // Parse date from URL or use today to determine week
+  const getSelectedWeekStart = () => {
+    const dateParam = searchParams.get("date");
+    let targetDate: Date;
+    if (dateParam) {
+      const [year, month, day] = dateParam.split("-").map(Number);
+      targetDate = new Date(year, month - 1, day);
+    } else {
+      targetDate = new Date();
+    }
+    // Get Sunday of the week containing targetDate
+    const dayOfWeek = targetDate.getDay(); // 0 = Sunday
+    const sunday = new Date(targetDate);
+    sunday.setDate(targetDate.getDate() - dayOfWeek);
+    return sunday;
+  };
+
+  const [weekStart, setWeekStart] = useState<Date>(getSelectedWeekStart);
   const [items, setItems] = useState<Item[]>([]);
   const [loading, setLoading] = useState(true);
   const [completions, setCompletions] = useState<Map<string, Set<number>>>(new Map());
@@ -62,6 +84,55 @@ export default function WeekView() {
   const [formDuration, setFormDuration] = useState("");
   const [formFocus, setFormFocus] = useState("");
 
+  // Week navigation functions
+  const navigateToWeek = (date: Date) => {
+    const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+    router.push(`/week?date=${dateStr}`);
+    // Get Sunday of that week
+    const dayOfWeek = date.getDay();
+    const sunday = new Date(date);
+    sunday.setDate(date.getDate() - dayOfWeek);
+    setWeekStart(sunday);
+  };
+
+  const goToPreviousWeek = () => {
+    const prevWeek = new Date(weekStart);
+    prevWeek.setDate(prevWeek.getDate() - 7);
+    navigateToWeek(prevWeek);
+  };
+
+  const goToNextWeek = () => {
+    const nextWeek = new Date(weekStart);
+    nextWeek.setDate(nextWeek.getDate() + 7);
+    navigateToWeek(nextWeek);
+  };
+
+  const goToCurrentWeek = () => {
+    navigateToWeek(new Date());
+  };
+
+  const isCurrentWeek = () => {
+    const today = new Date();
+    const todayDayOfWeek = today.getDay();
+    const currentWeekSunday = new Date(today);
+    currentWeekSunday.setDate(today.getDate() - todayDayOfWeek);
+    return weekStart.toDateString() === currentWeekSunday.toDateString();
+  };
+
+  const formatWeekRange = () => {
+    const weekEnd = new Date(weekStart);
+    weekEnd.setDate(weekStart.getDate() + 6);
+    const startMonth = weekStart.toLocaleDateString("en-US", { month: "short" });
+    const endMonth = weekEnd.toLocaleDateString("en-US", { month: "short" });
+    const year = weekEnd.getFullYear();
+
+    if (startMonth === endMonth) {
+      return `${startMonth} ${weekStart.getDate()}-${weekEnd.getDate()}, ${year}`;
+    } else {
+      return `${startMonth} ${weekStart.getDate()} - ${endMonth} ${weekEnd.getDate()}, ${year}`;
+    }
+  };
+
   const showToast = (message: string, type: Toast["type"] = "success") => {
     const id = Date.now();
     setToasts((prev) => [...prev, { id, message, type }]);
@@ -72,7 +143,15 @@ export default function WeekView() {
 
   useEffect(() => {
     loadData();
-  }, []);
+  }, [weekStart]);
+
+  // Update weekStart when URL changes
+  useEffect(() => {
+    const newWeekStart = getSelectedWeekStart();
+    if (newWeekStart.toDateString() !== weekStart.toDateString()) {
+      setWeekStart(newWeekStart);
+    }
+  }, [searchParams]);
 
   const loadData = async () => {
     try {
@@ -87,7 +166,7 @@ export default function WeekView() {
 
       await Promise.all(
         weekDays.map(async (day) => {
-          const dateStr = day.toISOString().split("T")[0];
+          const dateStr = `${day.getFullYear()}-${String(day.getMonth() + 1).padStart(2, "0")}-${String(day.getDate()).padStart(2, "0")}`;
           const res = await fetch(`/api/completions?date=${dateStr}`);
           const data = await res.json();
 
@@ -108,7 +187,7 @@ export default function WeekView() {
   };
 
   const toggleItem = async (itemId: number, date: Date) => {
-    const dateStr = date.toISOString().split("T")[0];
+    const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
 
     try {
       const response = await fetch(`/api/items/${itemId}/toggle`, {
@@ -329,17 +408,11 @@ export default function WeekView() {
   };
 
   const getWeekDays = () => {
-    const today = new Date();
-    const currentDay = today.getDay();
-    const monday = new Date(today);
-
-    const daysToMonday = currentDay === 0 ? 6 : currentDay - 1;
-    monday.setDate(today.getDate() - daysToMonday);
-
+    // weekStart is Sunday, generate Sun-Sat
     const days = [];
     for (let i = 0; i < 7; i++) {
-      const day = new Date(monday);
-      day.setDate(monday.getDate() + i);
+      const day = new Date(weekStart);
+      day.setDate(weekStart.getDate() + i);
       days.push(day);
     }
     return days;
@@ -437,7 +510,7 @@ export default function WeekView() {
   };
 
   const weekDays = getWeekDays();
-  const dayNames = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+  const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
   const today = new Date().toDateString();
 
   return (
@@ -445,6 +518,43 @@ export default function WeekView() {
       <div className="min-h-screen bg-gradient-to-br from-purple-50 to-blue-50">
         <div className="max-w-7xl mx-auto p-8">
           <Header />
+
+          {/* Week Navigation */}
+          <div className="bg-white rounded-2xl shadow-lg p-6 mb-6">
+            <div className="flex items-center justify-between flex-wrap gap-4">
+              <button
+                onClick={goToPreviousWeek}
+                className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors font-medium flex items-center gap-2"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                </svg>
+                Prev Week
+              </button>
+
+              <div className="text-center">
+                <h2 className="text-xl font-bold text-gray-800">{formatWeekRange()}</h2>
+                {!isCurrentWeek() && (
+                  <button
+                    onClick={goToCurrentWeek}
+                    className="mt-2 px-3 py-1 bg-purple-600 text-white rounded-full text-sm font-medium hover:bg-purple-700 transition-colors"
+                  >
+                    Back to Current Week
+                  </button>
+                )}
+              </div>
+
+              <button
+                onClick={goToNextWeek}
+                className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors font-medium flex items-center gap-2"
+              >
+                Next Week
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+              </button>
+            </div>
+          </div>
 
           {/* Filter Section */}
           <div className="mb-6 flex items-center justify-between">
@@ -533,7 +643,7 @@ export default function WeekView() {
                   {/* Day Cells with Items */}
                   {weekDays.map((day, dayIndex) => {
                     const isToday = day.toDateString() === today;
-                    const dateStr = day.toISOString().split("T")[0];
+                    const dateStr = `${day.getFullYear()}-${String(day.getMonth() + 1).padStart(2, "0")}-${String(day.getDate()).padStart(2, "0")}`;
 
                     // Get items for this day
                     const dayItems = items.filter((item) =>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import Header from "@/components/Header";
 
@@ -33,6 +34,20 @@ interface Toast {
 type ItemType = "habit" | "task" | "reminder";
 
 export default function Home() {
+  const searchParams = useSearchParams();
+  const router = useRouter();
+
+  // Parse date from URL or use today
+  const getSelectedDate = () => {
+    const dateParam = searchParams.get("date");
+    if (dateParam) {
+      const [year, month, day] = dateParam.split("-").map(Number);
+      return new Date(year, month - 1, day);
+    }
+    return new Date();
+  };
+
+  const [selectedDate, setSelectedDate] = useState<Date>(getSelectedDate);
   const [items, setItems] = useState<Item[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -61,6 +76,44 @@ export default function Home() {
   const [formDuration, setFormDuration] = useState("");
   const [formFocus, setFormFocus] = useState("");
 
+  // Date navigation functions
+  const navigateToDate = (date: Date) => {
+    const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+    router.push(`/?date=${dateStr}`);
+    setSelectedDate(date);
+  };
+
+  const goToPreviousDay = () => {
+    const prevDay = new Date(selectedDate);
+    prevDay.setDate(prevDay.getDate() - 1);
+    navigateToDate(prevDay);
+  };
+
+  const goToNextDay = () => {
+    const nextDay = new Date(selectedDate);
+    nextDay.setDate(nextDay.getDate() + 1);
+    navigateToDate(nextDay);
+  };
+
+  const goToToday = () => {
+    const today = new Date();
+    navigateToDate(today);
+  };
+
+  const isToday = () => {
+    const today = new Date();
+    return selectedDate.toDateString() === today.toDateString();
+  };
+
+  const formatSelectedDate = () => {
+    return selectedDate.toLocaleDateString("en-US", {
+      weekday: "long",
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    });
+  };
+
   const showToast = (message: string, type: Toast["type"] = "success") => {
     const id = Date.now();
     setToasts((prev) => [...prev, { id, message, type }]);
@@ -71,7 +124,15 @@ export default function Home() {
 
   useEffect(() => {
     loadData();
-  }, []);
+  }, [selectedDate]);
+
+  // Update selectedDate when URL changes
+  useEffect(() => {
+    const newDate = getSelectedDate();
+    if (newDate.toDateString() !== selectedDate.toDateString()) {
+      setSelectedDate(newDate);
+    }
+  }, [searchParams]);
 
   const loadData = async () => {
     try {
@@ -85,9 +146,9 @@ export default function Home() {
       const itemsData = await itemsRes.json();
       setItems(Array.isArray(itemsData) ? itemsData : []);
 
-      // Fetch today's completions for recurring items (habits)
-      const today = new Date().toISOString().split("T")[0];
-      const completionsRes = await fetch(`/api/completions?date=${today}`);
+      // Fetch completions for selected date
+      const dateStr = `${selectedDate.getFullYear()}-${String(selectedDate.getMonth() + 1).padStart(2, "0")}-${String(selectedDate.getDate()).padStart(2, "0")}`;
+      const completionsRes = await fetch(`/api/completions?date=${dateStr}`);
       if (!completionsRes.ok) {
         throw new Error("Failed to load completions");
       }
@@ -107,10 +168,11 @@ export default function Home() {
 
   const toggleItem = async (itemId: number) => {
     try {
+      const dateStr = `${selectedDate.getFullYear()}-${String(selectedDate.getMonth() + 1).padStart(2, "0")}-${String(selectedDate.getDate()).padStart(2, "0")}`;
       const response = await fetch(`/api/items/${itemId}/toggle`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ date: new Date().toISOString().split("T")[0] }),
+        body: JSON.stringify({ date: dateStr }),
       });
 
       if (!response.ok) {
@@ -321,29 +383,32 @@ export default function Home() {
     }
   };
 
-  const isScheduledToday = (item: Item) => {
-    const today = new Date().getDay();
-    const todayForSchedule = today === 0 ? 6 : today - 1;
+  const isScheduledForDate = (item: Item) => {
+    const dayOfWeek = selectedDate.getDay();
+    const dayForSchedule = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
 
     if (item.itemType === "habit") {
       if (item.scheduleType === "daily") return true;
       if (item.scheduleType === "weekly" && item.scheduleDays) {
         const scheduledDays = item.scheduleDays.split(",").map((d) => parseInt(d.trim()));
-        return scheduledDays.includes(todayForSchedule);
+        return scheduledDays.includes(dayForSchedule);
       }
     }
 
-    // Tasks and reminders without a due date appear on today
+    // Tasks and reminders without a due date appear on today only
     if (item.itemType === "task" || item.itemType === "reminder") {
-      if (!item.dueDate) return true;
+      if (!item.dueDate) {
+        // Show only on actual today
+        const today = new Date();
+        return selectedDate.toDateString() === today.toDateString();
+      }
       // Parse the date string without timezone conversion to avoid off-by-one errors
       // The dueDate comes as ISO string like "2025-11-16T00:00:00.000Z" or date string "2025-11-16"
       const dueDateStr = typeof item.dueDate === 'string' ? item.dueDate : item.dueDate.toISOString();
       const datePart = dueDateStr.split('T')[0]; // Extract "2025-11-16"
       const [year, month, day] = datePart.split('-').map(Number);
       const dueDate = new Date(year, month - 1, day); // Create local date without timezone shift
-      const todayDate = new Date();
-      return dueDate.toDateString() === todayDate.toDateString();
+      return dueDate.toDateString() === selectedDate.toDateString();
     }
 
     return false;
@@ -383,7 +448,7 @@ export default function Home() {
     });
   };
 
-  const todayItems = items.filter(isScheduledToday);
+  const todayItems = items.filter(isScheduledForDate);
   const filteredItems = todayItems.filter((item) => filterTypes.has(item.itemType));
   const sortedItems = sortItemsChronologically(filteredItems);
 
@@ -459,11 +524,48 @@ export default function Home() {
             </div>
           )}
 
+          {/* Date Navigation */}
+          <div className="bg-white rounded-2xl shadow-lg p-6 mb-6">
+            <div className="flex items-center justify-between flex-wrap gap-4">
+              <button
+                onClick={goToPreviousDay}
+                className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors font-medium flex items-center gap-2"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                </svg>
+                Yesterday
+              </button>
+
+              <div className="text-center">
+                <h2 className="text-xl font-bold text-gray-800">{formatSelectedDate()}</h2>
+                {!isToday() && (
+                  <button
+                    onClick={goToToday}
+                    className="mt-2 px-3 py-1 bg-purple-600 text-white rounded-full text-sm font-medium hover:bg-purple-700 transition-colors"
+                  >
+                    Back to Today
+                  </button>
+                )}
+              </div>
+
+              <button
+                onClick={goToNextDay}
+                className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors font-medium flex items-center gap-2"
+              >
+                Tomorrow
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+              </button>
+            </div>
+          </div>
+
           {/* Items Section */}
           <div className="bg-white rounded-2xl shadow-lg p-8 mb-6">
             <div className="flex items-center gap-3 mb-6 flex-wrap">
               <span className="text-3xl">📋</span>
-              <h2 className="text-2xl font-bold text-gray-800">Today</h2>
+              <h2 className="text-2xl font-bold text-gray-800">{isToday() ? "Today" : "Items"}</h2>
               <span className="bg-purple-100 text-purple-700 px-3 py-1 rounded-full text-sm font-semibold">
                 {sortedItems.length} items
               </span>
