@@ -91,7 +91,7 @@ export async function PATCH(
         scheduledTime: body.scheduledTime,
         dueDate: body.dueDate ? new Date(body.dueDate) : null,
         dueTime: body.dueTime,
-        priority: body.priority,
+        priority: body.priority || null,
         recurrenceType: body.recurrenceType,
         recurrenceInterval: body.recurrenceInterval,
         recurrenceUnit: body.recurrenceUnit,
@@ -99,6 +99,9 @@ export async function PATCH(
         reminderDatetime: body.reminderDatetime ? new Date(body.reminderDatetime) : null,
         reminderRecurrence: body.reminderRecurrence,
         reminderDays: body.reminderDays,
+        effort: body.effort || null,
+        duration: body.duration || null,
+        focus: body.focus || null,
       },
     });
 
