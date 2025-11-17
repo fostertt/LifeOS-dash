@@ -138,10 +138,10 @@ model Item {
   description        String?
   scheduleType       String?              @map("schedule_type")
   scheduleDays       String?              @map("schedule_days")
-  scheduledTime      Unsupported("time")? @map("scheduled_time")
+  scheduledTime      String?              @map("scheduled_time")
   dueDate            DateTime?            @map("due_date")
-  dueTime            Unsupported("time")? @map("due_time")
-  reminderDatetime   String?              @map("reminder_datetime")
+  dueTime            String?              @map("due_time")
+  reminderDatetime   DateTime?              @map("reminder_datetime")
   reminderRecurrence String?              @map("reminder_recurrence")
   reminderDays       String?              @map("reminder_days")
   isCompleted        Boolean?             @map("is_completed")
