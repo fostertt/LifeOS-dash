@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import Header from "@/components/Header";
+import EventDetailModal, { CalendarEvent } from "@/components/EventDetailModal";
 
 interface SubItem {
   id?: number;
@@ -42,7 +43,7 @@ interface Toast {
   type: "success" | "error" | "info";
 }
 
-type ItemType = "habit" | "task" | "reminder";
+type ItemType = "habit" | "task" | "reminder" | "event";
 
 export default function WeekView() {
   const searchParams = useSearchParams();
@@ -67,6 +68,7 @@ export default function WeekView() {
 
   const [weekStart, setWeekStart] = useState<Date>(getSelectedWeekStart);
   const [items, setItems] = useState<Item[]>([]);
+  const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [completions, setCompletions] = useState<Map<string, Set<number>>>(new Map());
   const [showAddMenu, setShowAddMenu] = useState(false);
@@ -79,10 +81,11 @@ export default function WeekView() {
   const [deletingItem, setDeletingItem] = useState(false);
   const [toasts, setToasts] = useState<Toast[]>([]);
   const [filterTypes, setFilterTypes] = useState<Set<ItemType>>(
-    new Set(["habit", "task", "reminder"])
+    new Set(["habit", "task", "reminder", "event"])
   );
   const [showFilterMenu, setShowFilterMenu] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
 
   // Form fields
   const [formName, setFormName] = useState("");
@@ -193,6 +196,27 @@ export default function WeekView() {
       );
 
       setCompletions(completionsMap);
+
+      // Fetch calendar events for the week
+      const weekEndDate = new Date(weekStart);
+      weekEndDate.setDate(weekStart.getDate() + 6);
+      const startDateStr = `${weekStart.getFullYear()}-${String(weekStart.getMonth() + 1).padStart(2, "0")}-${String(weekStart.getDate()).padStart(2, "0")}`;
+      const endDateStr = `${weekEndDate.getFullYear()}-${String(weekEndDate.getMonth() + 1).padStart(2, "0")}-${String(weekEndDate.getDate()).padStart(2, "0")}`;
+
+      try {
+        const eventsRes = await fetch(`/api/calendar/events?startDate=${startDateStr}&endDate=${endDateStr}`);
+        if (eventsRes.ok) {
+          const eventsData = await eventsRes.json();
+          setEvents(Array.isArray(eventsData) ? eventsData : []);
+        } else {
+          console.warn("Failed to load calendar events");
+          setEvents([]);
+        }
+      } catch (eventError) {
+        console.warn("Calendar events unavailable:", eventError);
+        setEvents([]);
+      }
+
       setLoading(false);
     } catch (err) {
       console.error("Error loading data:", err);
@@ -529,6 +553,8 @@ export default function WeekView() {
         return "✅";
       case "reminder":
         return "🔔";
+      case "event":
+        return "📅";
     }
   };
 
@@ -540,6 +566,8 @@ export default function WeekView() {
         return "bg-blue-100 text-blue-700";
       case "reminder":
         return "bg-yellow-100 text-yellow-700";
+      case "event":
+        return "bg-green-100 text-green-700";
     }
   };
 
@@ -633,7 +661,7 @@ export default function WeekView() {
 
               {showFilterMenu && (
                 <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-xl border border-gray-200 py-2 z-10">
-                  {(["habit", "task", "reminder"] as ItemType[]).map((type) => (
+                  {(["habit", "task", "reminder", "event"] as ItemType[]).map((type) => (
                     <button
                       key={type}
                       onClick={() => toggleFilter(type)}
@@ -697,6 +725,13 @@ export default function WeekView() {
                     );
                     const sortedDayItems = sortItemsChronologically(dayItems);
 
+                    // Get events for this day
+                    const dayEvents = filterTypes.has("event") ? events.filter((event) => {
+                      const eventDate = new Date(event.startTime);
+                      const eventDateStr = `${eventDate.getFullYear()}-${String(eventDate.getMonth() + 1).padStart(2, "0")}-${String(eventDate.getDate()).padStart(2, "0")}`;
+                      return eventDateStr === dateStr;
+                    }) : [];
+
                     return (
                       <div
                         key={dayIndex}
@@ -705,6 +740,36 @@ export default function WeekView() {
                         }`}
                       >
                         <div className="space-y-2">
+                          {/* Render events */}
+                          {dayEvents.map((event) => (
+                            <div
+                              key={`event-${event.id}`}
+                              onClick={() => setSelectedEvent(event)}
+                              className="text-sm border rounded-lg p-2 border-gray-200 bg-white hover:border-green-300 cursor-pointer"
+                              style={{ borderLeftWidth: '3px', borderLeftColor: event.calendarColor || '#10b981' }}
+                            >
+                              <div className="flex items-start gap-2 mb-1">
+                                <span className="text-sm flex-shrink-0">📅</span>
+                                <div className="flex-1 min-w-0">
+                                  <div className="font-medium text-xs break-words text-gray-900">
+                                    {event.title}
+                                  </div>
+                                  {event.isAllDay ? (
+                                    <div className="text-xs text-blue-600 mt-0.5">All Day</div>
+                                  ) : (
+                                    <div className="text-xs text-gray-500 mt-0.5">
+                                      {new Date(event.startTime).toLocaleTimeString('en-US', {
+                                        hour: '2-digit',
+                                        minute: '2-digit',
+                                      })}
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+
+                          {/* Render items */}
                           {sortedDayItems.map((item) => {
                             // Check completion status based on item type:
                             // - Recurring items (with scheduleType): check completions map for this date
@@ -1279,6 +1344,14 @@ export default function WeekView() {
             </div>
           ))}
         </div>
+
+        {/* Event Detail Modal */}
+        {selectedEvent && (
+          <EventDetailModal
+            event={selectedEvent}
+            onClose={() => setSelectedEvent(null)}
+          />
+        )}
       </div>
     </ProtectedRoute>
   );

@@ -9,6 +9,19 @@ export const authOptions: NextAuthOptions = {
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID!,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+      authorization: {
+        params: {
+          scope: [
+            "openid",
+            "email",
+            "profile",
+            "https://www.googleapis.com/auth/calendar.readonly",
+            "https://www.googleapis.com/auth/calendar.events",
+          ].join(" "),
+          access_type: "offline",
+          prompt: "consent",
+        },
+      },
     }),
   ],
   callbacks: {
@@ -19,13 +32,25 @@ export const authOptions: NextAuthOptions = {
       console.log("   Profile:", { email: profile?.email });
       return true;
     },
-    async session({ session, user }) {
+    async session({ session, user, trigger }) {
       console.log("📝 [NextAuth] session callback triggered");
       console.log("   Session user:", session.user);
       console.log("   Database user:", { id: user?.id, email: user?.email });
 
       if (session.user && user) {
         session.user.id = user.id;
+
+        // Get the user's Google account to include access token
+        const account = await prisma.account.findFirst({
+          where: {
+            userId: user.id,
+            provider: "google",
+          },
+        });
+
+        if (account?.access_token) {
+          (session as any).accessToken = account.access_token;
+        }
       }
 
       console.log("   Final session:", session);

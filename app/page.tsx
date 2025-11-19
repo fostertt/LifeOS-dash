@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import Header from "@/components/Header";
+import EventDetailModal, { CalendarEvent } from "@/components/EventDetailModal";
 
 interface SubItem {
   id?: number;
@@ -41,7 +42,7 @@ interface Toast {
   type: "success" | "error" | "info";
 }
 
-type ItemType = "habit" | "task" | "reminder";
+type ItemType = "habit" | "task" | "reminder" | "event";
 
 export default function Home() {
   const searchParams = useSearchParams();
@@ -59,6 +60,7 @@ export default function Home() {
 
   const [selectedDate, setSelectedDate] = useState<Date>(getSelectedDate);
   const [items, setItems] = useState<Item[]>([]);
+  const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [completedToday, setCompletedToday] = useState<Set<number>>(new Set());
@@ -72,9 +74,10 @@ export default function Home() {
   const [deletingItem, setDeletingItem] = useState(false);
   const [toasts, setToasts] = useState<Toast[]>([]);
   const [filterTypes, setFilterTypes] = useState<Set<ItemType>>(
-    new Set(["habit", "task", "reminder"])
+    new Set(["habit", "task", "reminder", "event"])
   );
   const [showFilterMenu, setShowFilterMenu] = useState(false);
+  const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
 
   // Form fields
   const [formName, setFormName] = useState("");
@@ -170,6 +173,22 @@ export default function Home() {
 
       if (completionsData.completedHabitIds) {
         setCompletedToday(new Set(completionsData.completedHabitIds));
+      }
+
+      // Fetch calendar events for the selected date
+      try {
+        const eventsRes = await fetch(`/api/calendar/events?startDate=${dateStr}&endDate=${dateStr}`);
+        if (eventsRes.ok) {
+          const eventsData = await eventsRes.json();
+          setEvents(Array.isArray(eventsData) ? eventsData : []);
+        } else {
+          // Calendar events are optional, don't fail if they don't load
+          console.warn("Failed to load calendar events");
+          setEvents([]);
+        }
+      } catch (eventError) {
+        console.warn("Calendar events unavailable:", eventError);
+        setEvents([]);
       }
 
       setLoading(false);
@@ -484,6 +503,12 @@ export default function Home() {
 
   const todayItems = items.filter(isScheduledForDate);
   const filteredItems = todayItems.filter((item) => filterTypes.has(item.itemType));
+
+  // Filter events based on filter settings
+  const filteredEvents = filterTypes.has("event") ? events : [];
+
+  // Combine items and events, then sort chronologically
+  const allDisplayItems = [...filteredItems, ...filteredEvents];
   const sortedItems = sortItemsChronologically(filteredItems);
 
   const getItemTypeLabel = (type: ItemType) => {
@@ -498,6 +523,8 @@ export default function Home() {
         return "✅";
       case "reminder":
         return "🔔";
+      case "event":
+        return "📅";
     }
   };
 
@@ -509,6 +536,8 @@ export default function Home() {
         return "bg-blue-100 text-blue-700";
       case "reminder":
         return "bg-yellow-100 text-yellow-700";
+      case "event":
+        return "bg-green-100 text-green-700";
     }
   };
 
@@ -619,7 +648,7 @@ export default function Home() {
               <span className="text-3xl">📋</span>
               <h2 className="text-2xl font-bold text-gray-800">{isToday() ? "Today" : "Items"}</h2>
               <span className="bg-purple-100 text-purple-700 px-3 py-1 rounded-full text-sm font-semibold">
-                {sortedItems.length} items
+                {sortedItems.length + filteredEvents.length} items
               </span>
               <span className="bg-green-100 text-green-700 px-3 py-1 rounded-full text-sm font-semibold">
                 {completedToday.size} completed
@@ -649,7 +678,7 @@ export default function Home() {
 
                 {showFilterMenu && (
                   <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-xl border border-gray-200 py-2 z-10">
-                    {(["habit", "task", "reminder"] as ItemType[]).map((type) => (
+                    {(["habit", "task", "reminder", "event"] as ItemType[]).map((type) => (
                       <button
                         key={type}
                         onClick={() => toggleFilter(type)}
@@ -676,7 +705,7 @@ export default function Home() {
               <div className="flex items-center justify-center py-12">
                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600"></div>
               </div>
-            ) : sortedItems.length === 0 ? (
+            ) : sortedItems.length === 0 && filteredEvents.length === 0 ? (
               <div className="text-center py-16">
                 <div className="flex justify-center mb-4">
                   <div className="w-24 h-24 bg-gradient-to-br from-purple-100 to-blue-100 rounded-full flex items-center justify-center">
@@ -699,11 +728,97 @@ export default function Home() {
                   No items for today
                 </h3>
                 <p className="text-gray-600 mb-6">
-                  Start by adding a habit, task, or reminder.
+                  Start by adding a habit, task, event, or reminder.
                 </p>
               </div>
             ) : (
               <div className="grid gap-4">
+                {/* Render calendar events */}
+                {filteredEvents.map((event) => (
+                  <div
+                    key={`event-${event.id}`}
+                    onClick={() => setSelectedEvent(event)}
+                    className="border-2 rounded-xl p-5 hover:shadow-md transition-all duration-200 cursor-pointer border-gray-100 bg-gradient-to-r from-white to-gray-50 hover:border-green-300"
+                    style={{ borderLeftWidth: '4px', borderLeftColor: event.calendarColor || '#10b981' }}
+                  >
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-2">
+                          <span className="text-xl">📅</span>
+                          <h3 className="text-lg font-semibold text-gray-900">
+                            {event.title}
+                          </h3>
+                          <span className="text-xs px-2 py-1 rounded-full font-medium bg-green-100 text-green-700">
+                            Event
+                          </span>
+                          {event.isAllDay && (
+                            <span className="text-xs px-2 py-1 rounded-full font-medium bg-blue-100 text-blue-700">
+                              All Day
+                            </span>
+                          )}
+                        </div>
+
+                        {event.description && (
+                          <p className="text-gray-600 text-sm mb-3 line-clamp-2">{event.description}</p>
+                        )}
+
+                        <div className="flex items-center gap-4 text-sm">
+                          {!event.isAllDay && (
+                            <span className="flex items-center gap-2 text-gray-700">
+                              <svg
+                                className="w-4 h-4"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                                />
+                              </svg>
+                              <span>
+                                {new Date(event.startTime).toLocaleTimeString('en-US', {
+                                  hour: '2-digit',
+                                  minute: '2-digit',
+                                })} - {new Date(event.endTime).toLocaleTimeString('en-US', {
+                                  hour: '2-digit',
+                                  minute: '2-digit',
+                                })}
+                              </span>
+                            </span>
+                          )}
+
+                          {event.location && (
+                            <span className="flex items-center gap-2 text-gray-700">
+                              <svg
+                                className="w-4 h-4"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
+                                />
+                              </svg>
+                              <span className="truncate max-w-xs">{event.location}</span>
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="ml-2">
+                        <span className="text-xs text-gray-500">{event.calendarName}</span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+
+                {/* Render regular items */}
                 {sortedItems.map((item) => {
                   // Check completion status based on item type:
                   // - Recurring items (with scheduleType): check completedToday set
@@ -1339,6 +1454,14 @@ export default function Home() {
             </div>
           ))}
         </div>
+
+        {/* Event Detail Modal */}
+        {selectedEvent && (
+          <EventDetailModal
+            event={selectedEvent}
+            onClose={() => setSelectedEvent(null)}
+          />
+        )}
       </div>
     </ProtectedRoute>
   );

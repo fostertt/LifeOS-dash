@@ -14,6 +14,7 @@ export default function Header() {
 
   const isWeekPage = pathname === "/week";
   const isListsPage = pathname?.startsWith("/lists");
+  const isSettingsPage = pathname?.startsWith("/settings");
 
   return (
     <div className="flex items-center justify-between mb-8">
@@ -64,6 +65,14 @@ export default function Header() {
             className="px-4 py-2 bg-blue-600 text-white rounded-full hover:bg-blue-700 transition-colors font-semibold"
           >
             📋 Lists
+          </Link>
+        )}
+        {!isSettingsPage && (
+          <Link
+            href="/settings/calendars"
+            className="px-4 py-2 bg-green-600 text-white rounded-full hover:bg-green-700 transition-colors font-semibold"
+          >
+            📅 Calendars
           </Link>
         )}
         <button

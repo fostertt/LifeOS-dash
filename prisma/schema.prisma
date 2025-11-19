@@ -27,6 +27,8 @@ model User {
   sessions          Session[]
   familyUsers       FamilyUser[]
   lists             List[]
+  calendarSyncs     CalendarSync[]
+  calendarEvents    CalendarEvent[]
 
   @@map("users")
 }
@@ -223,4 +225,44 @@ model ListItem {
 
   @@index([listId])
   @@map("list_items")
+}
+
+// Google Calendar Integration models
+model CalendarSync {
+  id            Int      @id @default(autoincrement())
+  userId        String   @map("user_id")
+  calendarId    String   @map("calendar_id")
+  calendarName  String   @map("calendar_name")
+  isEnabled     Boolean  @default(true) @map("is_enabled")
+  isPrimary     Boolean  @default(false) @map("is_primary")
+  syncToken     String?  @map("sync_token")
+  color         String?
+  lastSyncedAt  DateTime? @map("last_synced_at")
+  createdAt     DateTime @default(now()) @map("created_at")
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, calendarId])
+  @@index([userId])
+  @@map("calendar_syncs")
+}
+
+model CalendarEvent {
+  id              Int      @id @default(autoincrement())
+  userId          String   @map("user_id")
+  googleEventId   String?  @map("google_event_id")
+  googleCalendarId String? @map("google_calendar_id")
+  title           String
+  description     String?
+  location        String?
+  startTime       DateTime @map("start_time")
+  endTime         DateTime @map("end_time")
+  isAllDay        Boolean  @default(false) @map("is_all_day")
+  timezone        String   @default("America/New_York")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, startTime])
+  @@index([googleEventId])
+  @@map("calendar_events")
 }
