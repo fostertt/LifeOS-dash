@@ -145,3 +145,112 @@ export async function GET(request: NextRequest) {
     );
   }
 }
+
+export async function POST(request: NextRequest) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const body = await request.json();
+    const {
+      calendarId,
+      title,
+      description,
+      location,
+      startTime,
+      endTime,
+      isAllDay,
+    } = body;
+
+    if (!calendarId || !title || !startTime || !endTime) {
+      return NextResponse.json(
+        { error: 'Missing required event fields' },
+        { status: 400 }
+      );
+    }
+
+    if (calendarId !== 'lifeos') {
+      // Create Google Calendar event
+      const calendar = await getCalendarClient();
+      const event = {
+        summary: title,
+        description: description,
+        location: location,
+        start: {
+          dateTime: isAllDay ? undefined : new Date(startTime).toISOString(),
+          date: isAllDay ? new Date(startTime).toISOString().split('T')[0] : undefined,
+          timeZone: 'America/New_York',
+        },
+        end: {
+          dateTime: isAllDay ? undefined : new Date(endTime).toISOString(),
+          date: isAllDay ? new Date(endTime).toISOString().split('T')[0] : undefined,
+          timeZone: 'America/New_York',
+        },
+      };
+
+      const createdEvent = await calendar.events.insert({
+        calendarId: calendarId,
+        requestBody: event,
+      });
+
+      const calendarSync = await prisma.calendarSync.findFirst({
+        where: { calendarId: calendarId, userId: session.user.id },
+      });
+
+      const result: CalendarEvent = {
+        id: createdEvent.data.id!,
+        source: 'google',
+        calendarId: calendarId,
+        calendarName: calendarSync?.calendarName || 'Google Calendar',
+        calendarColor: calendarSync?.color,
+        title: createdEvent.data.summary || 'Untitled Event',
+        description: createdEvent.data.description || undefined,
+        location: createdEvent.data.location || undefined,
+        startTime: createdEvent.data.start?.dateTime || createdEvent.data.start?.date || '',
+        endTime: createdEvent.data.end?.dateTime || createdEvent.data.end?.date || '',
+        isAllDay: !!createdEvent.data.start?.date,
+        timezone: createdEvent.data.start?.timeZone || 'America/New_York',
+        htmlLink: createdEvent.data.htmlLink || undefined,
+      };
+      return NextResponse.json(result, { status: 201 });
+    } else {
+      // Create Life OS event
+      const newLifeOSEvent = await prisma.calendarEvent.create({
+        data: {
+          userId: session.user.id,
+          title,
+          description,
+          location,
+          startTime: new Date(startTime),
+          endTime: new Date(endTime),
+          isAllDay,
+          timezone: 'America/New_York', // Or derive from user settings
+        },
+      });
+
+      const result: CalendarEvent = {
+        id: newLifeOSEvent.id.toString(),
+        source: 'lifeos',
+        calendarId: 'lifeos',
+        calendarName: 'Life OS',
+        calendarColor: '#8B5CF6',
+        title: newLifeOSEvent.title,
+        description: newLifeOSEvent.description || undefined,
+        location: newLifeOSEvent.location || undefined,
+        startTime: newLifeOSEvent.startTime.toISOString(),
+        endTime: newLifeOSEvent.endTime.toISOString(),
+        isAllDay: newLifeOSEvent.isAllDay,
+        timezone: newLifeOSEvent.timezone,
+      };
+      return NextResponse.json(result, { status: 201 });
+    }
+  } catch (error) {
+    console.error('Error creating calendar event:', error);
+    return NextResponse.json(
+      { error: 'Failed to create calendar event' },
+      { status: 500 }
+    );
+  }
+}

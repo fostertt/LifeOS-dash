@@ -1,0 +1,153 @@
+# Vaultwarden + LifeOS Integration Notes
+
+These notes summarize the plan for integrating LifeOS (Next.js PWA) with Vaultwarden in a secure, workflow-friendly way without compromising encryption or breaking Vaultwarden’s structure. This document can be shared with other AIs or referenced later when building out the integration.
+
+---
+
+# Overview
+
+Vaultwarden is your self-hosted password + secrets manager. LifeOS is your custom PWA for personal organization, productivity, and life management. Rather than deeply integrating the two systems (which would require unsafe access to encrypted data), the ideal strategy is **workflow-level integration**, where LifeOS helps you *send data into Vaultwarden* in a smooth, secure way.
+
+This keeps cryptography, login, and storage inside Vaultwarden, while LifeOS provides convenience.
+
+---
+
+# Why Full API Integration Is Not Ideal
+
+Vaultwarden is not designed as an authentication or secrets provider for custom apps. Direct integration would require:
+
+* Handling Bitwarden/Vaultwarden tokens
+* Passing around encryption keys or master passwords
+* Decrypting vault data outside the client
+
+These approaches are either insecure or too complex.
+
+Instead, the goal should be:
+
+* **LifeOS = where information is created and managed**
+* **Vaultwarden = where sensitive information is stored securely**
+* **Integration = frictionless workflow**, not cryptographic coupling
+
+---
+
+# Levels of Integration (Recommended Approaches)
+
+Below are the three achievable levels of integration, from simplest to most advanced.
+
+## Level 1 — "Send to Vaultwarden" Button (Recommended Starting Point)
+
+A simple button in LifeOS opens Vaultwarden’s “Add Item” screen with prefilled data.
+
+Example URL:
+
+```
+https://vaultwarden.foster-home.net/#/item/add?name=My%20Note&notes=Example%20secure%20note
+```
+
+### What LifeOS Does:
+
+* Encodes text fields
+* Builds a link with name/notes filled in
+* Opens Vaultwarden in a new tab
+
+### Pros
+
+* Zero security risk
+* No backend changes
+* Vaultwarden handles encryption
+* Completely browser-native
+
+### Use Cases
+
+* Secure notes
+* Credentials created during LifeOS flows
+* API keys
+* Personal information that needs vault-level security
+
+---
+
+## Level 2 — LifeOS "Secure Note Builder" (Nice Upgrade)
+
+LifeOS provides a UI to collect secure data (title, note, username, password, etc.) and generates a **Bitwarden import JSON**.
+
+Workflow:
+
+1. User fills data in LifeOS.
+2. LifeOS generates `bitwarden.json` according to import spec.
+3. LifeOS triggers Vaultwarden import screen.
+4. User confirms import.
+
+### Pros
+
+* Great user experience
+* Still keeps encryption inside Vaultwarden
+* Zero risk to LifeOS’ security model
+
+### Cons
+
+* Requires a little more coding
+* User must still complete the import
+
+---
+
+## Level 3 — Browser Extension Messaging (Advanced, Secure)
+
+LifeOS can communicate with the Bitwarden browser extension using standard browser extension messaging.
+
+### How it works:
+
+* LifeOS sends a request: "Create item with this data"
+* Bitwarden extension prompts the user for permission
+* Extension encrypts and writes the item
+
+### Pros
+
+* True seamless integration
+* No new tabs or imports
+* No secrets exposed to LifeOS
+
+### Cons
+
+* Advanced implementation
+* Works only in browsers (not mobile)
+
+---
+
+# What NOT To Do
+
+To avoid compromising security:
+
+* ❌ Do NOT send master passwords or encryption keys through LifeOS
+* ❌ Do NOT call Vaultwarden APIs directly using raw auth tokens
+* ❌ Do NOT try to decrypt vault items inside the PWA
+* ❌ Do NOT store sensitive data inside LifeOS database
+
+Vaultwarden handles encryption for a reason—LifeOS should never cross those boundaries.
+
+---
+
+# Recommended Integration Roadmap
+
+### Phase 1 — Add "Save to Vaultwarden" Button
+
+Fast, safe, easy. This alone solves 80% of the convenience problem.
+
+### Phase 2 — Add Secure Note/Item Builder in LifeOS
+
+Cleaner workflow, user-friendly note/credential creation.
+
+### Phase 3 — Add Bitwarden Extension Messaging
+
+Optional advanced feature for seamless creation inside Vaultwarden.
+
+---
+
+# Summary
+
+LifeOS and Vaultwarden complement each other perfectly when combined at the workflow layer. Vaultwarden handles security and encryption, while LifeOS handles organization and data flow. The result is a secure, smooth, modern experience without compromising either system.
+
+This document provides the architectural plan and rationale for integrating the two systems safely and effectively.
+
+---
+
+# END

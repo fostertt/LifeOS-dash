@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { Suspense } from "react";
 import { useEffect, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import ProtectedRoute from "@/components/ProtectedRoute";
@@ -45,7 +45,7 @@ interface Toast {
 
 type ItemType = "habit" | "task" | "reminder" | "event";
 
-export default function WeekView() {
+function WeekViewContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
 
@@ -530,7 +530,7 @@ export default function WeekView() {
       const dueDateStr =
         typeof item.dueDate === "string"
           ? item.dueDate
-          : item.dueDate.toISOString();
+          : (item.dueDate as Date).toISOString();
       const datePart = dueDateStr.split("T")[0]; // Extract "2025-11-16"
       const [year, month, day] = datePart.split("-").map(Number);
       const dueDate = new Date(year, month - 1, day); // Create local date without timezone shift
@@ -1577,5 +1577,17 @@ export default function WeekView() {
         )}
       </div>
     </ProtectedRoute>
+  );
+}
+
+export default function WeekView() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gradient-to-br from-purple-50 to-blue-50 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600"></div>
+      </div>
+    }>
+      <WeekViewContent />
+    </Suspense>
   );
 }
