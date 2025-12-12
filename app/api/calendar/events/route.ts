@@ -204,7 +204,7 @@ export async function POST(request: NextRequest) {
         source: 'google',
         calendarId: calendarId,
         calendarName: calendarSync?.calendarName || 'Google Calendar',
-        calendarColor: calendarSync?.color,
+        calendarColor: calendarSync?.color || undefined,
         title: createdEvent.data.summary || 'Untitled Event',
         description: createdEvent.data.description || undefined,
         location: createdEvent.data.location || undefined,
