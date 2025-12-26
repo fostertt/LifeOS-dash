@@ -1,34 +1,20 @@
 # GEMINI.md — Life OS Project Configuration
 
-## Project Context
-This is the Life OS family productivity app.
-Tech stack:
-- Next.js 16 (App Router)
-- TypeScript
-- Prisma & PostgreSQL
-- Tailwind CSS
-- NextAuth (Google OAuth)
-- PM2 deployment on Ubuntu server
+**Primary Context:** See AI_NOTES.md in project root for full context.
 
-## Gemini Behavior Preferences
-- Keep responses structured with headings and bullet points.
-- If asked to analyze architecture, scan: app/, lib/, prisma/.
-- When discussing calendars, prioritize: app/api/calendar/, lib/google-calendar.ts.
-- Assume JWT sessions, not database sessions.
-- Do NOT recommend rewriting the schema unless specifically requested.
-- When uncertain, propose multiple solution paths.
-- Keep explanations concise unless requested otherwise.
+## Quick Gemini Scan Shortcuts
+- Calendar logic: `lib/google-calendar.ts` + `app/api/calendar/*`
+- Authentication: `lib/auth.ts`, `app/api/auth/*`
+- Database schema: `prisma/schema.prisma`
+- Full architecture: `@./`
 
-## Large Codebase Guidance
-If asked to:
-- "Find all calendar logic" → scan `lib/google-calendar.ts` + `app/api/calendar/*`
-- "Explain event creation flow" → scan calendar routes + prisma models
-- "Audit authentication" → scan `lib/auth.ts`, `app/api/auth/*`
-- "Map project architecture" → scan entire project with `@./`
+## Current State (Dec 12, 2025)
+- Recently recovered to working state
+- JWT sessions (not database sessions)
+- PostgreSQL with Prisma
+- See docs/20251212_RECOVERY-SESSION-STATUS.md
 
-## Output Style
-- Prefer short summaries first, detailed analysis second.
-- Provide code examples in TypeScript by default.
-- Avoid unnecessary changes or over-engineering.
-- Refer to actual file paths in your explanations.
-
+## Key Constraints
+- Don't suggest switching from JWT to database sessions
+- Don't recommend schema rewrites without asking
+- Check AI_NOTES.md for architectural decisions
