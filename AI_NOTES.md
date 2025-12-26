@@ -1,654 +1,391 @@
-# 📘 AI_PLAYBOOK.md  
-*Project: Life OS (Next.js PWA)*  
-*Author: Tyrrell Foster*  
-*Server: foster-server (192.168.50.75)*  
+# AI_NOTES.md - Life OS
+
+**Last Updated:** December 12, 2025  
+**Project Type:** Web Application - Family Productivity Platform  
+**Primary AI Tool:** Claude (Desktop Commander for file ops, Claude Pro for planning)  
+**Status:** Active - Recently Recovered to Working State
 
 ---
 
-# 🧩 TL;DR for Any AI (Read This First)
+## 📋 Quick Context
 
-If you are **ChatGPT**, **Claude**, **Gemini**, or **NotebookLM**, follow these rules:
-
-- **Read this file top-to-bottom before offering advice.**
-- Respect all **Decisions** in this document unless explicitly told to revisit them.
-- When making suggestions, prefer **incremental improvements**, not rewrites.
-- Default tech assumptions:
-  - **Next.js 16**
-  - **React**
-  - **TypeScript**
-  - **Prisma**
-  - **PostgreSQL**
-  - **Server-centric dev (VS Code Remote SSH)**
-- When the task involves:
-  - **Architecture, infra, planning → ChatGPT**
-  - **Coding & implementation → Claude**
-  - **Large codebase scanning → Gemini CLI**
-  - **Long-term project memory → NotebookLM**
-- Avoid reinventing wheels (custom sync engines, etc.).
-- Keep answers focused, practical, and aligned with the project’s real-world scope.
+Life OS is a self-hosted family productivity platform combining tasks, habits, reminders, smart lists, and Google Calendar integration into a unified dashboard. Replaces scattered Google services (Calendar, Keep, Tasks) with a single interface optimized for family coordination and daily planning.
 
 ---
 
-# 🎯 Project Purpose
+## 🔄 Last Session (Dec 12, 2025)
 
-Life OS is a comprehensive family productivity application that unifies:
-
-- Google Calendar  
-- Google Keep  
-- Google Tasks  
-- + Additional features like:
-  - Meal planning  
-  - Recipes  
-  - Notifications  
-  - Shared lists  
-  - Enhanced filtering  
-  - Family-centric workflows  
-
-**Core Philosophy:**  
-Solve *family productivity* first — broader product strategy comes second.
-
-**Tech Stack:**
-
-- Next.js 16, TypeScript  
-- Prisma ORM  
-- PostgreSQL  
-- Docker + PM2 on Ubuntu  
-- Nginx Proxy Manager + Cloudflare  
-- OAuth via NextAuth.js (JWT sessions)  
-- Production URL: https://lifeos.foster-home.net  
+- **Completed:** Restored working state from Dec 4 snapshot (commit 3cdf3fd), fixed TypeScript error in calendar events route, manually created user record in database, committed to new branch `working-dec-12-2025`
+- **Next:** Systematically test all features (especially calendar sync), fix auto user creation for new sign-ins, verify week view and habit tracking
+- **Blocked:** None currently
+- **Details:** See `docs/20251212_RECOVERY-SESSION-STATUS.md` for comprehensive recovery documentation
 
 ---
 
-# 👥 AI Roles (Full Expanded Version)
+## 🛠️ Tech Stack
 
-## 🧠 ChatGPT (GPT‑5.1 Thinking) — **The Architect**
-Use ChatGPT for:
-
-- Architecture & system design  
-- Database schema & data modeling  
-- Infrastructure (Docker, PM2, Nginx, reverse proxy)  
-- DevOps + homelab tasks  
-- Tradeoff analysis  
-- Planning & roadmaps  
-- Designing complex features (meal planning, cross-calendar logic)
-
-**Example prompts:**
-
-- “Design the data model for meal planning.”  
-- “Help plan the NFL scraper architecture for Spring 2026.”  
-- “Compare Server Actions vs API routes for Life OS.”  
-- “How should I structure multi-calendar integration?”  
+- **Languages:** TypeScript, JavaScript
+- **Framework:** Next.js 16 (App Router, React, Tailwind CSS)
+- **Infrastructure:** Self-hosted Ubuntu Server 24.04, PM2 process manager, Docker (PostgreSQL only), Nginx Proxy Manager, Cloudflare DNS
+- **Database:** PostgreSQL 16 (Docker container `lifeos_postgres`)
+- **Key Dependencies:** NextAuth.js (OAuth), Prisma ORM, Google Calendar API, googleapis
 
 ---
 
-## 🧠 Claude Sonnet 4.5 — **The Builder**
-Use Claude Code to:
+## 🎯 AI Tool Routing
 
-- Implement features  
-- Write TypeScript  
-- Fix bugs  
-- Refactor  
-- Review and optimize code  
-- Explain unfamiliar code  
-- Apply changes across multiple files
-- Follow your project instructions automatically
-
-This is your **primary coding AI**.
-
-**Workflow:**
-
-1. Get architectural direction from ChatGPT  
-2. Implement in VS Code Remote SSH  
-3. Test & debug  
-4. Deploy using PM2 or Stream Deck  
+- **Planning/Architecture:** Claude Pro (this interface)
+- **Implementation:** Claude Code (for sandboxed development), Desktop Commander (for direct file edits on server)
+- **Codebase Scanning:** Not needed (small project, ~15 routes)
+- **Quick Scripts:** Claude Pro or Claude Code
+- **Documentation:** Claude Pro
+- **Troubleshooting:** Claude Pro with PM2 logs and Prisma errors
 
 ---
 
-## 🧠 Gemini Pro + CLI — **The Analyst**
-Use Gemini CLI for:
+## 🔒 Key Decisions (Do Not Break Without Asking)
 
-- Large‑context scanning  
-- Repo-wide analysis  
-- Pattern detection  
-- Finding references across entire project  
-- Security & implementation checks  
-- Test coverage mapping  
+### Decision 1: JWT Sessions Without Database Adapter
+**Made:** November 24, 2025  
+**Reasoning:** Database sessions with PrismaAdapter caused `OAuthAccountNotLinked` errors and sign-in loops. JWT strategy stores tokens in encrypted cookies, eliminates account linking complexity, enables auto token refresh.  
+**Alternatives Considered:** Database sessions (broken), hybrid approach (too complex)  
+**Current Issue:** Users don't auto-create in database, requires manual SQL insert
 
-**Examples:**
+### Decision 2: Unified Item Model for Tasks/Habits/Reminders
+**Made:** November 2025 (Phase 4 migration)  
+**Reasoning:** Single `items` table with `itemType` discriminator enables cross-tool workflows, shared metadata (priority, effort, duration, focus), and unified querying.  
+**Alternatives Considered:** Separate tables (limits shared features), complete merge with legacy habits table (too risky)
 
+### Decision 3: Self-Hosted on Home Server
+**Made:** Project inception  
+**Reasoning:** Full control, no subscription costs, family data stays private, learning opportunity for infrastructure management.  
+**Alternatives Considered:** Cloud hosting (recurring costs), managed services (less control)
+
+### Decision 4: PostgreSQL Over SQLite
+**Made:** November 2025  
+**Reasoning:** Multi-machine access required, SQLite had locking issues, PostgreSQL better for concurrent users and future family features.  
+**Alternatives Considered:** SQLite (broken for multi-machine), MySQL (no compelling advantage)
+
+---
+
+## 📊 Current State
+
+**Status:** Active - Core Features Working  
+**Last Worked:** December 12, 2025  
+**Working?** Yes - Core CRUD operations verified, calendar integration present but needs testing
+
+**What's Working:**
+- Google OAuth authentication (JWT sessions)
+- Creating/editing tasks, habits, reminders
+- Smart lists with filtering
+- Date navigation (Today and Week views)
+- PM2 process management with auto-restart
+- HTTPS via Nginx Proxy Manager + Cloudflare
+- Database persistence (PostgreSQL)
+
+**What's Not Working / Known Issues:**
+- [ ] New user sign-in doesn't auto-create database record (requires manual SQL)
+- [ ] Google Calendar sync button present but functionality untested post-recovery
+- [ ] Week view needs verification
+- [ ] Habit completion tracking needs testing
+- [ ] Task recurrence needs testing
+- [ ] Calendar event creation (if implemented) status unknown
+
+**Next Actions (Prioritized):**
+1. [ ] Test Google Calendar sync end-to-end
+2. [ ] Fix auto user creation in JWT callback or add back adapter properly
+3. [ ] Systematically test all features and document status
+4. [ ] Create stable git tag for this working state
+5. [ ] Set up database backup strategy
+
+---
+
+## 🧩 Project Structure
+
+```
+dashboard/
+├── app/                          # Next.js App Router
+│   ├── page.tsx                  # Today view (main dashboard)
+│   ├── week/page.tsx            # Week view
+│   ├── lists/                   # Smart lists management
+│   ├── settings/calendars/      # Calendar sync settings
+│   ├── auth/signin/             # Sign-in page
+│   └── api/                     # Backend API routes
+│       ├── auth/[...nextauth]/  # NextAuth OAuth handler
+│       ├── items/               # Tasks/habits/reminders CRUD
+│       ├── lists/               # Smart lists API
+│       └── calendar/            # Google Calendar integration
+├── components/                   # React components
+├── lib/                         # Utilities (auth, prisma, google-calendar)
+├── types/                       # TypeScript definitions
+├── prisma/                      # Database schema & migrations
+├── docs/                        # Project documentation
+├── AI_NOTES.md                  # This file - AI context
+└── .env                         # Environment variables (not in git)
+```
+
+---
+
+## ⚡ Common Commands
+
+### Development
 ```bash
-gemini -p "@./ Give me an overview of the entire project"
+# Navigate to project
+cd ~/projects/dashboard
 
-gemini -p "@src/ @lib/ Has dark mode been implemented?"
-
-gemini -p "@src/ @middleware/ Is JWT auth implemented properly?"
-
-gemini -p "@src/payment/ @tests/ Is payment module fully tested?"
-```
-
-**When to use:**
-
-- Repo > 50 files  
-- Complex multi-file searches  
-- NFL scraper (Spring 2026)  
-- Research-heavy tasks  
-
----
-
-## 🧠 NotebookLM — **The Historian** (Use Later)
-
-Feed it:
-
-- Architecture decisions  
-- Long-term planning notes  
-- Deep-feature docs  
-- Meeting notes  
-- Multi-month project evolution  
-
-Use when the project becomes long-lived or complex.
-
----
-
-# 🧩 Key Decisions (Do Not Break Without Asking)
-
-### 🧩 PostgreSQL Over SQLite  
-**Reason:** Reliability, concurrency, multi-machine access, production-grade performance.
-
-### 🧩 JWT Sessions Over Database Sessions  
-**Reason:** Fixed OAuth linking issues, simplified auth, improved performance.
-
-### 🧩 “View Here, Edit There” Calendar Behavior  
-Life OS:
-- Creates simple events  
-- Redirects user to Google/Outlook for complex editing  
-**Reason:** Avoid rebuilding entire calendar UX.
-
-### 🧩 Use Power Automate (or n8n) for Sync  
-**Reason:** Avoid custom sync engines — too complex, high maintenance.
-
-### 🧩 Next.js + TypeScript + Prisma Required  
-Established best match for long-term maintainability.
-
-### 🧩 Server-Centric Dev Environment  
-Everything lives in:  
-`/home/fostertt/projects/dashboard/`  
-developed through VS Code Remote SSH.
-
----
-
-# 🚫 Please Avoid (Important Guardrails)
-
-AI should NOT:
-
-- Suggest building a full sync engine  
-- Replace PostgreSQL with SQLite  
-- Propose rewrites unless explicitly requested  
-- Add heavy dependencies for small tasks  
-- Create overly complex architectures  
-- Suggest editing calendars entirely inside Life OS  
-- Write CSS without Tailwind unless asked  
-- Override server-centric dev workflow  
-
----
-
-# 📁 Project Structure (Canonical)
-
-```
-/home/fostertt/projects/dashboard/
-├── app/
-│   ├── api/
-│   ├── page.tsx
-│   ├── week/
-│   └── settings/
-├── components/
-├── lib/
-│   ├── auth.ts
-│   ├── google-calendar.ts
-│   └── prisma.ts
-├── prisma/
-│   └── schema.prisma
-├── public/
-├── types/
-└── ...
-```
-
-Future repos:
-
-```
-/projects/
-├── dashboard/        # Life OS
-├── nfl-scraper/      # Spring 2026
-├── ai-playground/
-└── infra/
-```
-
----
-
-## 🔧 Common Development Tasks
-
-### Deploy Life OS
-```bash
-cd /home/fostertt/projects/dashboard
-git pull origin master
+# Build for production
 npm run build
+
+# Start with PM2
+pm2 start npm --name lifeos -- start
+
+# Or restart existing
 pm2 restart lifeos
-# Verify: https://lifeos.foster-home.net
-```
 
-**Future: Stream Deck button does all this in one press**
-
-### Check Logs
-```bash
+# Watch logs
 pm2 logs lifeos
-pm2 logs lifeos --lines 50
-pm2 logs lifeos --err  # Errors only
+pm2 logs lifeos --err  # errors only
 ```
 
-### Database Access
+### Database
 ```bash
-# Connect to PostgreSQL
+# Access PostgreSQL
 docker exec -it lifeos_postgres psql -U lifeos_admin -d lifeos_db
 
 # Common queries
-SELECT * FROM users;
-SELECT * FROM calendar_syncs;
-SELECT COUNT(*) FROM items WHERE type = 'task';
+SELECT id, email FROM users;
+SELECT id, name, "itemType" FROM items WHERE "userId" = '110753093651931352478';
+
+# Manual user creation (when needed)
+INSERT INTO users (id, email, name, email_verified, created_at, updated_at)
+VALUES ('GOOGLE_ID_HERE', 'email@example.com', 'Name', NOW(), NOW(), NOW());
+
+# Exit
+\q
 ```
 
-### View Running Services
+### Deployment
 ```bash
-pm2 status              # Life OS process
-docker ps              # All containers
-docker logs lifeos_postgres  # DB logs
-```
-
-### Git Workflow
-```bash
-# Standard workflow
-git status
-git add -A
-git commit -m "descriptive message"
-git push origin master
-
-# Feature branches (for big changes)
-git checkout -b calendar-integration
-# ... do work ...
-git checkout master
-git merge calendar-integration
-```
-
----
-
-## 🎯 Current Project State (Nov 2025)
-
-### ✅ Completed Features
-- Task, habit, and reminder management
-- Sub-tasks and sub-habits with hierarchical completion
-- Smart Lists with two-way sync
-- Date navigation (Today and Week views)
-- Google OAuth authentication with JWT sessions
-- Automatic token refresh (no hourly re-auth)
-- Google Calendar read integration
-- Calendar event display with color coding
-- "Edit in Google" buttons for native editing
-
-### 🚧 In Progress
-- **Calendar Integration (Weekends 1-2):**
-  - Add Outlook OAuth and read support
-  - Multi-calendar unified view
-  - Event creation from Life OS
-  - Push to Google/Outlook/Both
-  - "Sync" button for manual refresh
-
-### 📋 Upcoming Features
-- **Short-term (Next 3 months):**
-  - Microsoft Outlook calendar support (Weekends 1-2)
-  - Event creation with calendar selector (Weekend 2)
-  - Stream Deck workflow integration
-
-- **Medium-term (Next 6 months):**
-  - Recipe storage and meal planning
-  - PWA capabilities for mobile
-  - Enhanced family sharing features
-  - Dark mode
-
-- **Long-term (2026):**
-  - NFL web scraper project (Spring 2026)
-  - Multi-user support expansion
-  - Health app integration
-  - Mobile app (maybe - PWA preferred) 
-
----
-## 🔑 Key Technical Decisions
-
-### Why JWT Sessions Over Database Sessions?
-**Decision:** Switched from database sessions (with PrismaAdapter) to JWT sessions  
-**Date:** November 2025  
-**Reason:** Fixed OAuthAccountNotLinked errors, simplified token management, faster performance  
-**Trade-off:** Can't revoke sessions server-side (acceptable for family use)
-
-### Why PostgreSQL Over SQLite?
-**Decision:** Migrated from SQLite to PostgreSQL  
-**Date:** Earlier in 2025  
-**Reason:** Multi-machine access, better reliability, production-ready  
-**Implementation:** Docker container with proper backups
-
-### Why Power Automate for Calendar Sync?
-**Decision:** Use Power Automate (free tier) for Google ↔ Outlook sync  
-**Date:** November 2025  
-**Reason:** Don't build a sync engine (complex, maintenance burden). Focus on Life OS unique features.  
-**Alternative:** n8n (self-hosted) if free tier insufficient
-
-### Why "View Here, Edit There" for Calendars?
-**Decision:** Create events in Life OS, edit complex stuff in Google/Outlook  
-**Reason:** Don't rebuild features (attendees, rooms, recurrence rules) that native apps handle perfectly  
-**User benefit:** 10 seconds to create, full power of native apps for complexity
-
----
-
-## 💡 Development Patterns & Preferences
-
-### My Working Style
-- **Conceptualize architecture myself** (with ChatGPT help)
-- **Use AI for implementation** (Claude Code primary)
-- **Handle debugging myself** (browser dev tools, logs, database queries)
-- **Deploy and manage infrastructure myself** (Docker, PM2, Nginx)
-- **Systematic approach:** Plan → Implement → Test → Debug → Deploy
-
-### Code Quality Preferences
-- TypeScript strict mode (catch errors early)
-- Explicit error handling (no silent failures)
-- Clear variable names (readability over brevity)
-- Comments for complex logic only (code should be self-documenting)
-- Consistent formatting (Prettier)
-
-### Cost-Effectiveness
-- Prefer self-hosted solutions (server already running)
-- Use free tiers when available (Power Automate, Cloudflare)
-- AI assistance for speed, not dependency
-- Build only what's needed (avoid over-engineering)
-
-## 🚀 Stream Deck Integration Plans
-
-**Purchase Decision:** Stream Deck for Christmas 2025  
-**Why:** Speeds up multi-app workflows, perfect for Life OS + server management + future NFL scraper
-
-### Planned Button Layout
-
-**Server Management Page:**
-```
-┌─────────┬─────────┬─────────┬─────────┐
-│ Deploy  │  Logs   │  PM2    │ Docker  │
-│ Life OS │ Life OS │ Status  │ Status  │
-├─────────┼─────────┼─────────┼─────────┤
-│  SSH    │  DB     │  Nginx  │ Restart │
-│ Server  │ Query   │  Logs   │   All   │
-├─────────┼─────────┼─────────┼─────────┤
-│ Vault   │  Plex   │ Pi-hole │ Backup  │
-│ warden  │  Web    │  Admin  │  Check  │
-└─────────┴─────────┴─────────┴─────────┘
-```
-
-**Life OS Development Page:**
-```
-┌─────────┬─────────┬─────────┬─────────┐
-│ Open    │ Claude  │  Test   │ Deploy  │
-│ VS Code │  Code   │ Changes │ & Open  │
-├─────────┼─────────┼─────────┼─────────┤
-│ New     │  Sync   │  View   │ Health  │
-│ Event   │  Cals   │ Today   │  Appt   │
-├─────────┼─────────┼─────────┼─────────┤
-│ChatGPT  │ Gemini  │ GitHub  │  Docs   │
-│Architect│  Scan   │  Repo   │ Notion  │
-└─────────┴─────────┴─────────┴─────────┘
-```
-
-**NFL Scraper Page (Future - Spring 2026):**
-```
-┌─────────┬─────────┬─────────┬─────────┐
-│  Run    │  Check  │  View   │ Export  │
-│ Scrape  │ Status  │ Results │  Data   │
-├─────────┼─────────┼─────────┼─────────┤
-│ Today's │ Weekly  │ Season  │ Player  │
-│ Games   │  Stats  │  Stats  │  Lookup │
-└─────────┴─────────┴─────────┴─────────┘
-```
-
----
-
-## 📚 Important Documentation
-
-### Primary Docs
-- **Current State:** `LIFEOS-CURRENT-STATE-NOV-2025.md` - Complete system overview
-- **Calendar Next Steps:** `CALENDAR-INTEGRATION-NEXT-STEPS.md` - Detailed implementation guide
-- **This File:** `AI_NOTES.md` - AI workflow and development patterns
-
-### External Resources
-- **GitHub Repo:** https://github.com/fostertt/LifeOS-dash
-- **Production URL:** https://lifeos.foster-home.net
-- **Google Cloud Console:** Project ID 190986435595
-- **Azure Portal:** For Outlook OAuth (to be set up)
-
-### Server Access
-- **SSH:** `ssh fostertt@foster-server` or `ssh fostertt@192.168.50.75`
-- **Samba:** `\\192.168.50.75\projects`
-- **Tailscale:** Remote access when away from home
-- **VS Code Remote SSH:** Primary development method
-
----
-
-## 🔄 Typical Development Workflow
-
-### Starting a New Feature
-
-**Step 1: Architecture (ChatGPT)**
-```
-Open ChatGPT
-Ask: "Design the meal planning feature for Life OS"
-Get: Data model, API structure, component hierarchy
-Document decision in this file or ARCHITECTURE.md
-```
-
-**Step 2: Implementation (Claude Code)**
-```
-Open VS Code Remote SSH to foster-server
-Open /home/fostertt/projects/dashboard
-Start Claude Code session
-Share ChatGPT's architecture
-Say: "Implement this meal planning feature"
-Claude writes code across multiple files
-```
-
-**Step 3: Testing (Manual)**
-```
+# After code changes
+cd ~/projects/dashboard
+git pull origin master  # or working branch
 npm run build
 pm2 restart lifeos
-Open https://lifeos.foster-home.net
-Test feature thoroughly
-Check logs for errors
-Test edge cases
-```
 
-**Step 4: Debug (Claude + Browser Tools)**
-```
-If bugs found:
-  - Check browser console (F12)
-  - Check network tab (API calls)
-  - Check PM2 logs
-  - Share errors with Claude
-  - Claude suggests fixes
-  - Iterate until working
-```
+# Save PM2 config (after changes)
+pm2 save
 
-**Step 5: Deploy & Document**
-```
-git add -A
-git commit -m "Add meal planning feature"
-git push origin master
-Update AI_NOTES.md with decision
-Update LIFEOS-CURRENT-STATE.md with feature status
-```
----
-
-## 🐛 Troubleshooting Quick Reference
-
-### OAuth Issues
-- **Check:** Redirect URIs match exactly in Google/Azure console
-- **Check:** Tokens in JWT session (inspect session cookie)
-- **Check:** Refresh token logic working
-- **Tool:** Browser dev tools → Application → Cookies
-
-### Calendar Not Showing Events
-- **Check:** API response in Network tab
-- **Check:** User ID matches in database
-- **Check:** Token scopes include calendar permissions
-- **Try:** Re-authenticate to get fresh tokens
-
-### Database Issues
-- **Check:** PostgreSQL container running: `docker ps`
-- **Check:** Connection string in `.env`
-- **Try:** Direct query: `docker exec -it lifeos_postgres psql -U lifeos_admin -d lifeos_db`
-- **Check:** Prisma migrations: `npx prisma migrate status`
-
-### Build/Deploy Issues
-- **Check:** PM2 logs: `pm2 logs lifeos --err`
-- **Check:** Build output: `npm run build`
-- **Check:** Node version: `node --version` (should be 18+)
-- **Check:** Disk space: `df -h`
-
-### Server Access Issues
-- **Check:** Server is powered on (duh)
-- **Check:** Tailscale connected (if remote)
-- **Check:** SSH keys: `ssh -v fostertt@foster-server`
-- **Check:** Nginx Proxy Manager status  
-
----
-
-## 📝 Quick Commands Reference
-
-### Life OS Operations
-```bash
-# Deploy
-cd ~/projects/dashboard && git pull && npm run build && pm2 restart lifeos
-
-# Logs
-pm2 logs lifeos
-pm2 logs lifeos --lines 100 --err
-
-# Status
+# Check status
 pm2 status
-pm2 monit  # Real-time monitoring
+docker ps | grep postgres
+curl http://localhost:3000  # test local
+```
 
-# Restart
+### Maintenance
+```bash
+# Check Nginx routing
+# Open http://192.168.50.76:81 (Nginx Proxy Manager admin)
+
+# Restart all services
 pm2 restart lifeos
-pm2 restart all
-
-# Stop/Start
-pm2 stop lifeos
-pm2 start lifeos
-```
-
-### Database Operations
-```bash
-# Connect
-docker exec -it lifeos_postgres psql -U lifeos_admin -d lifeos_db
-
-# Common queries (inside psql)
-\dt                                    # List tables
-\d users                              # Describe table
-SELECT * FROM users;                  # View users
-SELECT * FROM calendar_syncs;        # View calendar sync status
-SELECT COUNT(*) FROM items;           # Total items
-SELECT * FROM items WHERE type='task' AND "isCompleted"=false;  # Active tasks
-```
-
-### Docker Operations
-```bash
-# Status
-docker ps
-docker ps -a  # Include stopped containers
-
-# Logs
-docker logs lifeos_postgres
-docker logs nginx-proxy-manager
-
-# Restart
 docker restart lifeos_postgres
-docker restart nginx-proxy-manager
 
-# Rebuild
-docker compose down
-docker compose up -d
+# Check logs
+pm2 logs lifeos --lines 50
+docker logs lifeos_postgres
 ```
 
-### Git Operations
+---
+
+## 🚨 Known Issues / Gotchas
+
+**Issue 1: Server IP Address Changes**
+- **Symptoms:** Site returns 502 Bad Gateway despite app running
+- **Cause:** DHCP or network changes update server IP, Nginx proxy still points to old IP
+- **Workaround:** Update Nginx Proxy Manager destination to current IP (check with `hostname -I`)
+- **Permanent Fix:** Set static IP reservation in router for foster-server
+
+**Issue 2: OAuth Sign-In Loops**
+- **Symptoms:** "State cookie was missing" errors, endless redirect to /api/auth/callback/google
+- **Cause:** Stale OAuth state cookies from previous attempts, or adapter/JWT strategy mismatch
+- **Workaround:** Clear browser cookies for lifeos.foster-home.net, use incognito window, ensure JWT strategy (not database)
+- **Permanent Fix:** Already using JWT correctly, just need fresh browser session
+
+**Issue 3: Foreign Key Constraint Violations**
+- **Symptoms:** Error creating items/lists: `items_user_id_fkey` constraint violated
+- **Cause:** User record doesn't exist in database (JWT doesn't auto-create users)
+- **Workaround:** Manually INSERT user with Google ID from session
+- **Permanent Fix:** Add user upsert to JWT callback or properly configure adapter
+
+**Issue 4: TypeScript Null Handling**
+- **Symptoms:** Build fails with "Type 'null' is not assignable to type 'string | undefined'"
+- **Cause:** Prisma returns `null` for nullable fields, TypeScript expects `undefined`
+- **Workaround:** Use `field || undefined` to convert null to undefined
+- **Permanent Fix:** Applied to calendarColor in calendar events route
+
+---
+
+## 📝 Development Patterns & Preferences
+
+### Code Style
+- Use TypeScript strict mode, handle null/undefined explicitly
+- Prefer functional React components with hooks
+- Use Tailwind for styling (utility-first CSS)
+- API routes return `NextResponse.json()` with proper status codes
+
+### Error Handling
+- Log errors to PM2 logs with `console.error()`
+- Return user-friendly error messages in API responses
+- Foreign key errors indicate missing database records (check user exists)
+- OAuth errors usually need fresh browser session or environment variable check
+
+### Testing Strategy
+- Manual testing in production (no automated tests currently)
+- Test in incognito window after auth changes
+- Check PM2 logs after every deployment
+- Verify database state with direct SQL queries when debugging
+
+### Git Workflow
+- Create feature branches for new work
+- Commit working states before experimenting
+- Use descriptive commit messages with "WORKING STATE:" prefix for stable checkpoints
+- Push to GitHub frequently to preserve history
+
+---
+
+## 🔗 References
+
+- **Repository:** https://github.com/fostertt/dashboard
+- **Production URL:** https://lifeos.foster-home.net
+- **Documentation:** `docs/` folder in project root
+- **Server Access:** SSH via `fostertt@foster-server` or Desktop Commander at `\\foster-server.local\projects\dashboard`
+- **Google Cloud Console:** Project ID `dashboard-477701`
+- **Domain:** Managed via Namecheap, DNS via Cloudflare
+
+---
+
+## 💡 Context for AI
+
+### When working on this project, AI should:
+- Check git status and current branch before suggesting changes
+- Verify PM2 is running and rebuild after code changes
+- Test database user existence before assuming foreign key errors are code bugs
+- Use Desktop Commander for direct file edits when working on live server
+- Check `docs/` folder for recent session notes and context
+- Respect the Dec 4 snapshot (commit 3cdf3fd) as the last known good state
+
+### When working on this project, AI should NOT:
+- Switch from JWT sessions back to database sessions (causes OAuth loops)
+- Remove Prisma schema models without checking foreign key dependencies
+- Suggest migrating from PostgreSQL to SQLite (already tried, broken)
+- Remove the PrismaAdapter import (still needed even with JWT for account storage)
+- Make changes directly to master branch (use feature branches)
+- Assume calendar integration works without testing (just restored, status unclear)
+
+---
+
+## 📈 Success Metrics
+
+- [x] Family member (me) uses Life OS daily for task management
+- [ ] Google Calendar events display correctly alongside tasks
+- [ ] Zero unplanned downtime for 30 consecutive days
+- [ ] All features from Nov 24 working state verified functional
+- [ ] Wife can sign in and use (requires fixing auto user creation)
+- [ ] Mobile browser experience is usable (responsive design working)
+
+---
+
+## 🎯 Future Enhancements
+
+**Short-term (Next 1-2 months):**
+- Fix auto user creation for new sign-ins
+- Test and verify Google Calendar sync functionality
+- Add database backup automation
+- Create stable release tags in git
+- Document all working features comprehensively
+
+**Medium-term (Next 3-6 months):**
+- Multi-user/family features (shared lists, family calendar view)
+- PWA implementation for mobile home screen install
+- Notification system for reminders
+- Recipe storage and meal planning integration
+- Two-way calendar sync (create events in Life OS)
+
+**Long-term (6+ months):**
+- Native mobile apps (iOS/Android) or fully optimized PWA
+- Voice assistant integration
+- AI-powered task suggestions and smart scheduling
+- Third-party integrations (Todoist, Trello, etc.)
+- Advanced analytics and productivity insights
+
+---
+
+## 📅 Change Log (Recent Major Changes)
+
+### Dec 12, 2025 - Recovery Session: Restored Working State
+- Reset to Dec 4 snapshot (commit 3cdf3fd) after feature/google-calendar-push branch broke everything
+- Fixed TypeScript error in calendar events route (calendarColor null handling)
+- Manually created user record with Google ID 110753093651931352478
+- Committed working state to new branch `working-dec-12-2025`
+- Updated Nginx Proxy Manager to point to new server IP (.76 instead of .75)
+- Full recovery details in `docs/20251212_RECOVERY-SESSION-STATUS.md`
+
+### Nov 24, 2025 - OAuth Fix and Calendar Integration
+- Switched from database sessions to JWT sessions (fixed sign-in loops)
+- Removed PrismaAdapter dependency for sessions (kept for account storage)
+- Added automatic OAuth token refresh mechanism
+- Implemented Google Calendar integration (read-only display)
+- All features working and documented in `docs/20251124_LIFEOS-CURRENT-STATE-NOV-2025.md`
+
+### Nov 2025 - Item Model Migration (Phase 4)
+- Unified tasks, habits, and reminders into single `items` table
+- Added metadata fields: priority, effort, duration, focus
+- Implemented hierarchical sub-items
+- Migrated from SQLite to PostgreSQL for multi-machine support
+
+---
+
+## 🔧 Environment Configuration
+
+**Critical Environment Variables (.env):**
 ```bash
-# Status and diff
-git status
-git diff
-git log --oneline -10
+# Database
+DATABASE_URL="postgresql://lifeos_admin:PASSWORD@localhost:5432/lifeos_db"
 
-# Commit and push
-git add -A
-git commit -m "message"
-git push origin master
+# NextAuth
+NEXTAUTH_URL="https://lifeos.foster-home.net"
+NEXTAUTH_SECRET="[generated secret]"
 
-# Branches
-git checkout -b feature-name
-git checkout master
-git merge feature-name
-git branch -d feature-name
-
-# Undo (careful!)
-git reset --hard HEAD  # Discard all changes
-git reset HEAD~1       # Undo last commit
+# Google OAuth (from Google Cloud Console)
+GOOGLE_CLIENT_ID="190986435595-h4qnpqq4n9vk0dtu0l71s9ojbup6enot.apps.googleusercontent.com"
+GOOGLE_CLIENT_SECRET="[secret]"
 ```
 
----
-
-## 🎉 Success Metrics
-
-**You'll know this workflow is working when:**
-- [ ] Can open any project from any machine via Remote SSH
-- [ ] Know immediately which AI to ask for what
-- [ ] Development feels smooth (not fighting tools)
-- [ ] Deployments are fast and reliable
-- [ ] Can pick up projects after weeks away
-- [ ] Documentation stays current
-- [ ] Stream Deck saves 10+ minutes per day
-- [ ] Family actually uses Life OS daily
-- [ ] NFL scraper delivers value next fall
+**User Information (for manual user creation):**
+- **Google ID:** 110753093651931352478
+- **Email:** tyrrellfoster@gmail.com
+- **Name:** Tyrrell Foster
 
 ---
 
-## 🚀 Next Actions (Prioritized)
+## 📁 Important Branches
 
-### Immediate (This Week)
-1. Create this AI_NOTES.md file in Life OS repo
-2. Set up Power Automate for Google ↔ Outlook sync (15 min)
-3. Order Stream Deck for Christmas
-
-### Short-term (Next 2 Weeks)
-4. Weekend 1: Add Outlook read support to Life OS
-5. Weekend 2: Add event creation with calendar selector
-6. Test multi-calendar workflow
-
-### Medium-term (Next Month)
-7. Weekend 3: Health Plex integration
-8. Set up Stream Deck with initial button layout
-9. Optimize Stream Deck workflow based on usage
-
-### Long-term (Next 3-6 Months)
-10. Add meal planning and recipes to Life OS
-11. Start NFL scraper development (Spring 2026)
-12. Create proper AI_PLAYBOOK files for NFL scraper
-13. Consider NotebookLM if project complexity warrants
+- `master` - Should point to latest working state (needs update to match working-dec-12-2025)
+- `working-dec-12-2025` - Current working state (Dec 12 recovery)
+- `feature/google-calendar-push` - **DO NOT USE** - Contains broken WIP code
+- `baseline-working` - Minimal working state with calendar code removed (functional but limited)
 
 ---
 
-**Last Updated:** November 25, 2025 
-**Next Review:** January 2026 (after calendar integration complete)
+**INSTRUCTIONS FOR AI:**
+1. Read this file completely before making suggestions
+2. Check `docs/20251212_RECOVERY-SESSION-STATUS.md` for detailed current state
+3. Respect Key Decisions - don't suggest reverting JWT sessions or database strategy
+4. Always verify user exists in database when seeing foreign key errors
+5. Test locally (localhost:3000) before assuming server deployment issues
+6. Update this file when major decisions are made or architecture changes
+7. Use Desktop Commander for live file edits, Claude Code for sandboxed development
 
 ---
 
-*This is a living document. Update as workflows evolve, decisions are made, and new patterns emerge.*  
+*This file is your project's AI context anchor. Update the "Last Session" section at the top after each work session to maintain continuity across Claude instances and time.*
