@@ -28,3 +28,6 @@ Personal productivity dashboard built with Next.js/TypeScript and PostgreSQL.
 - Bug fixes → `bugs.md` (if recurring or instructive)
 - Technology choices → `decisions.md`
 - API endpoints / env vars → `key_facts.md`
+
+## Project Specific Gotchas
+- **TypeScript Null Handling:** Prisma returns `null` for nullable fields, but TypeScript often expects `undefined`. Use `field || undefined` to convert.

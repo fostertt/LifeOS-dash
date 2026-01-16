@@ -1,5 +1,14 @@
 # LifeOS Architecture Decisions
 
+
+### ADR-006: Vaultwarden Integration Strategy (Planned)
+**Context:** Need to integrate password management without compromising security.
+**Decision:** - LifeOS is for **Organization**; Vaultwarden is for **Encryption**.
+- **Allowed:** "Send to Vaultwarden" links, pre-filled URLs, Client-side only.
+- **Prohibited:** Server-to-server API calls, storing secrets in LifeOS DB, using Vaultwarden as Auth provider.
+**Consequences:** Zero-knowledge architecture is preserved. LifeOS never sees raw secrets.
+
+
 ### ADR-001: Migrate from Flask to Next.js (2025-12-20)
 **Context:** - Original implementation in Python Flask
 - Needed real-time updates and better client-side state management
@@ -31,3 +40,21 @@
 - ✅ Full TypeScript type safety from DB to UI
 - ✅ Automatic migrations with schema changes
 - ⚠️  Slightly heavier than raw SQL
+
+### ADR-003: JWT Sessions for Auth (2025-11-24)
+**Context:** Database sessions with PrismaAdapter caused `OAuthAccountNotLinked` errors and infinite sign-in loops.
+**Decision:** Use JWT strategy (encrypted cookies) instead of database sessions.
+**Consequences:** - ✅ Eliminates account linking complexity and loops.
+- ⚠️ Users are not auto-created in DB; requires manual SQL insert or upsert logic in callback.
+- **CRITICAL:** Do not switch back to database sessions without fixing the linking logic.
+
+### ADR-004: Unified Item Model (2025-11-01)
+**Context:** Needed shared metadata (priority, effort) across Tasks, Habits, and Reminders.
+**Decision:** Use a single `items` table with an `itemType` discriminator.
+**Alternatives:** Separate tables (rejected: limits cross-tool workflows).
+**Consequences:** Enables unified querying and easier frontend logic.
+
+### ADR-005: PostgreSQL on Home Server (2025-11-01)
+**Context:** SQLite failed with file locking issues when accessing from multiple machines.
+**Decision:** Host PostgreSQL on Docker (`lifeos_postgres`).
+**Consequences:** Robust multi-user support, requires Docker management.
