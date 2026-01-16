@@ -1,20 +1,24 @@
-# GEMINI.md — Life OS Project Configuration
+# LifeOS - Project-Specific Gemini Instructions
 
-**Primary Context:** See AI_NOTES.md in project root for full context.
+## Role
+Operational support for Next.js/Postgres environment.
 
-## Quick Gemini Scan Shortcuts
-- Calendar logic: `lib/google-calendar.ts` + `app/api/calendar/*`
-- Authentication: `lib/auth.ts`, `app/api/auth/*`
-- Database schema: `prisma/schema.prisma`
-- Full architecture: `@./`
+## Key Responsibilities
+- **Database Management**: Checking DB state, running Prisma Studio
+- **Environment**: Managing .env files and port conflicts
+- **Logs**: Monitoring standard output for dev server errors
 
-## Current State (Dec 12, 2025)
-- Recently recovered to working state
-- JWT sessions (not database sessions)
-- PostgreSQL with Prisma
-- See docs/20251212_RECOVERY-SESSION-STATUS.md
+## Common Commands
+### Development (foster-forge)
+- `npm run dev`: Start server (Port 3000)
+- `npx prisma studio`: GUI for database (Port 5555)
+- `npx prisma migrate dev`: Apply schema changes
 
-## Key Constraints
-- Don't suggest switching from JWT to database sessions
-- Don't recommend schema rewrites without asking
-- Check AI_NOTES.md for architectural decisions
+### Production (foster-core)
+- **Location**: `~/projects/dashboard/`
+- **Check Status**: `ps aux | grep next`
+- **Restart**: `npm run start` (or process manager)
+
+## Memory Access
+- Check `./docs/notes/key_facts.md` for ports/paths.
+- Log operational issues in `./docs/notes/bugs.md`.
