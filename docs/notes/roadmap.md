@@ -264,5 +264,278 @@ AI considers:
 - Adapt to your response patterns (what suggestions you actually follow)
 
 ---
+---
+
+## Recent Insights & Feature Refinements
+
+### Voice Input - Priority Elevated
+**Status:** Now a near-term priority (Phase 6-7)  
+**Why:** LifeOS isn't meant to be desktop-only. Voice capture is essential for:
+- Adding items while cooking (hands busy)
+- Capturing thoughts while driving
+- Quick task entry without context switching
+- ADHD-friendly workflow (reduce friction)
+
+**Implementation Path:**
+1. **Backend:** Integrate Whisper (open source, runs on foster-forge)
+   - ~3-5 second transcription time
+   - Fully private (no cloud APIs)
+   - One-time setup
+2. **Interface Options:**
+   - Web UI: Record button → Whisper → text field
+   - Mobile bridge: Voice message to Telegram/Discord → LifeOS
+   - Future: Direct app integration
+3. **Smart Processing:**
+   - AI cleans up messy voice input
+   - Extracts: task, priority, list type
+   - "Hey add milk and eggs to grocery list" → 2 items, correct list
+
+**Cost:** Minimal (Whisper is open source, runs locally)
+
+---
+
+### Smart Reminders - Already Planned, Adding Detail
+**Implementation Strategy:**
+- Systemd timer on foster-server (checks every 5-15 minutes)
+- Queries LifeOS database for due items
+- Sends notifications via:
+  - Email (immediate)
+  - Push notification (requires PWA or native)
+  - SMS (optional, costs money)
+  - Telegram/Discord (if using bridge)
+
+**Reminder Types:**
+1. **Time-based:** "Remind me at 3pm"
+2. **Recurring:** "Every Sunday at 10am"
+3. **Location-based:** (future) "When I'm near grocery store"
+4. **Context-aware:** "When I have 30+ minutes free"
+
+**AI Integration:**
+- Learns patterns: "You usually meal prep Sundays at 10am"
+- Proactive: "Task X has been pending 1 week (high priority)"
+- Smart timing: "You have 45 min before next meeting - here's a task"
+
+---
+
+### Mobile Strategy - Refined Approach
+
+**Phase 1: PWA (Progressive Web App)**
+- Start here - works on all devices
+- Offline capability with service workers
+- Push notifications (with some limitations)
+- No app store needed
+- Single codebase
+
+**Phase 2: Quick Access Bridge (Optional)**
+- Telegram or Discord bot
+- Quick capture: voice or text → LifeOS database
+- Full management via web UI
+- For when PWA isn't installed/convenient
+
+**Phase 3: Native Apps (If Needed)**
+- Only if PWA limitations become blocking
+- Better push notifications
+- App store presence
+- Offline performance
+
+**Decision Point:** Build PWA first, evaluate after family testing
+
+---
+
+### Patterns from Community Research
+
+**Voice-First Philosophy (from CASPER project):**
+- Design for voice input as primary, not secondary
+- Reduce friction: voice is faster than typing
+- Proactive notifications (not passive dashboard)
+- "Always available" mindset
+
+**Quick Capture Workflow (from Telegram bot project):**
+- Allow messy input, AI organizes it
+- Don't force structure during capture
+- Clean up / organize asynchronously
+- Example: "milk eggs maybe some bread and oh yeah trash bags" → 4 separate grocery items
+
+**Whisper Integration Benefits:**
+- Open source (no API costs)
+- Runs on foster-forge (private, no cloud)
+- ~3-5 second processing time (acceptable)
+- Works offline
+
+**Reminder System Design (from systemd pattern):**
+- Separate from web app (runs independently)
+- Checks database on interval
+- Multiple notification channels
+- Logged for debugging (journald)
+
+---
+
+## Updated Phase Priorities
+
+### Phase 5 (Current - Immediate)
+- Refine Item model and database schema
+- Task completion flows
+- UI/UX improvements
+- Data model for multi-user (even if not implemented yet)
+
+### Phase 6 (Next - Within 1-2 Months)
+- **Voice Input Integration** (Whisper backend + web UI)
+- **Smart Reminder System** (systemd + notifications)
+- **PWA Setup** (offline, installable, push notifications)
+- Multi-user foundation (database schema, permissions model)
+
+### Phase 7 (Near Term - 2-4 Months)
+- Shared lists functionality
+- Basic calendar integration (read-only Google Calendar sync)
+- Recipe system foundation
+- Mobile bridge (optional - Telegram/Discord bot)
+
+### Phase 8+ (Future - 4+ Months)
+- Full multi-user/family coordination
+- AI integration (proactive suggestions)
+- Location-based features
+- Advanced notifications
+- Recipe cooking mode with AI
+
+---
+
+## Technical Decisions - Updated
+
+### Voice Input: Whisper (Local)
+**Decision:** Use Whisper running on foster-forge  
+**Reasoning:**
+- ✅ Open source, no ongoing costs
+- ✅ Private (data stays on our server)
+- ✅ Good accuracy for English
+- ✅ Runs on existing infrastructure
+- ⚠️ ~3-5 second processing (acceptable)
+- ❌ Requires server connectivity
+
+**Alternative Considered:** Web Speech API (browser-based)
+- ❌ Privacy concerns (goes to Google/Apple)
+- ❌ Limited offline capability
+- ✅ No setup required
+- ✅ Instant results
+
+**Decision:** Start with Whisper, can add Web Speech API as fallback
+
+---
+
+### Mobile Strategy: PWA First
+**Decision:** Build Progressive Web App, defer native apps  
+**Reasoning:**
+- ✅ Works on all devices (iOS, Android, desktop)
+- ✅ Single codebase (easier maintenance)
+- ✅ Can be installed like an app
+- ✅ Offline capability
+- ✅ Push notifications (with some limitations)
+- ❌ Not quite as polished as native
+- ❌ Push notifications require user to "install" PWA
+
+**Alternative Considered:** Native apps (React Native or separate iOS/Android)
+- ❌ 2x development effort
+- ❌ App store approvals
+- ✅ Better push notifications
+- ✅ Better offline performance
+
+**Decision:** PWA first, revisit native if family testing shows need
+
+---
+
+### Quick Capture Bridge: Optional Telegram Bot
+**Decision:** Build if PWA proves insufficient for quick capture  
+**Reasoning:**
+- ⏸️ Defer until PWA tested
+- ✅ Easy to add later (separate service)
+- ✅ Good for voice messages on the go
+- ❌ Another system to maintain
+- ❌ Fragments user experience
+
+**Pattern to Follow:**
+- Telegram/Discord bot (input only)
+- Voice message → Whisper → LifeOS database
+- Text message → parsed → LifeOS database
+- Full management still via web UI
+- Bot is quick capture, not replacement
+
+---
+
+### Reminder System: Systemd + Multi-Channel Notifications
+**Decision:** Build Python service with systemd timer  
+**Reasoning:**
+- ✅ Simple, reliable (systemd handles scheduling)
+- ✅ Runs independently of web app
+- ✅ Easy to debug (journald logs)
+- ✅ Multiple notification channels (email, push, SMS, etc.)
+- ✅ Can add channels incrementally
+
+**Implementation:**
+1. Python script: queries PostgreSQL for due items
+2. Systemd timer: runs every 5 minutes
+3. Notification service: sends via configured channels
+4. Logging: all notifications logged to journald
+
+---
+
+## Not Doing (Clarifications)
+
+### ❌ Medication Tracking Module
+- Not a current need for the family
+- Could add later if needed
+- Simple task/reminder covers most use cases
+
+### ❌ Custom Android OS (CASPER-style)
+- Too large scope
+- Can achieve similar with PWA + voice input
+- Steal ideas (voice-first, proactive), not implementation
+
+### ❌ Separate Life Database System
+- LifeOS is our system, enhance it
+- Don't build parallel systems
+- Integrate patterns (voice, reminders) into LifeOS
+
+### ❌ Telegram-Specific Design
+- Mobile bridge could be Telegram, Discord, or anything
+- Don't lock into one platform
+- Design for platform-agnostic quick capture
+
+---
+
+## Key Principles from Research
+
+1. **Voice First, Not Voice Also**
+   - Design assuming voice input is primary
+   - Text input is backup, not default
+
+2. **Allow Messy, Organize Later**
+   - Capture workflow should be frictionless
+   - AI cleans up afterwards
+   - Don't force structure during capture
+
+3. **Proactive, Not Passive**
+   - Dashboard for management
+   - Notifications for action
+   - AI suggests, doesn't just wait to be asked
+
+4. **Mobile Input, Web Management**
+   - Quick capture anywhere (mobile)
+   - Full features on big screen (web)
+   - Sync seamlessly
+
+5. **Local Where Possible**
+   - Whisper on our server (privacy)
+   - Data in our database (control)
+   - Cloud APIs only when necessary
+
+6. **Build Incrementally**
+   - PWA before native apps
+   - Voice input before AI intelligence
+   - Core features before advanced automation
+
+---
+
+**Updated:** January 16, 2026  
+**Next Review:** After Phase 6 completion or when hitting blockers
+---
 
 **This is a living document - add ideas as they come!**
