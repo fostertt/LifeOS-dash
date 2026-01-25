@@ -534,8 +534,144 @@ AI considers:
 
 ---
 
-**Updated:** January 16, 2026  
+**Updated:** January 25, 2026
 **Next Review:** After Phase 6 completion or when hitting blockers
+
+---
+
+## Mobile-First Enhancement Plan (January 2026)
+
+**Goal:** Make LifeOS fully mobile-ready with PWA support and responsive design.
+
+### Phase 1: Duration Options ✅ COMPLETE (Jan 25, 2026)
+**Status:** Completed
+**Changes:**
+- Updated duration dropdown from vague (Quick/Medium/Long) to specific time values
+- New options: 15min, 30min, 1hr, 1-2hrs, 2-4hrs, 4-8hrs, 1-3days, 4-7days, 1-2weeks, 2+weeks
+- Applied to: Today view, Week view, Lists view (smart filters)
+
+**Testing:**
+- ✅ Can create tasks with new duration options
+- ✅ Smart list filtering works with new durations
+- ✅ Duration displays correctly on task cards
+
+---
+
+### Phase 2: Mobile Responsive Fixes (NEXT - 4-6 hours)
+
+**Target:** Make current UI usable on mobile screens
+
+**Components to Fix:**
+
+**A. Navigation Buttons**
+- Problem: Cut off on mobile screens
+- Solution: Stack vertically OR horizontal scroll OR hamburger menu on mobile (<768px)
+- Touch targets: Minimum 44px tall
+
+**B. Week View Mobile Layout**
+- Problem: 7 columns don't fit on mobile
+- Solution: Horizontal scroll OR vertical day-by-day list
+- Desktop: Keep 7-column layout
+
+**C. Today View Mobile Optimization**
+- Task cards: Full width on mobile
+- Metadata badges: Proper wrapping
+- Touch targets: 44px minimum
+- Floating + button: Don't cover content
+
+**D. PWA Configuration**
+- manifest.json: Proper icons (192x192, 512x512)
+- Display mode: "standalone"
+- Theme color: Match purple branding
+- Add viewport meta tag
+- Test "Add to Home Screen" on Android
+
+**Files to Update:**
+- `components/Header.tsx` - Navigation
+- `app/week/page.tsx` - Week view layout
+- `app/page.tsx` - Today view cards
+- `public/manifest.json` - PWA config
+- `app/layout.tsx` - Viewport meta
+
+---
+
+### Phase 3: Calendar View Improvements (2-3 weeks)
+
+**A. Week View - Time Slots**
+- Add time column (12am - 11pm)
+- Position events at actual times
+- All-day events at top
+- Google Calendar style layout
+
+**B. Month View (NEW)**
+- Calendar grid (7 cols x 5-6 rows)
+- Events as colored bars
+- Event count for multiple events
+- Click day → detail modal
+- Prev/next month navigation
+
+**C. Custom Duration Views**
+- Next 3 days
+- Next 7 days
+- Work week (Mon-Fri)
+- Next 5 days
+- Dropdown or button group selector
+
+---
+
+### Phase 4: Task Sharing with Wife (3-4 weeks)
+
+**A. User Model & Database Schema**
+- User model: id, email, name, password
+- Task model: `assignedToId`, `assignedById` (nullable)
+- List model: `sharedWith` (array of user IDs)
+- Prisma migrations
+
+**B. Task Assignment UI**
+- "Assign to" dropdown: Me / Wife / Both / Unassigned
+- Filter options: My Tasks / Wife's Tasks / Shared / All
+- Visual indicator for assigned tasks
+- Show who assigned in detail view
+
+**C. Shared Lists**
+- "Share with" option on lists
+- Grocery list defaults to shared
+- Visual indicator for shared lists
+- Both users can edit
+
+**D. Simple Authentication**
+- Update NextAuth for two users
+- Keep Google OAuth OR add email/password
+- Session tracks current user
+- Queries filter by user (unless shared)
+
+**Testing Checklist:**
+- [ ] Can assign tasks to wife
+- [ ] She can see assigned tasks when logged in
+- [ ] Shared lists visible to both users
+- [ ] Filters work correctly
+
+---
+
+### Post-Phase 4: Future Enhancements
+
+**Phase 5: Meal Planning** (TBD)
+- Recipe management
+- Meal calendar
+- Grocery list automation
+- AI recipe suggestions
+
+**Phase 6: AI Integration** (TBD)
+- Recipe adjustments
+- Proactive task suggestions
+- Smart scheduling
+
+**Phase 7: Wall Kiosk View** (TBD)
+- Large screen optimized layout
+- Family dashboard
+- Shared calendar + tasks
+- At-a-glance view
+
 ---
 
 **This is a living document - add ideas as they come!**

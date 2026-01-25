@@ -58,3 +58,27 @@
 **Context:** SQLite failed with file locking issues when accessing from multiple machines.
 **Decision:** Host PostgreSQL on Docker (`lifeos_postgres`).
 **Consequences:** Robust multi-user support, requires Docker management.
+
+### ADR-007: Production on foster-forge with PM2 (2026-01-25)
+**Context:** Originally deployed on foster-core, but foster-forge has better compute for development and production.
+**Decision:** Move production deployment to foster-forge, use PM2 for process management.
+**Alternatives:**
+- Keep on foster-core → Rejected: less resources, not where active development happens
+- Use systemd service → Considered but PM2 provides better monitoring and auto-restart
+**Consequences:**
+- ✅ Single server for dev and production simplifies deployment
+- ✅ PM2 provides process monitoring, logs, and auto-restart
+- ✅ Development and production use same database (careful with migrations)
+- ⚠️  Need to be careful not to interfere with dev work during production usage
+
+### ADR-008: Time-Based Duration Options (2026-01-25)
+**Context:** Original duration options (Quick/Medium/Long) were too vague and didn't help with time-boxing tasks.
+**Decision:** Replace with specific time-based options: 15min, 30min, 1hr, 1-2hrs, 2-4hrs, 4-8hrs, 1-3days, 4-7days, 1-2weeks, 2+weeks.
+**Alternatives:**
+- Keep vague options → Rejected: users couldn't accurately estimate or filter
+- Free-text duration → Rejected: hard to filter and inconsistent
+**Consequences:**
+- ✅ Better time-boxing and planning
+- ✅ Smart list filtering more useful
+- ✅ Can filter tasks by available time window
+- ⚠️  Existing tasks with old values (quick/medium/long) still display but won't match new filters

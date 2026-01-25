@@ -1,15 +1,12 @@
-cat > ~/projects/lifeos/docs/notes/key_facts.md << 'EOF'
 # LifeOS Project Facts
 
 ## Deployment Architecture
-- **Production (Stable)**: Runs on **foster-core** (192.168.50.76)
-  - **Path**: `~/projects/dashboard/`
-  - **Status**: Live (Next.js 16)
-  - **Database**: Local PostgreSQL (foster-core)
-  
-- **Development (Active)**: Runs on **foster-forge** (192.168.50.3)
+- **Production (Active)**: Runs on **foster-forge** (192.168.50.3, Tailscale: 100.71.138.51)
   - **Path**: `~/projects/lifeos/`
-  - **Status**: Active Development
+  - **URL**: lifeos.foster-home.net
+  - **Process Manager**: PM2
+  - **Build**: `npm run build` (Next.js production build)
+  - **Status**: Live (Next.js 16)
   - **Database**: Local PostgreSQL (foster-forge)
 
 ## Tech Stack (Versions Critical)
@@ -55,4 +52,7 @@ cat > ~/projects/lifeos/docs/notes/key_facts.md << 'EOF'
 - `/components` - React components
 - `/lib` - Utility functions, Prisma client instance
 - `/prisma` - Schema and migrations
-EOF
+
+## Recent Updates
+- **2026-01-25**: Duration options updated to time-based values (15min, 30min, 1hr, etc.)
+- **2026-01-25**: Production deployment moved to foster-forge with PM2 process manager

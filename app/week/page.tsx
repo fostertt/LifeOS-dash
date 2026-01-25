@@ -1245,9 +1245,16 @@ function WeekViewContent() {
                       className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-white text-gray-900"
                     >
                       <option value="">None</option>
-                      <option value="quick">Quick (&lt;15min)</option>
-                      <option value="medium">Medium (15-60min)</option>
-                      <option value="long">Long (&gt;1hr)</option>
+                      <option value="15min">15 min</option>
+                      <option value="30min">30 min</option>
+                      <option value="1hour">1 hour</option>
+                      <option value="1-2hours">1-2 hours</option>
+                      <option value="2-4hours">2-4 hours</option>
+                      <option value="4-8hours">4-8 hours (full day)</option>
+                      <option value="1-3days">1-3 days</option>
+                      <option value="4-7days">4-7 days</option>
+                      <option value="1-2weeks">1-2 weeks</option>
+                      <option value="2+weeks">2+ weeks</option>
                     </select>
                   </div>
 
