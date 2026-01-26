@@ -590,8 +590,8 @@ function HomeContent() {
 
   return (
     <ProtectedRoute>
-      <div className="min-h-screen bg-gradient-to-br from-purple-50 to-blue-50">
-        <div className="max-w-5xl mx-auto p-8">
+      <div className="min-h-screen bg-gradient-to-br from-purple-50 to-blue-50 overflow-x-hidden">
+        <div className="max-w-5xl mx-auto px-4 py-4 md:p-8">
           <Header />
 
           {error && (
@@ -635,7 +635,7 @@ function HomeContent() {
           )}
 
           {/* Date Navigation */}
-          <div className="bg-white rounded-2xl shadow-lg p-6 mb-6">
+          <div className="bg-white rounded-2xl shadow-lg p-3 md:p-6 mb-4 md:mb-6">
             <div className="flex items-center justify-between flex-wrap gap-4">
               <button
                 onClick={goToPreviousDay}
@@ -658,7 +658,7 @@ function HomeContent() {
               </button>
 
               <div className="text-center">
-                <h2 className="text-xl font-bold text-gray-800">
+                <h2 className="text-base font-semibold text-gray-800">
                   {formatSelectedDate()}
                 </h2>
                 {!isToday() && (
@@ -697,7 +697,7 @@ function HomeContent() {
           <div className="bg-white rounded-2xl shadow-lg p-8 mb-6">
             <div className="flex items-center gap-3 mb-6 flex-wrap">
               <span className="text-3xl">📋</span>
-              <h2 className="text-2xl font-bold text-gray-800">
+              <h2 className="text-lg font-semibold text-gray-800">
                 {isToday() ? "Today" : "Items"}
               </h2>
               <span className="bg-purple-100 text-purple-700 px-3 py-1 rounded-full text-sm font-semibold">
@@ -781,7 +781,7 @@ function HomeContent() {
                     </svg>
                   </div>
                 </div>
-                <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                <h3 className="text-base font-semibold text-gray-900 mb-2">
                   No items for today
                 </h3>
                 <p className="text-gray-600 mb-6">
@@ -795,7 +795,7 @@ function HomeContent() {
                   <div
                     key={`event-${event.id}`}
                     onClick={() => setSelectedEvent(event)}
-                    className="border-2 rounded-xl p-5 hover:shadow-md transition-all duration-200 cursor-pointer border-gray-100 bg-gradient-to-r from-white to-gray-50 hover:border-green-300"
+                    className="border-2 rounded-xl p-3 md:p-5 hover:shadow-md transition-all duration-200 cursor-pointer border-gray-100 bg-gradient-to-r from-white to-gray-50 hover:border-green-300"
                     style={{
                       borderLeftWidth: "4px",
                       borderLeftColor: event.calendarColor || "#10b981",
@@ -805,7 +805,7 @@ function HomeContent() {
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-2">
                           <span className="text-xl">📅</span>
-                          <h3 className="text-lg font-semibold text-gray-900">
+                          <h3 className="text-sm font-semibold text-gray-900">
                             {event.title}
                           </h3>
                           <span className="text-xs px-2 py-1 rounded-full font-medium bg-green-100 text-green-700">
@@ -907,7 +907,7 @@ function HomeContent() {
                   return (
                     <div
                       key={item.id}
-                      className={`border-2 rounded-xl p-5 hover:shadow-md transition-all duration-200 ${
+                      className={`border-2 rounded-xl p-3 md:p-5 hover:shadow-md transition-all duration-200 ${
                         isCompleted
                           ? "border-green-300 bg-gradient-to-r from-green-50 to-emerald-50"
                           : "border-gray-100 bg-gradient-to-r from-white to-gray-50 hover:border-purple-300"
@@ -932,7 +932,7 @@ function HomeContent() {
                               />
                             )}
                             <h3
-                              className={`text-lg font-semibold ${
+                              className={`text-sm font-semibold ${
                                 isCompleted
                                   ? "text-gray-500 line-through"
                                   : "text-gray-900"
@@ -1188,7 +1188,7 @@ function HomeContent() {
         </div>
 
         {/* Universal Add Button */}
-        <div className="fixed bottom-8 right-8 z-50">
+        <div className="fixed bottom-4 right-4 md:bottom-8 md:right-8 z-50">
           {showAddMenu && (
             <div className="absolute bottom-16 right-0 bg-white rounded-xl shadow-xl border border-gray-200 py-2 w-48 mb-2">
               <button
@@ -1230,7 +1230,7 @@ function HomeContent() {
         {showModal && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
             <div className="bg-white rounded-2xl p-8 max-w-md w-full mx-4">
-              <h2 className="text-2xl font-bold text-gray-900 mb-6">
+              <h2 className="text-lg font-semibold text-gray-900 mb-4">
                 {modalMode === "create"
                   ? `Create New ${getItemTypeLabel(selectedItemType)}`
                   : `Edit ${getItemTypeLabel(selectedItemType)}`}
@@ -1580,7 +1580,7 @@ function HomeContent() {
         {showDeleteConfirm && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60]">
             <div className="bg-white rounded-2xl p-8 max-w-sm w-full mx-4">
-              <h2 className="text-xl font-bold text-gray-900 mb-4">
+              <h2 className="text-base font-semibold text-gray-900 mb-3">
                 Delete Item?
               </h2>
               <p className="text-gray-600 mb-6">
