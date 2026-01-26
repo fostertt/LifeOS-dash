@@ -634,9 +634,67 @@ function HomeContent() {
             </div>
           )}
 
-          {/* Date Navigation */}
+          {/* Date Navigation - Compact on mobile, full on desktop */}
           <div className="bg-white rounded-2xl shadow-lg p-3 md:p-6 mb-4 md:mb-6">
-            <div className="flex items-center justify-between flex-wrap gap-4">
+            {/* Mobile: Just arrows and date */}
+            <div className="md:hidden flex items-center justify-between">
+              <button
+                onClick={goToPreviousDay}
+                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                aria-label="Previous day"
+              >
+                <svg
+                  className="w-5 h-5 text-gray-700"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M15 19l-7-7 7-7"
+                  />
+                </svg>
+              </button>
+
+              <div className="text-center flex-1">
+                <h2 className="text-sm font-semibold text-gray-900">
+                  {formatSelectedDate()}
+                </h2>
+                {!isToday() && (
+                  <button
+                    onClick={goToToday}
+                    className="mt-1 text-xs text-purple-600 hover:text-purple-700 font-medium"
+                  >
+                    Today
+                  </button>
+                )}
+              </div>
+
+              <button
+                onClick={goToNextDay}
+                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                aria-label="Next day"
+              >
+                <svg
+                  className="w-5 h-5 text-gray-700"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M9 5l7 7-7 7"
+                  />
+                </svg>
+              </button>
+            </div>
+
+            {/* Desktop: Full buttons with text */}
+            <div className="hidden md:flex items-center justify-between">
               <button
                 onClick={goToPreviousDay}
                 className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors font-medium flex items-center gap-2"
@@ -694,8 +752,9 @@ function HomeContent() {
           </div>
 
           {/* Items Section */}
-          <div className="bg-white rounded-2xl shadow-lg p-8 mb-6">
-            <div className="flex items-center gap-3 mb-6 flex-wrap">
+          <div className="bg-white rounded-2xl shadow-lg p-3 md:p-8 mb-6">
+            {/* Desktop: Show header with Today/Items title and count badges */}
+            <div className="hidden md:flex items-center gap-3 mb-6 flex-wrap">
               <span className="text-3xl">📋</span>
               <h2 className="text-lg font-semibold text-gray-800">
                 {isToday() ? "Today" : "Items"}
@@ -704,6 +763,77 @@ function HomeContent() {
                 {sortedItems.length + filteredEvents.length} items
               </span>
               <span className="bg-green-100 text-green-700 px-3 py-1 rounded-full text-sm font-semibold">
+                {completedToday.size} completed
+              </span>
+
+              {/* Filter Dropdown */}
+              <div className="ml-auto relative">
+                <button
+                  onClick={() => setShowFilterMenu(!showFilterMenu)}
+                  className="px-4 py-2 bg-gray-100 text-gray-700 rounded-full hover:bg-gray-200 transition-colors font-semibold flex items-center gap-2"
+                >
+                  <svg
+                    className="w-4 h-4"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"
+                    />
+                  </svg>
+                  Filter
+                </button>
+
+                {showFilterMenu && (
+                  <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-xl border border-gray-200 py-2 z-10">
+                    {(["habit", "task", "reminder", "event"] as ItemType[]).map(
+                      (type) => (
+                        <button
+                          key={type}
+                          onClick={() => toggleFilter(type)}
+                          className="w-full px-4 py-2 text-left hover:bg-gray-50 flex items-center gap-2"
+                        >
+                          <div
+                            className={`w-4 h-4 border-2 rounded ${
+                              filterTypes.has(type)
+                                ? "bg-purple-600 border-purple-600"
+                                : "border-gray-300"
+                            }`}
+                          >
+                            {filterTypes.has(type) && (
+                              <svg
+                                className="w-3 h-3 text-white"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={3}
+                                  d="M5 13l4 4L19 7"
+                                />
+                              </svg>
+                            )}
+                          </div>
+                          <span className="text-sm text-gray-700">
+                            {getItemTypeLabel(type)}s
+                          </span>
+                        </button>
+                      )
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Mobile: Just completed count and filter button */}
+            <div className="md:hidden flex items-center justify-between mb-3">
+              <span className="text-xs text-green-700 font-medium">
                 {completedToday.size} completed
               </span>
 
@@ -919,9 +1049,10 @@ function HomeContent() {
                             <span className="text-xl">
                               {getItemTypeIcon(item.itemType)}
                             </span>
+                            {/* Mobile: Hide priority dot (checkbox color shows priority) */}
                             {item.priority && (
                               <span
-                                className={`w-3 h-3 rounded-full flex-shrink-0 ${
+                                className={`hidden md:inline-block w-3 h-3 rounded-full flex-shrink-0 ${
                                   item.priority === "high"
                                     ? "bg-red-500"
                                     : item.priority === "medium"
@@ -940,8 +1071,9 @@ function HomeContent() {
                             >
                               {item.name}
                             </h3>
+                            {/* Mobile: Hide effort/duration/focus metadata */}
                             {(item.effort || item.duration || item.focus) && (
-                              <span className="text-xs text-gray-500">
+                              <span className="hidden md:inline text-xs text-gray-500">
                                 (
                                 {[
                                   item.effort &&
@@ -959,17 +1091,19 @@ function HomeContent() {
                                 )
                               </span>
                             )}
+                            {/* Mobile: Hide "Task" type badge (icon is enough) */}
                             <span
-                              className={`text-xs px-2 py-1 rounded-full font-medium ${getItemTypeColor(
+                              className={`hidden md:inline text-xs px-2 py-1 rounded-full font-medium ${getItemTypeColor(
                                 item.itemType
                               )}`}
                             >
                               {getItemTypeLabel(item.itemType)}
                             </span>
+                            {/* Mobile: Hide sub-items count (arrow indicator is enough) */}
                             {item.isParent &&
                               item.subItems &&
                               item.subItems.length > 0 && (
-                                <span className="bg-blue-100 text-blue-700 text-xs px-2 py-1 rounded-full font-medium">
+                                <span className="hidden md:inline bg-blue-100 text-blue-700 text-xs px-2 py-1 rounded-full font-medium">
                                   {item.subItems.length} sub-
                                   {item.itemType === "habit"
                                     ? "habits"
@@ -1082,7 +1216,21 @@ function HomeContent() {
                             onClick={() => toggleItem(item.id)}
                             className={`w-10 h-10 rounded-full border-2 transition-all flex items-center justify-center ${
                               isCompleted
-                                ? "border-green-500 bg-green-500 hover:bg-green-600"
+                                ? // Completed: use priority color
+                                  item.priority === "high"
+                                  ? "border-red-500 bg-red-500 hover:bg-red-600"
+                                  : item.priority === "medium"
+                                  ? "border-green-500 bg-green-500 hover:bg-green-600"
+                                  : item.priority === "low"
+                                  ? "border-gray-400 bg-gray-400 hover:bg-gray-500"
+                                  : "border-green-500 bg-green-500 hover:bg-green-600"
+                                : // Not completed: priority border color
+                                  item.priority === "high"
+                                ? "border-red-500 hover:border-red-600 hover:bg-red-50"
+                                : item.priority === "medium"
+                                ? "border-green-500 hover:border-green-600 hover:bg-green-50"
+                                : item.priority === "low"
+                                ? "border-gray-400 hover:border-gray-500 hover:bg-gray-50"
                                 : "border-gray-300 hover:border-green-500 hover:bg-green-50"
                             }`}
                           >

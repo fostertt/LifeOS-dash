@@ -54,5 +54,13 @@
 - `/prisma` - Schema and migrations
 
 ## Recent Updates
+- **2026-01-26**: Phase 2 mobile redesign - hamburger menu, compact UI, priority-colored checkboxes
 - **2026-01-25**: Duration options updated to time-based values (15min, 30min, 1hr, etc.)
 - **2026-01-25**: Production deployment moved to foster-forge with PM2 process manager
+
+## Mobile-Specific Behavior
+- **Navigation**: Hamburger sidebar on mobile (<768px), full nav on desktop
+- **Today View**: Compact header, hidden metadata badges (Task, duration, sub-task count)
+- **Priority Display**: Checkbox border colors (red=high, green=medium, gray=low) on mobile
+- **Spacing**: Tighter padding on mobile (p-3 vs p-8 on desktop)
+- **PWA**: Installable as standalone app on mobile devices
