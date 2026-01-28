@@ -54,13 +54,30 @@
 - `/prisma` - Schema and migrations
 
 ## Recent Updates
-- **2026-01-26**: Phase 2 mobile redesign - hamburger menu, compact UI, priority-colored checkboxes
+- **2026-01-28**: Phase 1 visual cleanup - unified priority indicators, gray checkboxes, removed clutter
+- **2026-01-28**: Filter button added to desktop nav bar and mobile header
+- **2026-01-28**: Completed task reordering (moves to bottom automatically)
+- **2026-01-28**: Week view improvements - clickable day headers, inline navigation
+- **2026-01-26**: Phase 2 mobile redesign - hamburger menu, compact UI
 - **2026-01-25**: Duration options updated to time-based values (15min, 30min, 1hr, etc.)
 - **2026-01-25**: Production deployment moved to foster-forge with PM2 process manager
 
+## Visual Design (Phase 1 Cleanup - Jan 28, 2026)
+- **Priority Indicators**: Red ! (high), gray - (low), nothing (medium)
+- **Checkboxes**: Always gray (completed = gray filled with white checkmark)
+- **Removed Clutter**: No category icons, no type badges, no Edit buttons
+- **Recurring Icon**: Inline to the right of item name
+- **Item Interaction**: Click entire item card to edit (not separate button)
+- **Completed Tasks**: Automatically move to bottom of list
+
 ## Mobile-Specific Behavior
 - **Navigation**: Hamburger sidebar on mobile (<768px), full nav on desktop
-- **Today View**: Compact header, hidden metadata badges (Task, duration, sub-task count)
-- **Priority Display**: Checkbox border colors (red=high, green=medium, gray=low) on mobile
+- **Filter Button**: In header next to profile icon on mobile, in nav bar on desktop
+- **Today/Week Views**: Compact header, hidden metadata badges (Task, duration, sub-task count)
 - **Spacing**: Tighter padding on mobile (p-3 vs p-8 on desktop)
 - **PWA**: Installable as standalone app on mobile devices
+
+## Desktop Navigation
+- **Exposed Tabs**: Today, Week, Lists, Calendars visible in top nav bar
+- **Filter Button**: Positioned right of Calendars tab
+- **Consistent Layout**: Same navigation structure across all main pages

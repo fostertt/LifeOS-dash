@@ -62,9 +62,9 @@ Life OS is a family productivity hub focused on practical daily coordination - t
 
 ---
 
-### Phase 2: Mobile Responsive Fixes ✅ MOSTLY COMPLETE (Jan 26, 2026)
+### Phase 2: Mobile Responsive Fixes ✅ COMPLETE (Jan 26-28, 2026)
 
-**Status:** Mobile UI significantly improved, some refinement needed
+**Status:** Mobile and desktop UI has been further optimized for responsive design
 
 **Completed:**
 
@@ -79,26 +79,79 @@ Life OS is a family productivity hub focused on practical daily coordination - t
 - Slide-out sidebar with Today/Week/Lists/Calendars/Sign Out
 - Compact mobile header (☰ + title + profile)
 - Sticky positioning
-- Desktop unchanged
+- Desktop unchanged (exposed nav tabs)
 
-**C. Today View Mobile Optimization** ✅
+**C. Visual Cleanup & UX Improvements** ✅ (Jan 28, 2026)
+- **Priority indicators simplified:**
+  - High: Red exclamation mark (!)
+  - Medium: Nothing displayed
+  - Low: Gray dash (-)
+- **Checkbox styling unified:**
+  - Always gray, regardless of priority
+  - Completed items: gray filled with white checkmark
+- **Removed visual clutter:**
+  - Category icons (🎯, ✅, 🔔, 📅) removed from tasks/events
+  - Type badges ("Task", "Event", "Habit") removed
+  - Edit buttons removed - items now clickable to open
+- **Recurring icon repositioned:**
+  - Moved inline to the right of item name
+- **Completed task reordering:**
+  - Completed items automatically move to bottom of list
+  - Applies to both one-time and recurring tasks
+- **Navigation improvements:**
+  - Desktop: Full nav buttons restored (Today/Week/Lists/Calendars)
+  - Desktop: Filter button added to nav bar (right of Calendars)
+  - Mobile: Filter button in header (left of profile icon)
+  - Week view: Day headers clickable to navigate to day detail
+  - Week view: Inline navigation (← date → matching Today view)
+  - Week view: Removed duplicate "Week View" heading
+- **Metadata display logic:**
+  - Effort/duration/focus metadata shown on desktop
+  - Hidden on mobile to reduce clutter
+
+**D. Today View Mobile Optimization** ✅
 - Compact date navigation (← date → on mobile)
 - Removed "Today" heading on mobile
-- Hidden metadata badges on mobile (Task, duration, sub-task count)
-- Priority shown via checkbox colors (red=high, green=medium, gray=low)
-- Hidden priority dot on mobile
 - Reduced text sizes (~30% smaller)
 - Tighter spacing (p-3 vs p-8)
 - FAB positioned bottom-4 right-4
 
-**D. Overflow Prevention** ✅
+**E. Overflow Prevention** ✅
 - Added overflow-x-hidden to container
 - Removed horizontal scroll issues
 
-**Still TODO:**
-- Week View horizontal scroll (needs mobile layout)
-- More UI polish and refinement
-- Consider smaller card height/spacing
+---
+
+### Phase 2.5: Advanced Scheduling & Recurring Tasks (Next Up)
+
+**Goal:** Enhanced scheduling capabilities and complex recurring patterns
+
+**Planned Features:**
+
+**A. Schedule View**
+- Timeline/day-planner view with hourly slots
+- Visual representation of time blocks
+- Drag-and-drop time scheduling
+- "Schedule for later" functionality
+- Time conflict detection
+
+**B. Complex Recurring Patterns**
+- Weekly patterns (specific days: Mon, Wed, Fri)
+- Monthly patterns (1st/2nd/3rd weekday, specific dates)
+- Custom intervals (every X days/weeks)
+- Recurring exceptions (skip specific dates)
+- End conditions (after X occurrences, by date, or never)
+
+**C. Recurring Task Management**
+- Better visualization of recurring series
+- Edit single instance vs. all future
+- History of completed recurring instances
+- "Skip this instance" without deleting
+
+**Notes:**
+- Branch from master for this work
+- Keep Phase 1 visual cleanup separate
+- Consider UI/UX for mobile vs desktop
 
 ---
 

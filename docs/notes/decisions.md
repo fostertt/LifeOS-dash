@@ -1,5 +1,33 @@
 # LifeOS Architecture Decisions
 
+### ADR-007: Mobile-First Visual Simplification (2026-01-28)
+
+**Context:**
+- Mobile views were cluttered with icons, badges, and buttons
+- Priority indicators used colored checkboxes which conflicted with completion state
+- Multiple redundant ways to indicate task type (icon + badge + color)
+- Edit buttons took up space and weren't necessary on clickable cards
+
+**Decision:**
+Simplify visual language to reduce cognitive load on mobile:
+- **Priority:** Text indicators only (! for high, - for low, nothing for medium)
+- **Checkboxes:** Always gray, completion shows via filled state (not color)
+- **Task type:** No icons or badges - context makes it clear
+- **Interaction:** Entire card clickable (no separate Edit button)
+- **Recurring:** Small inline icon instead of separate row
+- **Completed items:** Auto-sort to bottom to reduce visual noise
+
+**Alternatives Considered:**
+- Keep priority colors → Rejected: conflicts with completion state
+- Keep type icons → Rejected: redundant with context
+- Keep Edit buttons → Rejected: unnecessary click target
+
+**Consequences:**
+- ✅ Cleaner, more scannable mobile interface
+- ✅ Reduced visual clutter on small screens
+- ✅ Consistent interaction pattern (click anywhere on card)
+- ✅ Priority still visible but less dominant
+- ⚠️ Type information less immediately obvious (relies on context)
 
 ### ADR-006: Vaultwarden Integration Strategy (Planned)
 **Context:** Need to integrate password management without compromising security.
