@@ -499,6 +499,20 @@ function HomeContent() {
 
   const sortItemsChronologically = (items: Item[]) => {
     return items.sort((a, b) => {
+      // Check completion status (recurring vs non-recurring)
+      const isRecurringA = a.scheduleType && a.scheduleType !== "";
+      const isRecurringB = b.scheduleType && b.scheduleType !== "";
+      const isCompletedA = isRecurringA
+        ? completedToday.has(a.id)
+        : a.isCompleted || false;
+      const isCompletedB = isRecurringB
+        ? completedToday.has(b.id)
+        : b.isCompleted || false;
+
+      // Completed items go to bottom
+      if (isCompletedA && !isCompletedB) return 1;
+      if (!isCompletedA && isCompletedB) return -1;
+
       const timeA = getItemTime(a);
       const timeB = getItemTime(b);
 
@@ -592,7 +606,7 @@ function HomeContent() {
     <ProtectedRoute>
       <div className="min-h-screen bg-gradient-to-br from-purple-50 to-blue-50 overflow-x-hidden">
         <div className="max-w-5xl mx-auto px-4 py-4 md:p-8">
-          <Header />
+          <Header onFilterClick={() => setShowFilterMenu(!showFilterMenu)} />
 
           {error && (
             <div className="bg-red-50 border-2 border-red-200 rounded-xl p-4 mb-6 flex items-start gap-3">
@@ -766,127 +780,56 @@ function HomeContent() {
                 {completedToday.size} completed
               </span>
 
-              {/* Filter Dropdown */}
-              <div className="ml-auto relative">
-                <button
-                  onClick={() => setShowFilterMenu(!showFilterMenu)}
-                  className="px-4 py-2 bg-gray-100 text-gray-700 rounded-full hover:bg-gray-200 transition-colors font-semibold flex items-center gap-2"
-                >
-                  <svg
-                    className="w-4 h-4"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"
-                    />
-                  </svg>
-                  Filter
-                </button>
-
-                {showFilterMenu && (
-                  <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-xl border border-gray-200 py-2 z-10">
-                    {(["habit", "task", "reminder", "event"] as ItemType[]).map(
-                      (type) => (
-                        <button
-                          key={type}
-                          onClick={() => toggleFilter(type)}
-                          className="w-full px-4 py-2 text-left hover:bg-gray-50 flex items-center gap-2"
-                        >
-                          <div
-                            className={`w-4 h-4 border-2 rounded ${
-                              filterTypes.has(type)
-                                ? "bg-purple-600 border-purple-600"
-                                : "border-gray-300"
-                            }`}
-                          >
-                            {filterTypes.has(type) && (
-                              <svg
-                                className="w-3 h-3 text-white"
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
-                              >
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  strokeWidth={3}
-                                  d="M5 13l4 4L19 7"
-                                />
-                              </svg>
-                            )}
-                          </div>
-                          <span className="text-sm text-gray-700">
-                            {getItemTypeLabel(type)}s
-                          </span>
-                        </button>
-                      )
-                    )}
-                  </div>
-                )}
-              </div>
             </div>
 
-            {/* Mobile: Just completed count and filter button */}
+            {/* Mobile: Just completed count */}
             <div className="md:hidden flex items-center justify-between mb-3">
               <span className="text-xs text-green-700 font-medium">
                 {completedToday.size} completed
               </span>
+            </div>
 
-              {/* Filter Dropdown */}
-              <div className="ml-auto relative">
-                <button
-                  onClick={() => setShowFilterMenu(!showFilterMenu)}
-                  className="px-4 py-2 bg-gray-100 text-gray-700 rounded-full hover:bg-gray-200 transition-colors font-semibold flex items-center gap-2"
-                >
-                  <svg
-                    className="w-4 h-4"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"
-                    />
-                  </svg>
-                  Filter
-                </button>
-
-                {showFilterMenu && (
-                  <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-xl border border-gray-200 py-2 z-10">
-                    {(["habit", "task", "reminder", "event"] as ItemType[]).map(
-                      (type) => (
-                        <button
-                          key={type}
-                          onClick={() => toggleFilter(type)}
-                          className="w-full px-4 py-2 text-left hover:bg-gray-50 flex items-center gap-3"
-                        >
-                          <input
-                            type="checkbox"
-                            checked={filterTypes.has(type)}
-                            onChange={() => {}}
-                            className="w-4 h-4 text-purple-600 rounded"
-                          />
-                          <span className="text-xl">
-                            {getItemTypeIcon(type)}
-                          </span>
-                          <span className="text-sm font-medium text-gray-700">
-                            {getItemTypeLabel(type)}s
-                          </span>
-                        </button>
-                      )
-                    )}
-                  </div>
+            {/* Filter dropdown menu (triggered from header) */}
+            {showFilterMenu && (
+              <div className="fixed top-16 right-4 w-48 bg-white rounded-lg shadow-xl border border-gray-200 py-2 z-50">
+                {(["habit", "task", "reminder", "event"] as ItemType[]).map(
+                  (type) => (
+                    <button
+                      key={type}
+                      onClick={() => toggleFilter(type)}
+                      className="w-full px-4 py-2 text-left hover:bg-gray-50 flex items-center gap-2"
+                    >
+                      <div
+                        className={`w-4 h-4 border-2 rounded ${
+                          filterTypes.has(type)
+                            ? "bg-purple-600 border-purple-600"
+                            : "border-gray-300"
+                        }`}
+                      >
+                        {filterTypes.has(type) && (
+                          <svg
+                            className="w-3 h-3 text-white"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={3}
+                              d="M5 13l4 4L19 7"
+                            />
+                          </svg>
+                        )}
+                      </div>
+                      <span className="text-sm text-gray-700">
+                        {getItemTypeLabel(type)}s
+                      </span>
+                    </button>
+                  )
                 )}
               </div>
-            </div>
+            )}
 
             {loading ? (
               <div className="flex items-center justify-center py-12">
@@ -934,13 +877,9 @@ function HomeContent() {
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-2">
-                          <span className="text-xl">📅</span>
                           <h3 className="text-sm font-semibold text-gray-900">
                             {event.title}
                           </h3>
-                          <span className="text-xs px-2 py-1 rounded-full font-medium bg-green-100 text-green-700">
-                            Event
-                          </span>
                           {event.isAllDay && (
                             <span className="text-xs px-2 py-1 rounded-full font-medium bg-blue-100 text-blue-700">
                               All Day
@@ -1037,7 +976,8 @@ function HomeContent() {
                   return (
                     <div
                       key={item.id}
-                      className={`border-2 rounded-xl p-3 md:p-5 hover:shadow-md transition-all duration-200 ${
+                      onClick={() => openEditModal(item)}
+                      className={`border-2 rounded-xl p-3 md:p-5 hover:shadow-md transition-all duration-200 cursor-pointer ${
                         isCompleted
                           ? "border-green-300 bg-gradient-to-r from-green-50 to-emerald-50"
                           : "border-gray-100 bg-gradient-to-r from-white to-gray-50 hover:border-purple-300"
@@ -1046,21 +986,16 @@ function HomeContent() {
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
                           <div className="flex items-center gap-2 mb-2">
-                            <span className="text-xl">
-                              {getItemTypeIcon(item.itemType)}
-                            </span>
-                            {/* Mobile: Hide priority dot (checkbox color shows priority) */}
-                            {item.priority && (
-                              <span
-                                className={`hidden md:inline-block w-3 h-3 rounded-full flex-shrink-0 ${
-                                  item.priority === "high"
-                                    ? "bg-red-500"
-                                    : item.priority === "medium"
-                                    ? "bg-yellow-500"
-                                    : "bg-green-500"
-                                }`}
-                                title={`${item.priority} priority`}
-                              />
+                            {/* Priority indicator: red exclamation (high), nothing (medium), gray dash (low) */}
+                            {item.priority === "high" && (
+                              <span className="text-red-500 text-lg flex-shrink-0" title="High priority">
+                                !
+                              </span>
+                            )}
+                            {item.priority === "low" && (
+                              <span className="text-gray-400 text-lg flex-shrink-0" title="Low priority">
+                                -
+                              </span>
                             )}
                             <h3
                               className={`text-sm font-semibold ${
@@ -1071,7 +1006,7 @@ function HomeContent() {
                             >
                               {item.name}
                             </h3>
-                            {/* Mobile: Hide effort/duration/focus metadata */}
+                            {/* Desktop: Show effort/duration/focus metadata */}
                             {(item.effort || item.duration || item.focus) && (
                               <span className="hidden md:inline text-xs text-gray-500">
                                 (
@@ -1091,27 +1026,24 @@ function HomeContent() {
                                 )
                               </span>
                             )}
-                            {/* Mobile: Hide "Task" type badge (icon is enough) */}
-                            <span
-                              className={`hidden md:inline text-xs px-2 py-1 rounded-full font-medium ${getItemTypeColor(
-                                item.itemType
-                              )}`}
-                            >
-                              {getItemTypeLabel(item.itemType)}
-                            </span>
-                            {/* Mobile: Hide sub-items count (arrow indicator is enough) */}
-                            {item.isParent &&
-                              item.subItems &&
-                              item.subItems.length > 0 && (
-                                <span className="hidden md:inline bg-blue-100 text-blue-700 text-xs px-2 py-1 rounded-full font-medium">
-                                  {item.subItems.length} sub-
-                                  {item.itemType === "habit"
-                                    ? "habits"
-                                    : item.itemType === "task"
-                                    ? "tasks"
-                                    : "items"}
-                                </span>
-                              )}
+                            {/* Recurring icon inline on the right */}
+                            {item.scheduleType === "daily" && (
+                              <span className="ml-auto flex items-center gap-1 text-gray-600 text-xs">
+                                <svg
+                                  className="w-3 h-3"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  viewBox="0 0 24 24"
+                                >
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={2}
+                                    d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                                  />
+                                </svg>
+                              </span>
+                            )}
                           </div>
 
                           {item.description && (
@@ -1139,25 +1071,6 @@ function HomeContent() {
                                 <span>{itemTime.substring(0, 5)}</span>
                               </span>
                             )}
-
-                            {item.scheduleType === "daily" && (
-                              <span className="flex items-center gap-2 text-gray-700">
-                                <svg
-                                  className="w-4 h-4"
-                                  fill="none"
-                                  stroke="currentColor"
-                                  viewBox="0 0 24 24"
-                                >
-                                  <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    strokeWidth={2}
-                                    d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-                                  />
-                                </svg>
-                                <span className="font-medium">Recurring</span>
-                              </span>
-                            )}
                           </div>
                         </div>
 
@@ -1166,7 +1079,10 @@ function HomeContent() {
                             item.subItems &&
                             item.subItems.length > 0 && (
                               <button
-                                onClick={() => toggleExpanded(item.id)}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  toggleExpanded(item.id);
+                                }}
                                 className="w-8 h-8 rounded-lg border border-gray-300 hover:border-purple-500 hover:bg-purple-50 transition-colors flex items-center justify-center"
                                 title={
                                   expandedItems.has(item.id)
@@ -1194,44 +1110,14 @@ function HomeContent() {
                               </button>
                             )}
                           <button
-                            onClick={() => openEditModal(item)}
-                            className="w-8 h-8 rounded-lg border border-gray-300 hover:border-blue-500 hover:bg-blue-50 transition-colors flex items-center justify-center"
-                            title="Edit item"
-                          >
-                            <svg
-                              className="w-4 h-4 text-gray-600"
-                              fill="none"
-                              stroke="currentColor"
-                              viewBox="0 0 24 24"
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-                              />
-                            </svg>
-                          </button>
-                          <button
-                            onClick={() => toggleItem(item.id)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              toggleItem(item.id);
+                            }}
                             className={`w-10 h-10 rounded-full border-2 transition-all flex items-center justify-center ${
                               isCompleted
-                                ? // Completed: use priority color
-                                  item.priority === "high"
-                                  ? "border-red-500 bg-red-500 hover:bg-red-600"
-                                  : item.priority === "medium"
-                                  ? "border-green-500 bg-green-500 hover:bg-green-600"
-                                  : item.priority === "low"
-                                  ? "border-gray-400 bg-gray-400 hover:bg-gray-500"
-                                  : "border-green-500 bg-green-500 hover:bg-green-600"
-                                : // Not completed: priority border color
-                                  item.priority === "high"
-                                ? "border-red-500 hover:border-red-600 hover:bg-red-50"
-                                : item.priority === "medium"
-                                ? "border-green-500 hover:border-green-600 hover:bg-green-50"
-                                : item.priority === "low"
-                                ? "border-gray-400 hover:border-gray-500 hover:bg-gray-50"
-                                : "border-gray-300 hover:border-green-500 hover:bg-green-50"
+                                ? "border-gray-400 bg-gray-400 hover:bg-gray-500"
+                                : "border-gray-400 hover:border-gray-500 hover:bg-gray-50"
                             }`}
                           >
                             <svg
@@ -1296,11 +1182,14 @@ function HomeContent() {
                                   </div>
                                   {subItem.id && (
                                     <button
-                                      onClick={() => toggleItem(subItem.id!)}
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        toggleItem(subItem.id!);
+                                      }}
                                       className={`w-7 h-7 rounded-full border-2 transition-all flex items-center justify-center ${
                                         subItemCompleted
-                                          ? "border-green-500 bg-green-500 hover:bg-green-600"
-                                          : "border-gray-300 hover:border-green-500 hover:bg-green-50"
+                                          ? "border-gray-400 bg-gray-400 hover:bg-gray-500"
+                                          : "border-gray-400 hover:border-gray-500 hover:bg-gray-50"
                                       }`}
                                     >
                                       <svg

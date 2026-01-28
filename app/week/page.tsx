@@ -547,8 +547,22 @@ function WeekViewContent() {
     return item.dueTime || null;
   };
 
-  const sortItemsChronologically = (items: Item[]) => {
+  const sortItemsChronologically = (items: Item[], dateStr: string) => {
     return items.sort((a, b) => {
+      // Check completion status (recurring vs non-recurring)
+      const isRecurringA = a.scheduleType && a.scheduleType !== "";
+      const isRecurringB = b.scheduleType && b.scheduleType !== "";
+      const isCompletedA = isRecurringA
+        ? completions.get(dateStr)?.has(a.id) || false
+        : a.isCompleted || false;
+      const isCompletedB = isRecurringB
+        ? completions.get(dateStr)?.has(b.id) || false
+        : b.isCompleted || false;
+
+      // Completed items go to bottom
+      if (isCompletedA && !isCompletedB) return 1;
+      if (!isCompletedA && isCompletedB) return -1;
+
       const timeA = getItemTime(a);
       const timeB = getItemTime(b);
 
@@ -624,11 +638,69 @@ function WeekViewContent() {
     <ProtectedRoute>
       <div className="min-h-screen bg-gradient-to-br from-purple-50 to-blue-50">
         <div className="max-w-7xl mx-auto p-8">
-          <Header />
+          <Header onFilterClick={() => setShowFilterMenu(!showFilterMenu)} />
 
           {/* Week Navigation */}
-          <div className="bg-white rounded-2xl shadow-lg p-6 mb-6">
-            <div className="flex items-center justify-between flex-wrap gap-4">
+          <div className="bg-white rounded-2xl shadow-lg p-3 md:p-6 mb-6">
+            {/* Mobile: Compact inline navigation */}
+            <div className="flex md:hidden items-center justify-between">
+              <button
+                onClick={goToPreviousWeek}
+                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                aria-label="Previous week"
+              >
+                <svg
+                  className="w-5 h-5 text-gray-700"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M15 19l-7-7 7-7"
+                  />
+                </svg>
+              </button>
+
+              <div className="text-center flex-1">
+                <h2 className="text-sm font-semibold text-gray-900">
+                  {formatWeekRange()}
+                </h2>
+                {!isCurrentWeek() && (
+                  <button
+                    onClick={goToCurrentWeek}
+                    className="mt-1 text-xs text-purple-600 hover:text-purple-700 font-medium"
+                  >
+                    Current Week
+                  </button>
+                )}
+              </div>
+
+              <button
+                onClick={goToNextWeek}
+                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                aria-label="Next week"
+              >
+                <svg
+                  className="w-5 h-5 text-gray-700"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M9 5l7 7-7 7"
+                  />
+                </svg>
+              </button>
+            </div>
+
+            {/* Desktop: Full buttons with text */}
+            <div className="hidden md:flex items-center justify-between">
               <button
                 onClick={goToPreviousWeek}
                 className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors font-medium flex items-center gap-2"
@@ -650,7 +722,7 @@ function WeekViewContent() {
               </button>
 
               <div className="text-center">
-                <h2 className="text-xl font-bold text-gray-800">
+                <h2 className="text-base font-semibold text-gray-800">
                   {formatWeekRange()}
                 </h2>
                 {!isCurrentWeek() && (
@@ -685,61 +757,47 @@ function WeekViewContent() {
             </div>
           </div>
 
-          {/* Filter Section */}
-          <div className="mb-6 flex items-center justify-between">
-            <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-3">
-              <span className="text-3xl">📅</span>
-              Week View
-            </h2>
-
-            {/* Filter Dropdown */}
-            <div className="relative">
-              <button
-                onClick={() => setShowFilterMenu(!showFilterMenu)}
-                className="px-4 py-2 bg-white text-gray-700 rounded-full hover:bg-gray-50 transition-colors font-semibold flex items-center gap-2 shadow"
-              >
-                <svg
-                  className="w-4 h-4"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"
-                  />
-                </svg>
-                Filter
-              </button>
-
-              {showFilterMenu && (
-                <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-xl border border-gray-200 py-2 z-10">
-                  {(["habit", "task", "reminder", "event"] as ItemType[]).map(
-                    (type) => (
-                      <button
-                        key={type}
-                        onClick={() => toggleFilter(type)}
-                        className="w-full px-4 py-2 text-left hover:bg-gray-50 flex items-center gap-3"
-                      >
-                        <input
-                          type="checkbox"
-                          checked={filterTypes.has(type)}
-                          onChange={() => {}}
-                          className="w-4 h-4 text-purple-600 rounded"
-                        />
-                        <span className="text-xl">{getItemTypeIcon(type)}</span>
-                        <span className="text-sm font-medium text-gray-700">
-                          {getItemTypeLabel(type)}s
-                        </span>
-                      </button>
-                    )
-                  )}
-                </div>
+          {/* Filter dropdown menu (triggered from header) */}
+          {showFilterMenu && (
+            <div className="fixed top-16 right-4 w-48 bg-white rounded-lg shadow-xl border border-gray-200 py-2 z-50 mb-6">
+              {(["habit", "task", "reminder", "event"] as ItemType[]).map(
+                (type) => (
+                  <button
+                    key={type}
+                    onClick={() => toggleFilter(type)}
+                    className="w-full px-4 py-2 text-left hover:bg-gray-50 flex items-center gap-2"
+                  >
+                    <div
+                      className={`w-4 h-4 border-2 rounded ${
+                        filterTypes.has(type)
+                          ? "bg-purple-600 border-purple-600"
+                          : "border-gray-300"
+                      }`}
+                    >
+                      {filterTypes.has(type) && (
+                        <svg
+                          className="w-3 h-3 text-white"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={3}
+                            d="M5 13l4 4L19 7"
+                          />
+                        </svg>
+                      )}
+                    </div>
+                    <span className="text-sm text-gray-700">
+                      {getItemTypeLabel(type)}s
+                    </span>
+                  </button>
+                )
               )}
             </div>
-          </div>
+          )}
 
           {loading ? (
             <div className="flex items-center justify-center py-12">
@@ -750,16 +808,20 @@ function WeekViewContent() {
               {/* Calendar Grid - Responsive with horizontal scroll on smaller screens */}
               <div className="w-full overflow-x-auto overflow-y-auto max-h-[calc(100vh-280px)]">
                 <div className="grid grid-cols-7 gap-px bg-gray-200 min-w-[896px] md:min-w-0">
-                  {/* Day Headers */}
+                  {/* Day Headers - Clickable to navigate to day detail view */}
                   {weekDays.map((day, index) => {
                     const isToday = day.toDateString() === today;
+                    const dateStr = `${day.getFullYear()}-${String(
+                      day.getMonth() + 1
+                    ).padStart(2, "0")}-${String(day.getDate()).padStart(2, "0")}`;
                     return (
                       <div
                         key={index}
-                        className={`p-4 text-center font-semibold ${
+                        onClick={() => router.push(`/?date=${dateStr}`)}
+                        className={`p-4 text-center font-semibold cursor-pointer transition-colors ${
                           isToday
-                            ? "bg-purple-600 text-white"
-                            : "bg-gray-50 text-gray-700"
+                            ? "bg-purple-600 text-white hover:bg-purple-700"
+                            : "bg-gray-50 text-gray-700 hover:bg-gray-100"
                         }`}
                       >
                         <div className="text-sm">{dayNames[index]}</div>
@@ -787,7 +849,7 @@ function WeekViewContent() {
                         isScheduledForDay(item, day) &&
                         filterTypes.has(item.itemType)
                     );
-                    const sortedDayItems = sortItemsChronologically(dayItems);
+                    const sortedDayItems = sortItemsChronologically(dayItems, dateStr);
 
                     // Get events for this day
                     const dayEvents = filterTypes.has("event")
@@ -823,9 +885,6 @@ function WeekViewContent() {
                               }}
                             >
                               <div className="flex items-start gap-2 mb-1">
-                                <span className="text-sm flex-shrink-0">
-                                  📅
-                                </span>
                                 <div className="flex-1 min-w-0">
                                   <div className="font-medium text-xs break-words text-gray-900">
                                     {event.title}
@@ -864,50 +923,53 @@ function WeekViewContent() {
                             return (
                               <div
                                 key={item.id}
-                                className={`text-sm border rounded-lg p-2 ${
+                                onClick={() => openEditModal(item)}
+                                className={`text-sm border rounded-lg p-2 cursor-pointer ${
                                   isCompleted
                                     ? "border-green-300 bg-green-50"
                                     : "border-gray-200 bg-white hover:border-purple-300"
                                 }`}
                               >
                                 <div className="flex items-start gap-2 mb-2">
-                                  <span className="text-sm flex-shrink-0">
-                                    {getItemTypeIcon(item.itemType)}
-                                  </span>
-                                  {item.priority && (
-                                    <span
-                                      className={`w-2 h-2 rounded-full flex-shrink-0 mt-1 ${
-                                        item.priority === "high"
-                                          ? "bg-red-500"
-                                          : item.priority === "medium"
-                                          ? "bg-yellow-500"
-                                          : "bg-green-500"
-                                      }`}
-                                      title={`${item.priority} priority`}
-                                    />
+                                  {/* Priority indicator: red exclamation (high), nothing (medium), gray dash (low) */}
+                                  {item.priority === "high" && (
+                                    <span className="text-red-500 text-sm flex-shrink-0" title="High priority">
+                                      !
+                                    </span>
+                                  )}
+                                  {item.priority === "low" && (
+                                    <span className="text-gray-400 text-sm flex-shrink-0" title="Low priority">
+                                      -
+                                    </span>
                                   )}
                                   <div className="flex-1 min-w-0">
-                                    <div
-                                      className={`font-medium text-xs break-words ${
-                                        isCompleted
-                                          ? "text-gray-500 line-through"
-                                          : "text-gray-900"
-                                      }`}
-                                    >
-                                      {item.name}
-                                    </div>
-                                    {item.isParent &&
-                                      item.subItems &&
-                                      item.subItems.length > 0 && (
-                                        <div className="text-xs text-blue-600 mt-0.5">
-                                          {item.subItems.length} sub-
-                                          {item.itemType === "habit"
-                                            ? "habits"
-                                            : item.itemType === "task"
-                                            ? "tasks"
-                                            : "items"}
-                                        </div>
+                                    <div className="flex items-center gap-1">
+                                      <div
+                                        className={`font-medium text-xs break-words ${
+                                          isCompleted
+                                            ? "text-gray-500 line-through"
+                                            : "text-gray-900"
+                                        }`}
+                                      >
+                                        {item.name}
+                                      </div>
+                                      {/* Recurring icon inline on the right */}
+                                      {item.scheduleType === "daily" && (
+                                        <svg
+                                          className="w-2.5 h-2.5 text-gray-500 flex-shrink-0 ml-auto"
+                                          fill="none"
+                                          stroke="currentColor"
+                                          viewBox="0 0 24 24"
+                                        >
+                                          <path
+                                            strokeLinecap="round"
+                                            strokeLinejoin="round"
+                                            strokeWidth={2}
+                                            d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                                          />
+                                        </svg>
                                       )}
+                                    </div>
                                     {(item.effort ||
                                       item.duration ||
                                       item.focus) && (
@@ -945,7 +1007,10 @@ function WeekViewContent() {
                                     item.subItems &&
                                     item.subItems.length > 0 && (
                                       <button
-                                        onClick={() => toggleExpanded(item.id)}
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          toggleExpanded(item.id);
+                                        }}
                                         className="w-5 h-5 flex items-center justify-center text-gray-500 hover:text-purple-600 transition-colors"
                                         title={
                                           expandedItems.has(item.id)
@@ -973,11 +1038,14 @@ function WeekViewContent() {
                                       </button>
                                     )}
                                   <button
-                                    onClick={() => toggleItem(item.id, day)}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      toggleItem(item.id, day);
+                                    }}
                                     className={`w-6 h-6 rounded-full border-2 transition-all flex items-center justify-center flex-shrink-0 ${
                                       isCompleted
-                                        ? "border-green-500 bg-green-500 hover:bg-green-600"
-                                        : "border-gray-300 hover:border-green-500 hover:bg-green-50"
+                                        ? "border-gray-400 bg-gray-400 hover:bg-gray-500"
+                                        : "border-gray-400 hover:border-gray-500 hover:bg-gray-50"
                                     }`}
                                   >
                                     <svg
@@ -997,13 +1065,6 @@ function WeekViewContent() {
                                         d="M5 13l4 4L19 7"
                                       />
                                     </svg>
-                                  </button>
-                                  <button
-                                    onClick={() => openEditModal(item)}
-                                    className="px-2 py-1 text-xs border border-gray-300 hover:border-blue-500 hover:bg-blue-50 rounded transition-colors flex-shrink-0"
-                                    title="Edit"
-                                  >
-                                    Edit
                                   </button>
                                 </div>
 
@@ -1033,13 +1094,14 @@ function WeekViewContent() {
                                           >
                                             {subItem.id && (
                                               <button
-                                                onClick={() =>
-                                                  toggleItem(subItem.id!, day)
-                                                }
+                                                onClick={(e) => {
+                                                  e.stopPropagation();
+                                                  toggleItem(subItem.id!, day);
+                                                }}
                                                 className={`w-4 h-4 rounded-full border transition-all flex items-center justify-center flex-shrink-0 ${
                                                   subItemCompleted
-                                                    ? "border-green-500 bg-green-500"
-                                                    : "border-gray-300 hover:border-green-500"
+                                                    ? "border-gray-400 bg-gray-400"
+                                                    : "border-gray-400 hover:border-gray-500"
                                                 }`}
                                               >
                                                 {subItemCompleted && (

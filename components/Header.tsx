@@ -3,9 +3,14 @@
 import { useSession } from "next-auth/react";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
+import Link from "next/link";
 import Sidebar from "./Sidebar";
 
-export default function Header() {
+interface HeaderProps {
+  onFilterClick?: () => void;
+}
+
+export default function Header({ onFilterClick }: HeaderProps) {
   const { data: session } = useSession();
   const pathname = usePathname();
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -22,6 +27,9 @@ export default function Header() {
     if (pathname?.startsWith("/settings/calendars")) return "Calendars";
     return "Life OS";
   };
+
+  // Show filter button on Today, Week, and Lists pages
+  const showFilter = pathname === "/" || pathname === "/week" || pathname?.startsWith("/lists");
 
   return (
     <>
@@ -57,9 +65,35 @@ export default function Header() {
             {getPageTitle()}
           </h1>
 
-          {/* User profile icon */}
-          <div className="w-8 h-8 rounded-full bg-purple-600 flex items-center justify-center text-white text-xs font-semibold">
-            {session.user.name?.charAt(0).toUpperCase() || "U"}
+          {/* Right side icons */}
+          <div className="flex items-center gap-2">
+            {/* Filter button (only on Today/Week pages) */}
+            {showFilter && onFilterClick && (
+              <button
+                onClick={onFilterClick}
+                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                aria-label="Filter"
+              >
+                <svg
+                  className="w-5 h-5 text-gray-700"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"
+                  />
+                </svg>
+              </button>
+            )}
+
+            {/* User profile icon */}
+            <div className="w-8 h-8 rounded-full bg-purple-600 flex items-center justify-center text-white text-xs font-semibold">
+              {session.user.name?.charAt(0).toUpperCase() || "U"}
+            </div>
           </div>
         </div>
       </div>
@@ -74,8 +108,69 @@ export default function Header() {
         </div>
 
         <nav className="flex gap-2">
-          {/* Desktop navigation - simplified, keep for now */}
-          {/* We can refine this later if needed */}
+          <Link
+            href="/"
+            className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+              pathname === "/"
+                ? "bg-purple-600 text-white"
+                : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+            }`}
+          >
+            Today
+          </Link>
+          <Link
+            href="/week"
+            className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+              pathname === "/week"
+                ? "bg-purple-600 text-white"
+                : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+            }`}
+          >
+            Week
+          </Link>
+          <Link
+            href="/lists"
+            className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+              pathname?.startsWith("/lists")
+                ? "bg-purple-600 text-white"
+                : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+            }`}
+          >
+            Lists
+          </Link>
+          <Link
+            href="/settings/calendars"
+            className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+              pathname?.startsWith("/settings/calendars")
+                ? "bg-purple-600 text-white"
+                : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+            }`}
+          >
+            Calendars
+          </Link>
+
+          {/* Filter button (only on Today/Week/Lists pages) */}
+          {showFilter && onFilterClick && (
+            <button
+              onClick={onFilterClick}
+              className="px-4 py-2 rounded-lg font-medium transition-colors bg-gray-100 text-gray-700 hover:bg-gray-200 flex items-center gap-2"
+            >
+              <svg
+                className="w-4 h-4"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"
+                />
+              </svg>
+              Filter
+            </button>
+          )}
         </nav>
       </div>
     </>
