@@ -84,30 +84,53 @@ export async function PATCH(
     const subItems = body.subItems;
     const hasSubItems = Array.isArray(subItems) && subItems.length > 0;
 
+    // Phase 3.1: Auto-update state when date changes
+    let updateData: any = {
+      name: body.name,
+      description: body.description,
+      scheduleType: body.scheduleType,
+      scheduleDays: body.scheduleDays,
+      scheduledTime: body.scheduledTime,
+      dueDate: body.dueDate ? new Date(body.dueDate) : null,
+      dueTime: body.dueTime,
+      priority: body.priority || null,
+      recurrenceType: body.recurrenceType,
+      recurrenceInterval: body.recurrenceInterval,
+      recurrenceUnit: body.recurrenceUnit,
+      recurrenceAnchor: body.recurrenceAnchor,
+      reminderDatetime: body.reminderDatetime ? new Date(body.reminderDatetime) : null,
+      reminderRecurrence: body.reminderRecurrence,
+      reminderDays: body.reminderDays,
+      complexity: body.complexity || null,
+      duration: body.duration || null,
+      energy: body.energy || null,
+      isParent: hasSubItems,
+    };
+
+    // Phase 3.1: Handle state and tags if provided
+    if (body.state !== undefined) {
+      updateData.state = body.state;
+    } else {
+      // Auto-update state based on date changes
+      if (body.dueDate || body.reminderDatetime) {
+        if (existingItem.state === "unscheduled") {
+          updateData.state = "scheduled"; // Adding date to unscheduled task
+        }
+      } else if (body.dueDate === null && body.reminderDatetime === null) {
+        if (existingItem.state === "scheduled") {
+          updateData.state = "unscheduled"; // Removing date from scheduled task
+        }
+      }
+    }
+
+    if (body.tags !== undefined) {
+      updateData.tags = body.tags;
+    }
+
     // Update the item
     const updatedItem = await prisma.item.update({
       where: { id: itemId },
-      data: {
-        name: body.name,
-        description: body.description,
-        scheduleType: body.scheduleType,
-        scheduleDays: body.scheduleDays,
-        scheduledTime: body.scheduledTime,
-        dueDate: body.dueDate ? new Date(body.dueDate) : null,
-        dueTime: body.dueTime,
-        priority: body.priority || null,
-        recurrenceType: body.recurrenceType,
-        recurrenceInterval: body.recurrenceInterval,
-        recurrenceUnit: body.recurrenceUnit,
-        recurrenceAnchor: body.recurrenceAnchor,
-        reminderDatetime: body.reminderDatetime ? new Date(body.reminderDatetime) : null,
-        reminderRecurrence: body.reminderRecurrence,
-        reminderDays: body.reminderDays,
-        effort: body.effort || null,
-        duration: body.duration || null,
-        focus: body.focus || null,
-        isParent: hasSubItems,
-      },
+      data: updateData,
     });
 
     // Manage sub-items if provided
@@ -157,10 +180,11 @@ export async function PATCH(
               parentItemId: itemId,
               isParent: false,
               dueDate: subItem.dueDate ? new Date(subItem.dueDate) : null,
+              state: existingItem.state, // Inherit state from parent
               priority: null,
-              effort: null,
+              complexity: null,
               duration: null,
-              focus: null,
+              energy: null,
               scheduleType:
                 existingItem.itemType === "habit"
                   ? existingItem.scheduleType
