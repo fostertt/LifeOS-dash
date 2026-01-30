@@ -148,10 +148,73 @@ Life OS is a family productivity hub focused on practical daily coordination - t
 - History of completed recurring instances
 - "Skip this instance" without deleting
 
+**D. Modern Date/Time Picker**
+- Replace basic input fields with calendar widget (Google Calendar style)
+- Time picker integrated with date selection
+- Recurrence options in same interface (saves space)
+- Calendar icon button to trigger picker
+- Mobile-friendly touch interface
+- One unified control for date/time/recurrence
+
 **Notes:**
 - Branch from master for this work
 - Keep Phase 1 visual cleanup separate
 - Consider UI/UX for mobile vs desktop
+
+---
+
+### Phase 2.6: Lists & Input UX Polish (Based on Real-World Usage)
+
+**Goal:** Fix usability issues discovered during actual daily use of LifeOS
+
+**Status:** Planned - feedback from January 2026 usage testing
+
+**A. List Items - Core Functionality**
+- **Edit capability** - Currently cannot edit list items after creation (BUG)
+- **Text wrapping** - Long text should wrap for readability, not overflow
+- **Notes/description field** - Add longer-form thoughts to list items
+- **Reference:** See `docs/screenshots/google_keep_list.png` for target UX
+
+**B. Google Keep-Style List Input**
+- Inline checkbox + text field (not modal-based)
+- Smooth, instant input experience
+- Drag handles for reordering (:: icon)
+- "+ List item" button at bottom (not separate modal)
+- Completed items collapse under "X Completed items" section
+- Strikethrough styling on completed items
+
+**C. Universal Notes/Description Field**
+- Add to Tasks (currently missing)
+- Add to Events (currently missing)
+- Add to Reminders (currently missing)
+- Add to Routines (currently missing)
+- Allow free-text explanations for any item type
+- Display in detail modal, hidden in compact card view
+
+**D. Filter Enhancement**
+- Filter button currently only shows: tasks, reminders, events, routines
+- Need ALL input fields available as filter options:
+  - Priority (high/medium/low)
+  - Effort (current values)
+  - Focus (current values)
+  - Duration (time-based options)
+  - Date range
+  - Completion status
+  - Item type (current behavior)
+- Multi-select filter combinations
+
+**Testing Checklist:**
+- [ ] Can edit list items after creation
+- [ ] List text wraps on mobile
+- [ ] Can add notes to list items
+- [ ] List input matches Google Keep smoothness
+- [ ] Can add description to tasks/events/reminders/routines
+- [ ] Filter shows all metadata fields
+- [ ] Multiple filters work together
+
+**Cross-References:**
+- See `issues.md` for detailed bug tracking
+- See `decisions.md` ADR-009, ADR-010, ADR-011 for pending architectural decisions
 
 ---
 
