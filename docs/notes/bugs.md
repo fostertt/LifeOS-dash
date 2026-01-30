@@ -11,5 +11,6 @@
 
 ### Known Issue: Foreign Key Constraint Violations
 - **Symptoms:** Error `items_user_id_fkey` when creating items.
-- **Cause:** User logged in via JWT but record does not exist in `users` table.
-- **Solution:** Manually INSERT user with Google ID (see `key_facts.md` for SQL).
+- **Cause:** User logged in via JWT but record does not exist in `users` table (happens after database resets).
+- **Solution:** Run `node scripts/add-user.mjs` to recreate the user record.
+- **User ID:** `110753093651931352478` (Tyrrell's Google ID)
