@@ -23,6 +23,7 @@ export default function Header({ onFilterClick }: HeaderProps) {
   const getPageTitle = () => {
     if (pathname === "/") return "Today";
     if (pathname === "/week") return "Week";
+    if (pathname === "/tasks") return "All Tasks";
     if (pathname?.startsWith("/lists")) return "Lists";
     if (pathname?.startsWith("/settings/calendars")) return "Calendars";
     return "Life OS";
@@ -127,6 +128,16 @@ export default function Header({ onFilterClick }: HeaderProps) {
             }`}
           >
             Week
+          </Link>
+          <Link
+            href="/tasks"
+            className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+              pathname === "/tasks"
+                ? "bg-purple-600 text-white"
+                : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+            }`}
+          >
+            All Tasks
           </Link>
           <Link
             href="/lists"

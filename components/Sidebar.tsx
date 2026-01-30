@@ -16,6 +16,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
   const menuItems = [
     { href: "/", label: "Today", icon: "📅" },
     { href: "/week", label: "Week", icon: "📅" },
+    { href: "/tasks", label: "All Tasks", icon: "✅" },
     { href: "/lists", label: "Lists", icon: "📋" },
     { href: "/settings/calendars", label: "Calendars", icon: "📅" },
   ];
