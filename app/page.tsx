@@ -1,10 +1,12 @@
 "use client";
 
-import { useEffect, useState, Suspense } from "react";
+import { useEffect, useState, Suspense, useMemo } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import Header from "@/components/Header";
 import EventDetailModal, { CalendarEvent } from "@/components/EventDetailModal";
+import TagInput from "@/components/TagInput";
+import { extractUniqueTags } from "@/lib/tags";
 
 interface SubItem {
   id?: number;
@@ -29,9 +31,13 @@ interface Item {
   isParent: boolean;
   parentItemId?: number;
   priority?: string;
-  effort?: string;
+  // Phase 3.1: Renamed fields
+  complexity?: string; // Renamed from 'effort'
   duration?: string;
-  focus?: string;
+  energy?: string; // Renamed from 'focus'
+  // Phase 3.1: New fields
+  state?: string; // unscheduled | scheduled | in_progress | on_hold | completed
+  tags?: string[]; // Array of tag strings
   subItems?: SubItem[];
   completions?: Array<{ completionDate: string }>;
 }
@@ -87,9 +93,10 @@ function HomeContent() {
   const [formDay, setFormDay] = useState("");
   const [formRecurring, setFormRecurring] = useState(false);
   const [formPriority, setFormPriority] = useState("");
-  const [formEffort, setFormEffort] = useState("");
+  const [formComplexity, setFormComplexity] = useState(""); // Renamed from formEffort
   const [formDuration, setFormDuration] = useState("");
-  const [formFocus, setFormFocus] = useState("");
+  const [formEnergy, setFormEnergy] = useState(""); // Renamed from formFocus
+  const [formTags, setFormTags] = useState<string[]>([]); // Phase 3.2: Tag support
   const [formSubItems, setFormSubItems] = useState<SubItem[]>([]);
 
   // Track expanded items for sub-item display
@@ -154,6 +161,11 @@ function HomeContent() {
       setSelectedDate(newDate);
     }
   }, [searchParams]);
+
+  // Phase 3.2: Extract all unique tags from items for autocomplete
+  const availableTags = useMemo(() => {
+    return extractUniqueTags(items);
+  }, [items]);
 
   const loadData = async () => {
     try {
@@ -259,9 +271,10 @@ function HomeContent() {
     setFormDay("");
     setFormRecurring(false);
     setFormPriority("");
-    setFormEffort("");
+    setFormComplexity(""); // Phase 3.1: Renamed from formEffort
     setFormDuration("");
-    setFormFocus("");
+    setFormEnergy(""); // Phase 3.1: Renamed from formFocus
+    setFormTags([]); // Phase 3.2: Tags
     setFormSubItems([]);
     setShowAddMenu(false);
     setShowModal(true);
@@ -286,11 +299,12 @@ function HomeContent() {
     // Set recurring if scheduleType is daily
     setFormRecurring(item.scheduleType === "daily");
 
-    // Set metadata fields
+    // Set metadata fields (Phase 3.1: updated field names)
     setFormPriority(item.priority || "");
-    setFormEffort(item.effort || "");
+    setFormComplexity(item.complexity || "");
     setFormDuration(item.duration || "");
-    setFormFocus(item.focus || "");
+    setFormEnergy(item.energy || "");
+    setFormTags(item.tags || []); // Phase 3.2: Tags
 
     // Load sub-items
     setFormSubItems(
@@ -321,9 +335,10 @@ function HomeContent() {
         itemType: selectedItemType,
         name: formName,
         priority: formPriority || null,
-        effort: formEffort || null,
+        complexity: formComplexity || null, // Phase 3.1: Renamed from effort
         duration: formDuration || null,
-        focus: formFocus || null,
+        energy: formEnergy || null, // Phase 3.1: Renamed from focus
+        tags: formTags.length > 0 ? formTags : null, // Phase 3.2: Tags
         subItems: formSubItems.filter((si) => si.name.trim()),
       };
 
@@ -381,9 +396,10 @@ function HomeContent() {
       const itemData: any = {
         name: formName,
         priority: formPriority || null,
-        effort: formEffort || null,
+        complexity: formComplexity || null, // Phase 3.1: Renamed from effort
         duration: formDuration || null,
-        focus: formFocus || null,
+        energy: formEnergy || null, // Phase 3.1: Renamed from focus
+        tags: formTags.length > 0 ? formTags : null, // Phase 3.2: Tags
         subItems: formSubItems.filter((si) => si.name.trim()),
       };
 
@@ -1006,20 +1022,20 @@ function HomeContent() {
                             >
                               {item.name}
                             </h3>
-                            {/* Desktop: Show effort/duration/focus metadata */}
-                            {(item.effort || item.duration || item.focus) && (
+                            {/* Desktop: Show complexity/duration/energy metadata */}
+                            {(item.complexity || item.duration || item.energy) && (
                               <span className="hidden md:inline text-xs text-gray-500">
                                 (
                                 {[
-                                  item.effort &&
-                                    item.effort.charAt(0).toUpperCase() +
-                                      item.effort.slice(1),
+                                  item.complexity &&
+                                    item.complexity.charAt(0).toUpperCase() +
+                                      item.complexity.slice(1),
                                   item.duration &&
                                     item.duration.charAt(0).toUpperCase() +
                                       item.duration.slice(1),
-                                  item.focus &&
-                                    item.focus.charAt(0).toUpperCase() +
-                                      item.focus.slice(1),
+                                  item.energy &&
+                                    item.energy.charAt(0).toUpperCase() +
+                                      item.energy.slice(1),
                                 ]
                                   .filter(Boolean)
                                   .join(", ")}
@@ -1359,11 +1375,11 @@ function HomeContent() {
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Effort
+                      Complexity
                     </label>
                     <select
-                      value={formEffort}
-                      onChange={(e) => setFormEffort(e.target.value)}
+                      value={formComplexity}
+                      onChange={(e) => setFormComplexity(e.target.value)}
                       className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-white text-gray-900"
                     >
                       <option value="">None</option>
@@ -1398,21 +1414,36 @@ function HomeContent() {
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Focus Required
+                      Energy Required
                     </label>
                     <select
-                      value={formFocus}
-                      onChange={(e) => setFormFocus(e.target.value)}
+                      value={formEnergy}
+                      onChange={(e) => setFormEnergy(e.target.value)}
                       className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-white text-gray-900"
                     >
                       <option value="">None</option>
-                      <option value="deep">Deep focus</option>
-                      <option value="light">Light focus</option>
-                      <option value="background">Background</option>
+                      <option value="high">High energy</option>
+                      <option value="medium">Medium energy</option>
+                      <option value="low">Low energy</option>
                     </select>
                     <p className="text-xs text-gray-500 mt-1">
-                      Deep = full attention, Light = can multitask, Background =
-                      set and forget
+                      What mental/physical state do you need to be in?
+                    </p>
+                  </div>
+
+                  {/* Phase 3.2: Tags */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Tags
+                    </label>
+                    <TagInput
+                      tags={formTags}
+                      availableTags={availableTags}
+                      onTagsChange={setFormTags}
+                      placeholder="Add tags (projects, contexts, areas)..."
+                    />
+                    <p className="text-xs text-gray-500 mt-1">
+                      Organize with tags like "The Deck", "@home", "Health", etc.
                     </p>
                   </div>
                 </div>
