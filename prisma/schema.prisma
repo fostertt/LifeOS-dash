@@ -262,6 +262,7 @@ model Note {
   title     String?  // Optional title
   content   String   // Freeform text content
   tags      Json?    @db.JsonB // Array of tag strings for organization
+  pinned    Boolean  @default(false) // Pin note to top of view
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
