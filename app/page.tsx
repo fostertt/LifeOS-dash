@@ -33,11 +33,14 @@ interface Item {
   priority?: string;
   // Phase 3.1: Renamed fields
   complexity?: string; // Renamed from 'effort'
-  duration?: string;
+  duration?: string; // User-friendly display ("15min", "30min")
+  durationMinutes?: number; // Phase 3.4: Actual duration in minutes for timeline
   energy?: string; // Renamed from 'focus'
   // Phase 3.1: New fields
   state?: string; // unscheduled | scheduled | in_progress | on_hold | completed
   tags?: string[]; // Array of tag strings
+  // Phase 3.4: Calendar display fields
+  showOnCalendar?: boolean; // Pin to today's calendar view
   subItems?: SubItem[];
   completions?: Array<{ completionDate: string }>;
 }
@@ -48,7 +51,18 @@ interface Toast {
   type: "success" | "error" | "info";
 }
 
+// Phase 3.4: Categorized calendar data structure
+interface CategorizedCalendarData {
+  reminders: Item[];
+  overdue: Item[];
+  inProgress: Item[];
+  scheduled: Item[];
+  scheduledNoTime: Item[];
+  pinned: Item[];
+}
+
 type ItemType = "habit" | "task" | "reminder" | "event";
+type ViewMode = "timeline" | "compact";
 
 function HomeContent() {
   const searchParams = useSearchParams();
@@ -66,6 +80,7 @@ function HomeContent() {
 
   const [selectedDate, setSelectedDate] = useState<Date>(getSelectedDate);
   const [items, setItems] = useState<Item[]>([]);
+  const [categorizedData, setCategorizedData] = useState<CategorizedCalendarData | null>(null);
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -87,8 +102,32 @@ function HomeContent() {
     null
   );
 
+  // Phase 3.4: View mode (timeline vs compact)
+  const [viewMode, setViewMode] = useState<ViewMode>(() => {
+    // Check localStorage first
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('calendarViewMode');
+      if (saved === 'timeline' || saved === 'compact') {
+        return saved;
+      }
+      // Default based on screen size: compact for mobile, timeline for desktop
+      return window.innerWidth < 768 ? 'compact' : 'timeline';
+    }
+    return 'compact';
+  });
+
+  // Phase 3.4: Timeline zoom level (pixels per hour)
+  const [timelineZoom, setTimelineZoom] = useState<number>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('timelineZoom');
+      return saved ? parseInt(saved) : 80; // Default: 80px per hour
+    }
+    return 80;
+  });
+
   // Form fields
   const [formName, setFormName] = useState("");
+  const [formDescription, setFormDescription] = useState("");
   const [formTime, setFormTime] = useState("");
   const [formDay, setFormDay] = useState("");
   const [formRecurring, setFormRecurring] = useState(false);
@@ -97,6 +136,7 @@ function HomeContent() {
   const [formDuration, setFormDuration] = useState("");
   const [formEnergy, setFormEnergy] = useState(""); // Renamed from formFocus
   const [formTags, setFormTags] = useState<string[]>([]); // Phase 3.2: Tag support
+  const [formShowOnCalendar, setFormShowOnCalendar] = useState(false); // Phase 3.4: Pin to today
   const [formSubItems, setFormSubItems] = useState<SubItem[]>([]);
 
   // Track expanded items for sub-item display
@@ -193,6 +233,16 @@ function HomeContent() {
         setCompletedToday(new Set(completionsData.completedHabitIds));
       }
 
+      // Phase 3.4: Fetch categorized calendar items for the selected date
+      const calendarItemsRes = await fetch(`/api/calendar/items?date=${dateStr}`);
+      if (calendarItemsRes.ok) {
+        const categorized = await calendarItemsRes.json();
+        setCategorizedData(categorized);
+      } else {
+        console.warn("Failed to load categorized calendar items");
+        setCategorizedData(null);
+      }
+
       // Fetch calendar events for the selected date
       try {
         const eventsRes = await fetch(
@@ -267,6 +317,7 @@ function HomeContent() {
     setSelectedItemType(type);
     setModalMode("create");
     setFormName("");
+    setFormDescription("");
     setFormTime("");
     setFormDay("");
     setFormRecurring(false);
@@ -275,6 +326,7 @@ function HomeContent() {
     setFormDuration("");
     setFormEnergy(""); // Phase 3.1: Renamed from formFocus
     setFormTags([]); // Phase 3.2: Tags
+    setFormShowOnCalendar(false); // Phase 3.4: Pin to today
     setFormSubItems([]);
     setShowAddMenu(false);
     setShowModal(true);
@@ -285,6 +337,7 @@ function HomeContent() {
     setModalMode("edit");
     setSelectedItemType(item.itemType);
     setFormName(item.name);
+    setFormDescription(item.description || "");
 
     // Set time based on item type
     if (item.itemType === "habit") {
@@ -305,6 +358,7 @@ function HomeContent() {
     setFormDuration(item.duration || "");
     setFormEnergy(item.energy || "");
     setFormTags(item.tags || []); // Phase 3.2: Tags
+    setFormShowOnCalendar(item.showOnCalendar || false); // Phase 3.4: Pin to today
 
     // Load sub-items
     setFormSubItems(
@@ -334,11 +388,13 @@ function HomeContent() {
       const itemData: any = {
         itemType: selectedItemType,
         name: formName,
+        description: formDescription || null,
         priority: formPriority || null,
         complexity: formComplexity || null, // Phase 3.1: Renamed from effort
         duration: formDuration || null,
         energy: formEnergy || null, // Phase 3.1: Renamed from focus
         tags: formTags.length > 0 ? formTags : null, // Phase 3.2: Tags
+        showOnCalendar: formShowOnCalendar, // Phase 3.4: Pin to today
         subItems: formSubItems.filter((si) => si.name.trim()),
       };
 
@@ -395,11 +451,13 @@ function HomeContent() {
     try {
       const itemData: any = {
         name: formName,
+        description: formDescription || null,
         priority: formPriority || null,
         complexity: formComplexity || null, // Phase 3.1: Renamed from effort
         duration: formDuration || null,
         energy: formEnergy || null, // Phase 3.1: Renamed from focus
         tags: formTags.length > 0 ? formTags : null, // Phase 3.2: Tags
+        showOnCalendar: formShowOnCalendar, // Phase 3.4: Pin to today
         subItems: formSubItems.filter((si) => si.name.trim()),
       };
 
@@ -554,6 +612,27 @@ function HomeContent() {
     });
   };
 
+  // Phase 3.4: Toggle view mode and persist to localStorage
+  const toggleViewMode = (mode: ViewMode) => {
+    setViewMode(mode);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('calendarViewMode', mode);
+    }
+  };
+
+  // Phase 3.4: Adjust timeline zoom
+  const adjustZoom = (direction: 'in' | 'out') => {
+    setTimelineZoom((prev) => {
+      const newZoom = direction === 'in'
+        ? Math.min(prev + 20, 160) // Max 160px per hour
+        : Math.max(prev - 20, 40);  // Min 40px per hour
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('timelineZoom', newZoom.toString());
+      }
+      return newZoom;
+    });
+  };
+
   const todayItems = items.filter(isScheduledForDate);
   const filteredItems = todayItems.filter((item) =>
     filterTypes.has(item.itemType)
@@ -608,6 +687,230 @@ function HomeContent() {
     });
   };
 
+  // Phase 3.4: Helper to render section headers
+  const renderSectionHeader = (title: string, color: string = "text-gray-700", icon?: string) => (
+    <div className="flex items-center gap-2 mb-3 mt-6 first:mt-0">
+      {icon && <span className="text-lg">{icon}</span>}
+      <h3 className={`text-sm font-semibold uppercase tracking-wide ${color}`}>
+        {title}
+      </h3>
+      <div className="flex-1 border-t border-gray-200"></div>
+    </div>
+  );
+
+  // Phase 3.4: Helper to render item cards
+  const renderItemCard = (item: Item, isOverdue: boolean = false) => {
+    const isRecurring = item.scheduleType && item.scheduleType !== "";
+    const isCompleted = isRecurring
+      ? completedToday.has(item.id)
+      : item.isCompleted || false;
+    const itemTime = getItemTime(item);
+
+    return (
+      <div
+        key={item.id}
+        onClick={() => openEditModal(item)}
+        className={`border-2 rounded-xl p-3 md:p-5 hover:shadow-md transition-all duration-200 cursor-pointer ${
+          isOverdue
+            ? "border-red-300 bg-gradient-to-r from-red-50 to-orange-50"
+            : isCompleted
+            ? "border-green-300 bg-gradient-to-r from-green-50 to-emerald-50"
+            : "border-gray-100 bg-gradient-to-r from-white to-gray-50 hover:border-purple-300"
+        }`}
+      >
+        <div className="flex items-start justify-between">
+          <div className="flex-1">
+            <div className="flex items-center gap-2 mb-2">
+              {/* Overdue indicator */}
+              {isOverdue && !isCompleted && (
+                <span className="text-red-500 text-lg flex-shrink-0" title="Overdue">
+                  ⚠
+                </span>
+              )}
+              {/* Priority indicator */}
+              {!isOverdue && item.priority === "high" && (
+                <span className="text-red-500 text-lg flex-shrink-0" title="High priority">
+                  !
+                </span>
+              )}
+              {!isOverdue && item.priority === "low" && (
+                <span className="text-gray-400 text-lg flex-shrink-0" title="Low priority">
+                  -
+                </span>
+              )}
+              {/* State badge for in_progress */}
+              {item.state === "in_progress" && (
+                <span className="px-2 py-0.5 text-xs font-medium rounded-full bg-blue-100 text-blue-700">
+                  In Progress
+                </span>
+              )}
+              <h3
+                className={`text-sm font-semibold ${
+                  isCompleted
+                    ? "text-gray-500 line-through"
+                    : isOverdue
+                    ? "text-red-900"
+                    : "text-gray-900"
+                }`}
+              >
+                {item.name}
+              </h3>
+              {/* Metadata */}
+              {(item.complexity || item.duration || item.energy) && (
+                <span className="hidden md:inline text-xs text-gray-500">
+                  (
+                  {[
+                    item.complexity &&
+                      item.complexity.charAt(0).toUpperCase() +
+                        item.complexity.slice(1),
+                    item.duration &&
+                      item.duration.charAt(0).toUpperCase() +
+                        item.duration.slice(1),
+                    item.energy &&
+                      item.energy.charAt(0).toUpperCase() +
+                        item.energy.slice(1),
+                  ]
+                    .filter(Boolean)
+                    .join(", ")}
+                  )
+                </span>
+              )}
+              {/* Recurring icon */}
+              {item.scheduleType === "daily" && (
+                <span className="ml-auto flex items-center gap-1 text-gray-600 text-xs">
+                  <svg
+                    className="w-3 h-3"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                    />
+                  </svg>
+                </span>
+              )}
+            </div>
+
+            {item.description && (
+              <p className="text-gray-600 text-sm mb-3 line-clamp-2">
+                {item.description}
+              </p>
+            )}
+
+            {/* Time display */}
+            {itemTime && (
+              <div className="flex items-center gap-2 text-sm text-gray-700 mb-3">
+                <svg
+                  className="w-4 h-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                  />
+                </svg>
+                <span>{itemTime}</span>
+              </div>
+            )}
+
+            {/* Sub-items */}
+            {item.isParent && item.subItems && item.subItems.length > 0 && (
+              <div className="mt-3">
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    toggleExpanded(item.id);
+                  }}
+                  className="text-xs text-purple-600 hover:text-purple-700 font-medium flex items-center gap-1 mb-2"
+                >
+                  {expandedItems.has(item.id) ? "Hide" : "Show"}{" "}
+                  {item.subItems.length} sub-
+                  {item.itemType === "habit"
+                    ? "habits"
+                    : item.itemType === "task"
+                    ? "tasks"
+                    : "items"}
+                  <svg
+                    className={`w-4 h-4 transition-transform ${
+                      expandedItems.has(item.id) ? "rotate-180" : ""
+                    }`}
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M19 9l-7 7-7-7"
+                    />
+                  </svg>
+                </button>
+
+                {expandedItems.has(item.id) && (
+                  <div className="space-y-2 pl-4 border-l-2 border-purple-200">
+                    {item.subItems.map((subItem) => {
+                      const subCompleted = isSubItemCompletedForDate(
+                        subItem,
+                        selectedDate
+                      );
+                      return (
+                        <div
+                          key={subItem.id}
+                          className="flex items-center gap-2 text-sm"
+                        >
+                          <input
+                            type="checkbox"
+                            checked={subCompleted}
+                            onChange={(e) => {
+                              e.stopPropagation();
+                              if (subItem.id) toggleItem(subItem.id);
+                            }}
+                            className="w-4 h-4 text-purple-600 rounded focus:ring-2 focus:ring-purple-500"
+                          />
+                          <span
+                            className={
+                              subCompleted
+                                ? "text-gray-500 line-through"
+                                : "text-gray-700"
+                            }
+                          >
+                            {subItem.name}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Completion checkbox */}
+          <div className="ml-4 flex-shrink-0">
+            <input
+              type="checkbox"
+              checked={isCompleted}
+              onChange={(e) => {
+                e.stopPropagation();
+                toggleItem(item.id);
+              }}
+              className="w-5 h-5 text-purple-600 rounded focus:ring-2 focus:ring-purple-500 cursor-pointer"
+            />
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   const isSubItemCompletedForDate = (subItem: SubItem, date: Date) => {
     if (!subItem.completions) return false;
     const dateStr = `${date.getFullYear()}-${String(
@@ -615,6 +918,144 @@ function HomeContent() {
     ).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
     return subItem.completions.some((c) =>
       c.completionDate.startsWith(dateStr)
+    );
+  };
+
+  // Phase 3.4: Render Timeline view
+  const renderTimelineView = () => {
+    if (!categorizedData) return null;
+
+    // Timeline hours: 5am to 11pm (18 hours)
+    const startHour = 5;
+    const endHour = 23;
+    const hours = Array.from({ length: endHour - startHour + 1 }, (_, i) => startHour + i);
+
+    // Helper to convert time string (HH:MM) to position in pixels
+    const timeToPosition = (timeStr: string): number => {
+      const [hours, minutes] = timeStr.split(':').map(Number);
+      const totalMinutes = (hours - startHour) * 60 + minutes;
+      return (totalMinutes / 60) * timelineZoom;
+    };
+
+    // Helper to convert duration minutes to height in pixels
+    const durationToHeight = (minutes: number): number => {
+      return (minutes / 60) * timelineZoom;
+    };
+
+    return (
+      <div className="space-y-6">
+        {/* Zoom controls */}
+        <div className="flex items-center justify-end gap-2">
+          <span className="text-xs text-gray-600">Zoom:</span>
+          <button
+            onClick={() => adjustZoom('out')}
+            disabled={timelineZoom <= 40}
+            className="p-1 rounded hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed"
+            title="Zoom out"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 12H4" />
+            </svg>
+          </button>
+          <button
+            onClick={() => adjustZoom('in')}
+            disabled={timelineZoom >= 160}
+            className="p-1 rounded hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed"
+            title="Zoom in"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+            </svg>
+          </button>
+        </div>
+
+        {/* Timeline grid */}
+        <div className="relative border-l-2 border-gray-300 ml-12 md:ml-0">
+          {hours.map((hour) => {
+            const topPosition = (hour - startHour) * timelineZoom;
+            const timeLabel = hour === 12 ? '12 PM' : hour > 12 ? `${hour - 12} PM` : `${hour} AM`;
+
+            return (
+              <div
+                key={hour}
+                className="absolute w-full border-t border-gray-200"
+                style={{ top: `${topPosition}px` }}
+              >
+                <span className="absolute -left-11 md:-left-16 -top-3 text-xs text-gray-600 font-medium w-10 md:w-14 text-right">
+                  {timeLabel}
+                </span>
+              </div>
+            );
+          })}
+
+          {/* Render scheduled items with time */}
+          {categorizedData.scheduled.filter((item) => filterTypes.has(item.itemType)).map((item) => {
+            const itemTime = getItemTime(item);
+            if (!itemTime) return null;
+
+            const topPosition = timeToPosition(itemTime);
+            const height = durationToHeight(item.durationMinutes || 30);
+            const isRecurring = item.scheduleType && item.scheduleType !== "";
+            const isCompleted = isRecurring ? completedToday.has(item.id) : item.isCompleted || false;
+
+            return (
+              <div
+                key={item.id}
+                className={`absolute left-2 right-2 rounded-lg p-2 cursor-pointer border-l-4 ${
+                  isCompleted
+                    ? 'bg-green-50 border-green-400'
+                    : 'bg-purple-50 border-purple-400 hover:bg-purple-100'
+                }`}
+                style={{
+                  top: `${topPosition}px`,
+                  height: `${Math.max(height, 30)}px`, // Minimum height for readability
+                }}
+                onClick={() => openEditModal(item)}
+              >
+                <div className="text-xs font-semibold text-gray-900 truncate">{item.name}</div>
+                {height > 40 && item.description && (
+                  <div className="text-xs text-gray-600 truncate mt-1">{item.description}</div>
+                )}
+              </div>
+            );
+          })}
+
+          {/* Render calendar events with time */}
+          {filteredEvents.map((event) => {
+            if (event.isAllDay) return null;
+
+            const startTime = new Date(event.startTime);
+            const endTime = new Date(event.endTime);
+            const timeStr = `${startTime.getHours()}:${String(startTime.getMinutes()).padStart(2, '0')}`;
+            const durationMs = endTime.getTime() - startTime.getTime();
+            const durationMins = Math.round(durationMs / 60000);
+
+            const topPosition = timeToPosition(timeStr);
+            const height = durationToHeight(durationMins);
+
+            return (
+              <div
+                key={`event-${event.id}`}
+                className="absolute left-2 right-2 rounded-lg p-2 cursor-pointer border-l-4 bg-green-50 border-green-400 hover:bg-green-100"
+                style={{
+                  top: `${topPosition}px`,
+                  height: `${Math.max(height, 30)}px`,
+                  borderLeftColor: event.calendarColor || '#10b981',
+                }}
+                onClick={() => setSelectedEvent(event)}
+              >
+                <div className="text-xs font-semibold text-gray-900 truncate">{event.title}</div>
+                {height > 40 && event.location && (
+                  <div className="text-xs text-gray-600 truncate mt-1">{event.location}</div>
+                )}
+              </div>
+            );
+          })}
+
+          {/* Timeline height spacer */}
+          <div style={{ height: `${(endHour - startHour + 1) * timelineZoom}px` }} />
+        </div>
+      </div>
     );
   };
 
@@ -796,13 +1237,60 @@ function HomeContent() {
                 {completedToday.size} completed
               </span>
 
+              {/* Phase 3.4: View mode toggle */}
+              <div className="ml-auto flex items-center gap-1 bg-gray-100 rounded-lg p-1">
+                <button
+                  onClick={() => toggleViewMode('timeline')}
+                  className={`px-3 py-1 rounded-md text-sm font-medium transition-colors ${
+                    viewMode === 'timeline'
+                      ? 'bg-white text-purple-700 shadow-sm'
+                      : 'text-gray-600 hover:text-gray-900'
+                  }`}
+                >
+                  Timeline
+                </button>
+                <button
+                  onClick={() => toggleViewMode('compact')}
+                  className={`px-3 py-1 rounded-md text-sm font-medium transition-colors ${
+                    viewMode === 'compact'
+                      ? 'bg-white text-purple-700 shadow-sm'
+                      : 'text-gray-600 hover:text-gray-900'
+                  }`}
+                >
+                  Compact
+                </button>
+              </div>
             </div>
 
-            {/* Mobile: Just completed count */}
-            <div className="md:hidden flex items-center justify-between mb-3">
+            {/* Mobile: Completed count and view toggle */}
+            <div className="md:hidden flex items-center justify-between mb-3 gap-2">
               <span className="text-xs text-green-700 font-medium">
                 {completedToday.size} completed
               </span>
+
+              {/* Phase 3.4: Mobile view mode toggle */}
+              <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-1">
+                <button
+                  onClick={() => toggleViewMode('timeline')}
+                  className={`px-2 py-1 rounded-md text-xs font-medium transition-colors ${
+                    viewMode === 'timeline'
+                      ? 'bg-white text-purple-700 shadow-sm'
+                      : 'text-gray-600 hover:text-gray-900'
+                  }`}
+                >
+                  Timeline
+                </button>
+                <button
+                  onClick={() => toggleViewMode('compact')}
+                  className={`px-2 py-1 rounded-md text-xs font-medium transition-colors ${
+                    viewMode === 'compact'
+                      ? 'bg-white text-purple-700 shadow-sm'
+                      : 'text-gray-600 hover:text-gray-900'
+                  }`}
+                >
+                  Compact
+                </button>
+              </div>
             </div>
 
             {/* Filter dropdown menu (triggered from header) */}
@@ -851,7 +1339,15 @@ function HomeContent() {
               <div className="flex items-center justify-center py-12">
                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600"></div>
               </div>
-            ) : sortedItems.length === 0 && filteredEvents.length === 0 ? (
+            ) : !categorizedData || (
+              categorizedData.reminders.length === 0 &&
+              categorizedData.overdue.length === 0 &&
+              categorizedData.inProgress.length === 0 &&
+              categorizedData.scheduled.length === 0 &&
+              categorizedData.scheduledNoTime.length === 0 &&
+              categorizedData.pinned.length === 0 &&
+              filteredEvents.length === 0
+            ) ? (
               <div className="text-center py-16">
                 <div className="flex justify-center mb-4">
                   <div className="w-24 h-24 bg-gradient-to-br from-purple-100 to-blue-100 rounded-full flex items-center justify-center">
@@ -877,364 +1373,236 @@ function HomeContent() {
                   Start by adding a habit, task, event, or reminder.
                 </p>
               </div>
-            ) : (
-              <div className="grid gap-4">
-                {/* Render calendar events */}
-                {filteredEvents.map((event) => (
-                  <div
-                    key={`event-${event.id}`}
-                    onClick={() => setSelectedEvent(event)}
-                    className="border-2 rounded-xl p-3 md:p-5 hover:shadow-md transition-all duration-200 cursor-pointer border-gray-100 bg-gradient-to-r from-white to-gray-50 hover:border-green-300"
-                    style={{
-                      borderLeftWidth: "4px",
-                      borderLeftColor: event.calendarColor || "#10b981",
-                    }}
-                  >
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-2">
-                          <h3 className="text-sm font-semibold text-gray-900">
-                            {event.title}
-                          </h3>
-                          {event.isAllDay && (
-                            <span className="text-xs px-2 py-1 rounded-full font-medium bg-blue-100 text-blue-700">
-                              All Day
-                            </span>
-                          )}
-                        </div>
+            ) : viewMode === 'compact' ? (
+              <div className="space-y-4">
+                {/* Phase 3.4: Compact Mode - Categorized sections */}
 
-                        {event.description && (
-                          <p className="text-gray-600 text-sm mb-3 line-clamp-2">
-                            {event.description}
-                          </p>
-                        )}
+                {/* Reminders Section */}
+                {categorizedData && categorizedData.reminders.length > 0 && filterTypes.has("reminder") && (
+                  <>
+                    {renderSectionHeader("Reminders", "text-yellow-700", "🔔")}
+                    <div className="space-y-3">
+                      {categorizedData.reminders.map((item) => renderItemCard(item, false))}
+                    </div>
+                  </>
+                )}
 
-                        <div className="flex items-center gap-4 text-sm">
-                          {!event.isAllDay && (
-                            <span className="flex items-center gap-2 text-gray-700">
-                              <svg
-                                className="w-4 h-4"
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
-                              >
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  strokeWidth={2}
-                                  d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-                                />
-                              </svg>
-                              <span>
-                                {new Date(event.startTime).toLocaleTimeString(
-                                  "en-US",
-                                  {
-                                    hour: "2-digit",
-                                    minute: "2-digit",
-                                  }
-                                )}{" "}
-                                -{" "}
-                                {new Date(event.endTime).toLocaleTimeString(
-                                  "en-US",
-                                  {
-                                    hour: "2-digit",
-                                    minute: "2-digit",
-                                  }
+                {/* Overdue Section */}
+                {categorizedData && categorizedData.overdue.length > 0 && filterTypes.has("task") && (
+                  <>
+                    {renderSectionHeader("Overdue", "text-red-700", "⚠️")}
+                    <div className="space-y-3">
+                      {categorizedData.overdue.map((item) => renderItemCard(item, true))}
+                    </div>
+                  </>
+                )}
+
+                {/* In Progress Section */}
+                {categorizedData && categorizedData.inProgress.length > 0 && filterTypes.has("task") && (
+                  <>
+                    {renderSectionHeader("In Progress", "text-blue-700", "🔵")}
+                    <div className="space-y-3">
+                      {categorizedData.inProgress.map((item) => renderItemCard(item, false))}
+                    </div>
+                  </>
+                )}
+
+                {/* Calendar Events Section */}
+                {filteredEvents.length > 0 && (
+                  <>
+                    {renderSectionHeader("Events", "text-green-700", "📅")}
+                    <div className="space-y-3">
+                      {filteredEvents.map((event) => (
+                        <div
+                          key={`event-${event.id}`}
+                          onClick={() => setSelectedEvent(event)}
+                          className="border-2 rounded-xl p-3 md:p-5 hover:shadow-md transition-all duration-200 cursor-pointer border-gray-100 bg-gradient-to-r from-white to-gray-50 hover:border-green-300"
+                          style={{
+                            borderLeftWidth: "4px",
+                            borderLeftColor: event.calendarColor || "#10b981",
+                          }}
+                        >
+                          <div className="flex items-start justify-between">
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2 mb-2">
+                                <h3 className="text-sm font-semibold text-gray-900">
+                                  {event.title}
+                                </h3>
+                                {event.isAllDay && (
+                                  <span className="text-xs px-2 py-1 rounded-full font-medium bg-blue-100 text-blue-700">
+                                    All Day
+                                  </span>
                                 )}
-                              </span>
-                            </span>
-                          )}
+                              </div>
 
-                          {event.location && (
-                            <span className="flex items-center gap-2 text-gray-700">
-                              <svg
-                                className="w-4 h-4"
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
-                              >
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  strokeWidth={2}
-                                  d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
-                                />
-                              </svg>
-                              <span className="truncate max-w-xs">
-                                {event.location}
-                              </span>
-                            </span>
-                          )}
-                        </div>
-                      </div>
+                              {event.description && (
+                                <p className="text-gray-600 text-sm mb-3 line-clamp-2">
+                                  {event.description}
+                                </p>
+                              )}
 
-                      <div className="ml-2">
-                        <span className="text-xs text-gray-500">
-                          {event.calendarName}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-
-                {/* Render regular items */}
-                {sortedItems.map((item) => {
-                  // Check completion status based on item type:
-                  // - Recurring items (with scheduleType): check completedToday set
-                  // - Non-recurring items: check isCompleted field
-                  const isRecurring =
-                    item.scheduleType && item.scheduleType !== "";
-                  const isCompleted = isRecurring
-                    ? completedToday.has(item.id)
-                    : item.isCompleted || false;
-                  const itemTime = getItemTime(item);
-
-                  return (
-                    <div
-                      key={item.id}
-                      onClick={() => openEditModal(item)}
-                      className={`border-2 rounded-xl p-3 md:p-5 hover:shadow-md transition-all duration-200 cursor-pointer ${
-                        isCompleted
-                          ? "border-green-300 bg-gradient-to-r from-green-50 to-emerald-50"
-                          : "border-gray-100 bg-gradient-to-r from-white to-gray-50 hover:border-purple-300"
-                      }`}
-                    >
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-2">
-                            {/* Priority indicator: red exclamation (high), nothing (medium), gray dash (low) */}
-                            {item.priority === "high" && (
-                              <span className="text-red-500 text-lg flex-shrink-0" title="High priority">
-                                !
-                              </span>
-                            )}
-                            {item.priority === "low" && (
-                              <span className="text-gray-400 text-lg flex-shrink-0" title="Low priority">
-                                -
-                              </span>
-                            )}
-                            <h3
-                              className={`text-sm font-semibold ${
-                                isCompleted
-                                  ? "text-gray-500 line-through"
-                                  : "text-gray-900"
-                              }`}
-                            >
-                              {item.name}
-                            </h3>
-                            {/* Desktop: Show complexity/duration/energy metadata */}
-                            {(item.complexity || item.duration || item.energy) && (
-                              <span className="hidden md:inline text-xs text-gray-500">
-                                (
-                                {[
-                                  item.complexity &&
-                                    item.complexity.charAt(0).toUpperCase() +
-                                      item.complexity.slice(1),
-                                  item.duration &&
-                                    item.duration.charAt(0).toUpperCase() +
-                                      item.duration.slice(1),
-                                  item.energy &&
-                                    item.energy.charAt(0).toUpperCase() +
-                                      item.energy.slice(1),
-                                ]
-                                  .filter(Boolean)
-                                  .join(", ")}
-                                )
-                              </span>
-                            )}
-                            {/* Recurring icon inline on the right */}
-                            {item.scheduleType === "daily" && (
-                              <span className="ml-auto flex items-center gap-1 text-gray-600 text-xs">
-                                <svg
-                                  className="w-3 h-3"
-                                  fill="none"
-                                  stroke="currentColor"
-                                  viewBox="0 0 24 24"
-                                >
-                                  <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    strokeWidth={2}
-                                    d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-                                  />
-                                </svg>
-                              </span>
-                            )}
-                          </div>
-
-                          {item.description && (
-                            <p className="text-gray-600 text-sm mb-3">
-                              {item.description}
-                            </p>
-                          )}
-
-                          <div className="flex items-center gap-4 text-sm">
-                            {itemTime && (
-                              <span className="flex items-center gap-2 text-gray-700">
-                                <svg
-                                  className="w-4 h-4"
-                                  fill="none"
-                                  stroke="currentColor"
-                                  viewBox="0 0 24 24"
-                                >
-                                  <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    strokeWidth={2}
-                                    d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-                                  />
-                                </svg>
-                                <span>{itemTime.substring(0, 5)}</span>
-                              </span>
-                            )}
-                          </div>
-                        </div>
-
-                        <div className="flex items-center gap-2">
-                          {item.isParent &&
-                            item.subItems &&
-                            item.subItems.length > 0 && (
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  toggleExpanded(item.id);
-                                }}
-                                className="w-8 h-8 rounded-lg border border-gray-300 hover:border-purple-500 hover:bg-purple-50 transition-colors flex items-center justify-center"
-                                title={
-                                  expandedItems.has(item.id)
-                                    ? "Collapse"
-                                    : "Expand"
-                                }
-                              >
-                                <svg
-                                  className={`w-4 h-4 text-gray-600 transition-transform ${
-                                    expandedItems.has(item.id)
-                                      ? "rotate-180"
-                                      : ""
-                                  }`}
-                                  fill="none"
-                                  stroke="currentColor"
-                                  viewBox="0 0 24 24"
-                                >
-                                  <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    strokeWidth={2}
-                                    d="M19 9l-7 7-7-7"
-                                  />
-                                </svg>
-                              </button>
-                            )}
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              toggleItem(item.id);
-                            }}
-                            className={`w-10 h-10 rounded-full border-2 transition-all flex items-center justify-center ${
-                              isCompleted
-                                ? "border-gray-400 bg-gray-400 hover:bg-gray-500"
-                                : "border-gray-400 hover:border-gray-500 hover:bg-gray-50"
-                            }`}
-                          >
-                            <svg
-                              className={`w-5 h-5 ${
-                                isCompleted ? "text-white" : "text-gray-400"
-                              }`}
-                              fill="none"
-                              stroke="currentColor"
-                              viewBox="0 0 24 24"
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M5 13l4 4L19 7"
-                              />
-                            </svg>
-                          </button>
-                        </div>
-                      </div>
-
-                      {/* Sub-items display */}
-                      {item.isParent &&
-                        item.subItems &&
-                        item.subItems.length > 0 &&
-                        expandedItems.has(item.id) && (
-                          <div className="mt-4 ml-8 space-y-2 border-l-2 border-purple-200 pl-4">
-                            {item.subItems.map((subItem) => {
-                              const subItemCompleted = isRecurring
-                                ? subItem.id
-                                  ? completedToday.has(subItem.id)
-                                  : false
-                                : subItem.isCompleted || false;
-
-                              return (
-                                <div
-                                  key={subItem.id}
-                                  className={`flex items-center justify-between p-3 rounded-lg ${
-                                    subItemCompleted
-                                      ? "bg-green-50 border border-green-200"
-                                      : "bg-gray-50 border border-gray-200"
-                                  }`}
-                                >
-                                  <div className="flex items-center gap-3">
-                                    <span
-                                      className={`text-sm font-medium ${
-                                        subItemCompleted
-                                          ? "text-gray-500 line-through"
-                                          : "text-gray-900"
-                                      }`}
+                              <div className="flex items-center gap-4 text-sm">
+                                {!event.isAllDay && (
+                                  <span className="flex items-center gap-2 text-gray-700">
+                                    <svg
+                                      className="w-4 h-4"
+                                      fill="none"
+                                      stroke="currentColor"
+                                      viewBox="0 0 24 24"
                                     >
-                                      {subItem.name}
+                                      <path
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        strokeWidth={2}
+                                        d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                                      />
+                                    </svg>
+                                    <span>
+                                      {new Date(event.startTime).toLocaleTimeString(
+                                        "en-US",
+                                        {
+                                          hour: "2-digit",
+                                          minute: "2-digit",
+                                        }
+                                      )}{" "}
+                                      -{" "}
+                                      {new Date(event.endTime).toLocaleTimeString(
+                                        "en-US",
+                                        {
+                                          hour: "2-digit",
+                                          minute: "2-digit",
+                                        }
+                                      )}
                                     </span>
-                                    {subItem.dueDate && (
-                                      <span className="text-xs text-gray-500">
-                                        Due:{" "}
-                                        {new Date(
-                                          subItem.dueDate
-                                        ).toLocaleDateString()}
-                                      </span>
-                                    )}
-                                  </div>
-                                  {subItem.id && (
-                                    <button
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        toggleItem(subItem.id!);
-                                      }}
-                                      className={`w-7 h-7 rounded-full border-2 transition-all flex items-center justify-center ${
-                                        subItemCompleted
-                                          ? "border-gray-400 bg-gray-400 hover:bg-gray-500"
-                                          : "border-gray-400 hover:border-gray-500 hover:bg-gray-50"
-                                      }`}
+                                  </span>
+                                )}
+
+                                {event.location && (
+                                  <span className="flex items-center gap-2 text-gray-700">
+                                    <svg
+                                      className="w-4 h-4"
+                                      fill="none"
+                                      stroke="currentColor"
+                                      viewBox="0 0 24 24"
                                     >
-                                      <svg
-                                        className={`w-4 h-4 ${
-                                          subItemCompleted
-                                            ? "text-white"
-                                            : "text-gray-400"
-                                        }`}
-                                        fill="none"
-                                        stroke="currentColor"
-                                        viewBox="0 0 24 24"
-                                      >
-                                        <path
-                                          strokeLinecap="round"
-                                          strokeLinejoin="round"
-                                          strokeWidth={2}
-                                          d="M5 13l4 4L19 7"
-                                        />
-                                      </svg>
-                                    </button>
-                                  )}
-                                </div>
-                              );
-                            })}
+                                      <path
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        strokeWidth={2}
+                                        d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
+                                      />
+                                    </svg>
+                                    <span className="truncate max-w-xs">
+                                      {event.location}
+                                    </span>
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+
+                            <div className="ml-2">
+                              <span className="text-xs text-gray-500">
+                                {event.calendarName}
+                              </span>
+                            </div>
                           </div>
-                        )}
+                        </div>
+                      ))}
                     </div>
-                  );
-                })}
+                  </>
+                )}
+
+                {/* Scheduled (with time) Section */}
+                {categorizedData && categorizedData.scheduled.length > 0 && filterTypes.has("task") && (
+                  <>
+                    {renderSectionHeader("Scheduled", "text-purple-700", "📋")}
+                    <div className="space-y-3">
+                      {categorizedData.scheduled.map((item) => renderItemCard(item, false))}
+                    </div>
+                  </>
+                )}
+
+                {/* Scheduled (no time) Section */}
+                {categorizedData && categorizedData.scheduledNoTime.length > 0 && filterTypes.has("task") && (
+                  <>
+                    {renderSectionHeader("Scheduled (No Time)", "text-gray-600")}
+                    <div className="space-y-3">
+                      {categorizedData.scheduledNoTime.map((item) => renderItemCard(item, false))}
+                    </div>
+                  </>
+                )}
+
+                {/* Pinned / Quick Captures Section */}
+                {categorizedData && categorizedData.pinned.length > 0 && filterTypes.has("task") && (
+                  <>
+                    {renderSectionHeader("Quick Captures", "text-gray-500", "📌")}
+                    <div className="space-y-3">
+                      {categorizedData.pinned.map((item) => renderItemCard(item, false))}
+                    </div>
+                  </>
+                )}
+              </div>
+            ) : (
+              <div className="space-y-6">
+                {/* Phase 3.4: Timeline Mode */}
+
+                {/* Reminders Section (above timeline) */}
+                {categorizedData && categorizedData.reminders.length > 0 && filterTypes.has("reminder") && (
+                  <>
+                    {renderSectionHeader("Reminders", "text-yellow-700", "🔔")}
+                    <div className="space-y-3">
+                      {categorizedData.reminders.map((item) => renderItemCard(item, false))}
+                    </div>
+                  </>
+                )}
+
+                {/* Overdue Section (above timeline) */}
+                {categorizedData && categorizedData.overdue.length > 0 && filterTypes.has("task") && (
+                  <>
+                    {renderSectionHeader("Overdue", "text-red-700", "⚠️")}
+                    <div className="space-y-3">
+                      {categorizedData.overdue.map((item) => renderItemCard(item, true))}
+                    </div>
+                  </>
+                )}
+
+                {/* In Progress Section (above timeline) */}
+                {categorizedData && categorizedData.inProgress.length > 0 && filterTypes.has("task") && (
+                  <>
+                    {renderSectionHeader("In Progress", "text-blue-700", "🔵")}
+                    <div className="space-y-3">
+                      {categorizedData.inProgress.map((item) => renderItemCard(item, false))}
+                    </div>
+                  </>
+                )}
+
+                {/* Timeline Section */}
+                {(categorizedData && (categorizedData.scheduled.length > 0 || filteredEvents.length > 0)) && (
+                  <>
+                    {renderSectionHeader("Timeline", "text-purple-700", "📅")}
+                    {renderTimelineView()}
+                  </>
+                )}
+
+                {/* Scheduled (no time) Section (below timeline) */}
+                {categorizedData && categorizedData.scheduledNoTime.length > 0 && filterTypes.has("task") && (
+                  <>
+                    {renderSectionHeader("Scheduled (No Time)", "text-gray-600")}
+                    <div className="space-y-3">
+                      {categorizedData.scheduledNoTime.map((item) => renderItemCard(item, false))}
+                    </div>
+                  </>
+                )}
+
+                {/* Pinned / Quick Captures Section (below timeline) */}
+                {categorizedData && categorizedData.pinned.length > 0 && filterTypes.has("task") && (
+                  <>
+                    {renderSectionHeader("Quick Captures", "text-gray-500", "📌")}
+                    <div className="space-y-3">
+                      {categorizedData.pinned.map((item) => renderItemCard(item, false))}
+                    </div>
+                  </>
+                )}
               </div>
             )}
           </div>
@@ -1316,6 +1684,23 @@ function HomeContent() {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Description (optional)
+                  </label>
+                  <textarea
+                    value={formDescription}
+                    onChange={(e) => setFormDescription(e.target.value)}
+                    placeholder="Add additional details or notes..."
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-white text-gray-900 placeholder-gray-400 resize-none"
+                    rows={3}
+                    maxLength={500}
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    {formDescription.length}/500 characters
+                  </p>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
                     Time (optional)
                   </label>
                   <input
@@ -1354,6 +1739,26 @@ function HomeContent() {
                     </span>
                   </label>
                 </div>
+
+                {/* Phase 3.4: Pin to Today */}
+                {selectedItemType === "task" && (
+                  <div>
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={formShowOnCalendar}
+                        onChange={(e) => setFormShowOnCalendar(e.target.checked)}
+                        className="w-4 h-4 text-purple-600 rounded focus:ring-2 focus:ring-purple-500"
+                      />
+                      <span className="text-sm font-medium text-gray-700">
+                        Pin to today's calendar
+                      </span>
+                    </label>
+                    <p className="text-xs text-gray-500 mt-1 ml-6">
+                      Show this task on today's calendar regardless of due date
+                    </p>
+                  </div>
+                )}
 
                 {/* Metadata Fields */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

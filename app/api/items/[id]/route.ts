@@ -3,6 +3,29 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
+/**
+ * Convert duration string to minutes for timeline calculations.
+ * Phase 3.4: Uses smaller value for ranges, caps at 240 minutes (4 hours).
+ */
+function convertDurationToMinutes(duration: string | null | undefined): number {
+  if (!duration) return 30; // Default: 30 minutes
+
+  const durationMap: Record<string, number> = {
+    "15min": 15,
+    "30min": 30,
+    "1hour": 60,
+    "1-2hours": 60,      // Use smaller value
+    "2-4hours": 120,     // Use smaller value
+    "4-8hours": 240,     // Cap at 4 hours
+    "1-3days": 240,      // Cap at 4 hours
+    "4-7days": 240,      // Cap at 4 hours
+    "1-2weeks": 240,     // Cap at 4 hours
+    "2+weeks": 240,      // Cap at 4 hours
+  };
+
+  return durationMap[duration] || 30; // Default to 30 if unrecognized
+}
+
 // GET /api/items/[id] - Get a single item
 export async function GET(
   request: NextRequest,
@@ -84,6 +107,11 @@ export async function PATCH(
     const subItems = body.subItems;
     const hasSubItems = Array.isArray(subItems) && subItems.length > 0;
 
+    // Phase 3.4: Convert duration string to minutes for timeline calculations
+    const durationMinutes = body.duration !== undefined
+      ? convertDurationToMinutes(body.duration)
+      : undefined;
+
     // Phase 3.1: Auto-update state when date changes
     let updateData: any = {
       name: body.name,
@@ -103,9 +131,15 @@ export async function PATCH(
       reminderDays: body.reminderDays,
       complexity: body.complexity || null,
       duration: body.duration || null,
+      durationMinutes, // Phase 3.4: Calculated minutes for timeline
       energy: body.energy || null,
       isParent: hasSubItems,
     };
+
+    // Phase 3.4: Handle showOnCalendar if provided
+    if (body.showOnCalendar !== undefined) {
+      updateData.showOnCalendar = body.showOnCalendar;
+    }
 
     // Phase 3.1: Handle state and tags if provided
     if (body.state !== undefined) {

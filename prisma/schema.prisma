@@ -165,8 +165,10 @@ model Item {
   // Task metadata (Phase 3.1: renamed from effort/focus to complexity/energy)
   priority           String?
   complexity         String?              // Renamed from 'effort' - How hard to think through? (1-5)
-  duration           String?
+  duration           String?              // User-friendly duration display ("15min", "30min", "1hour")
+  durationMinutes    Int?                 @map("duration_minutes") // Phase 3.4: Actual duration in minutes for timeline calculations
   energy             String?              // Renamed from 'focus' - What state do I need to be in? (1-5)
+  showOnCalendar     Boolean?             @default(false) @map("show_on_calendar") // Phase 3.4: Pin to today's calendar view
 
   // Hierarchy
   parentItemId       Int?                 @map("parent_item_id")

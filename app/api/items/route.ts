@@ -3,6 +3,29 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
+/**
+ * Convert duration string to minutes for timeline calculations.
+ * Phase 3.4: Uses smaller value for ranges, caps at 240 minutes (4 hours).
+ */
+function convertDurationToMinutes(duration: string | null | undefined): number {
+  if (!duration) return 30; // Default: 30 minutes
+
+  const durationMap: Record<string, number> = {
+    "15min": 15,
+    "30min": 30,
+    "1hour": 60,
+    "1-2hours": 60,      // Use smaller value
+    "2-4hours": 120,     // Use smaller value
+    "4-8hours": 240,     // Cap at 4 hours
+    "1-3days": 240,      // Cap at 4 hours
+    "4-7days": 240,      // Cap at 4 hours
+    "1-2weeks": 240,     // Cap at 4 hours
+    "2+weeks": 240,      // Cap at 4 hours
+  };
+
+  return durationMap[duration] || 30; // Default to 30 if unrecognized
+}
+
 // GET /api/items - Get all items (tasks, habits, reminders)
 export async function GET(request: NextRequest) {
   try {
@@ -97,6 +120,8 @@ export async function POST(request: NextRequest) {
       // Phase 3.1: Task organization
       tags,
       state,
+      // Phase 3.4: Calendar display
+      showOnCalendar,
       // Sub-items
       subItems,
     } = body;
@@ -130,6 +155,9 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Phase 3.4: Convert duration string to minutes for timeline calculations
+    const durationMinutes = convertDurationToMinutes(duration);
+
     // Create the item
     const item = await prisma.item.create({
       data: {
@@ -157,7 +185,10 @@ export async function POST(request: NextRequest) {
         tags: tags || null,
         complexity: complexity || null,
         duration: duration || null,
+        durationMinutes, // Phase 3.4: Calculated minutes for timeline
         energy: energy || null,
+        // Phase 3.4: Calendar display
+        showOnCalendar: showOnCalendar || false,
       },
     });
 
