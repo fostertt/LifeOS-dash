@@ -24,7 +24,7 @@ export default function Header({ onFilterClick }: HeaderProps) {
     if (pathname === "/") return "Today";
     if (pathname === "/week") return "Week";
     if (pathname === "/tasks") return "All Tasks";
-    if (pathname?.startsWith("/lists")) return "Lists";
+    if (pathname?.startsWith("/lists")) return "Notes & Lists";
     if (pathname?.startsWith("/settings/calendars")) return "Calendars";
     return "Life OS";
   };
@@ -147,7 +147,7 @@ export default function Header({ onFilterClick }: HeaderProps) {
                 : "bg-gray-100 text-gray-700 hover:bg-gray-200"
             }`}
           >
-            Lists
+            Notes & Lists
           </Link>
           <Link
             href="/settings/calendars"

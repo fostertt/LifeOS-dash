@@ -9,7 +9,6 @@ interface NoteCardProps {
   createdAt: string;
   onClick: () => void;
   onPin: () => void;
-  onDelete: () => void;
 }
 
 /**
@@ -31,7 +30,6 @@ export default function NoteCard({
   createdAt,
   onClick,
   onPin,
-  onDelete,
 }: NoteCardProps) {
   // Truncate content for preview (first 150 characters)
   const contentPreview =
@@ -80,30 +78,16 @@ export default function NoteCard({
       {/* Footer with actions */}
       <div className="flex items-center justify-between text-xs text-gray-500 pt-3 border-t border-gray-100">
         <span>{new Date(createdAt).toLocaleDateString()}</span>
-        <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onPin();
-            }}
-            className="hover:text-yellow-600 transition-colors"
-            title={pinned ? "Unpin note" : "Pin note"}
-          >
-            {pinned ? "📌" : "📍"}
-          </button>
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              if (confirm("Delete this note?")) {
-                onDelete();
-              }
-            }}
-            className="hover:text-red-600 transition-colors"
-            title="Delete note"
-          >
-            🗑️
-          </button>
-        </div>
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onPin();
+          }}
+          className="hover:text-yellow-600 transition-colors"
+          title={pinned ? "Unpin note" : "Pin note"}
+        >
+          {pinned ? "📌" : "📍"}
+        </button>
       </div>
     </div>
   );

@@ -11,7 +11,6 @@ interface ListCardProps {
   createdAt?: string;
   onClick: () => void;
   onPin: () => void;
-  onDelete: () => void;
 }
 
 const COLORS = ["#8B5CF6", "#3B82F6", "#10B981", "#F59E0B", "#EF4444", "#EC4899"];
@@ -36,7 +35,6 @@ export default function ListCard({
   stats,
   onClick,
   onPin,
-  onDelete,
 }: ListCardProps) {
   return (
     <div
@@ -53,18 +51,9 @@ export default function ListCard({
         </div>
       )}
 
-      {/* Header with name and type badge */}
+      {/* Header with name */}
       <div className="flex items-center gap-2 mb-2 pr-8">
         <h3 className="text-lg font-semibold text-gray-900">{name}</h3>
-        <span
-          className={`text-xs px-2 py-1 rounded-full font-medium ${
-            listType === "smart"
-              ? "bg-blue-100 text-blue-700"
-              : "bg-gray-100 text-gray-700"
-          }`}
-        >
-          {listType === "smart" ? "Smart" : "Simple"}
-        </span>
       </div>
 
       {/* Description */}
@@ -76,31 +65,17 @@ export default function ListCard({
       <p className="text-sm text-gray-600 mb-3">{stats}</p>
 
       {/* Footer with actions */}
-      <div className="flex items-center justify-end gap-2 text-xs text-gray-500 pt-3 border-t border-gray-100">
-        <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onPin();
-            }}
-            className="hover:text-yellow-600 transition-colors"
-            title={pinned ? "Unpin list" : "Pin list"}
-          >
-            {pinned ? "📌" : "📍"}
-          </button>
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              if (confirm("Delete this list and all its items?")) {
-                onDelete();
-              }
-            }}
-            className="hover:text-red-600 transition-colors"
-            title="Delete list"
-          >
-            🗑️
-          </button>
-        </div>
+      <div className="flex items-center justify-end text-xs text-gray-500 pt-3 border-t border-gray-100">
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onPin();
+          }}
+          className="hover:text-yellow-600 transition-colors"
+          title={pinned ? "Unpin list" : "Pin list"}
+        >
+          {pinned ? "📌" : "📍"}
+        </button>
       </div>
     </div>
   );

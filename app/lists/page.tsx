@@ -7,6 +7,7 @@ import Header from "@/components/Header";
 import NoteCard from "@/components/NoteCard";
 import NoteForm from "@/components/NoteForm";
 import ListCard from "@/components/ListCard";
+import FAB from "@/components/FAB";
 
 interface ListItem {
   id: number;
@@ -109,6 +110,25 @@ export default function NotesAndListsPage() {
     };
     loadData();
   }, []);
+
+  // Handle browser back button/gesture for list modal
+  useEffect(() => {
+    if (showListModal) {
+      // Push a new history state when modal opens
+      window.history.pushState({ modalOpen: true }, '');
+
+      // Listen for back button/gesture
+      const handlePopState = () => {
+        setShowListModal(false);
+      };
+
+      window.addEventListener('popstate', handlePopState);
+
+      return () => {
+        window.removeEventListener('popstate', handlePopState);
+      };
+    }
+  }, [showListModal]);
 
   // Get all unique tags from notes and lists
   const allTags = Array.from(
@@ -389,32 +409,6 @@ export default function NotesAndListsPage() {
           )}
 
           <div className="bg-white rounded-2xl shadow-lg p-8 mb-6">
-            <div className="flex items-center justify-between mb-6">
-              <div className="flex items-center gap-3">
-                <span className="text-3xl">📝</span>
-                <h2 className="text-2xl font-bold text-gray-800">Notes & Lists</h2>
-              </div>
-              <div className="flex gap-3">
-                <button
-                  onClick={() => openNoteModal()}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium flex items-center gap-2"
-                >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                  </svg>
-                  New Note
-                </button>
-                <button
-                  onClick={openListModal}
-                  className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-medium flex items-center gap-2"
-                >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                  </svg>
-                  New List
-                </button>
-              </div>
-            </div>
 
             {loading ? (
               <div className="flex items-center justify-center py-12">
@@ -459,7 +453,6 @@ export default function NotesAndListsPage() {
                           tags={(note.tags as string[]) || []}
                           onClick={() => openNoteModal(note)}
                           onPin={() => toggleNotePin(note)}
-                          onDelete={() => deleteNote(note.id)}
                         />
                       ))}
                       {pinnedLists.map((list) => (
@@ -469,7 +462,6 @@ export default function NotesAndListsPage() {
                           stats={getListStats(list)}
                           onClick={() => router.push(`/lists/${list.id}`)}
                           onPin={() => toggleListPin(list)}
-                          onDelete={() => deleteList(list.id)}
                         />
                       ))}
                     </div>
@@ -488,7 +480,6 @@ export default function NotesAndListsPage() {
                           tags={(note.tags as string[]) || []}
                           onClick={() => openNoteModal(note)}
                           onPin={() => toggleNotePin(note)}
-                          onDelete={() => deleteNote(note.id)}
                         />
                       ))}
                     </div>
@@ -507,7 +498,6 @@ export default function NotesAndListsPage() {
                           stats={getListStats(list)}
                           onClick={() => router.push(`/lists/${list.id}`)}
                           onPin={() => toggleListPin(list)}
-                          onDelete={() => deleteList(list.id)}
                         />
                       ))}
                     </div>
@@ -563,30 +553,6 @@ export default function NotesAndListsPage() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Type</label>
-                  <div className="flex gap-4">
-                    <label className="flex items-center gap-2 cursor-pointer">
-                      <input
-                        type="radio"
-                        checked={formType === "simple"}
-                        onChange={() => setFormType("simple")}
-                        className="w-4 h-4 text-purple-600"
-                      />
-                      <span className="text-sm text-gray-700">Simple List</span>
-                    </label>
-                    <label className="flex items-center gap-2 cursor-pointer">
-                      <input
-                        type="radio"
-                        checked={formType === "smart"}
-                        onChange={() => setFormType("smart")}
-                        className="w-4 h-4 text-purple-600"
-                      />
-                      <span className="text-sm text-gray-700">Smart List</span>
-                    </label>
-                  </div>
-                </div>
-
-                <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Color</label>
                   <div className="flex gap-2">
                     {COLORS.map((color) => (
@@ -601,63 +567,6 @@ export default function NotesAndListsPage() {
                     ))}
                   </div>
                 </div>
-
-                {formType === "smart" && (
-                  <div className="border-t pt-4">
-                    <label className="block text-sm font-medium text-gray-700 mb-3">
-                      Filter Criteria (at least one required)
-                    </label>
-                    <div className="grid grid-cols-2 gap-3">
-                      <select
-                        value={formPriority}
-                        onChange={(e) => setFormPriority(e.target.value)}
-                        className="px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 text-sm"
-                      >
-                        <option value="">Any Priority</option>
-                        <option value="high">High</option>
-                        <option value="medium">Medium</option>
-                        <option value="low">Low</option>
-                      </select>
-                      <select
-                        value={formEffort}
-                        onChange={(e) => setFormEffort(e.target.value)}
-                        className="px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 text-sm"
-                      >
-                        <option value="">Any Effort</option>
-                        <option value="easy">Easy</option>
-                        <option value="medium">Medium</option>
-                        <option value="hard">Hard</option>
-                      </select>
-                      <select
-                        value={formDuration}
-                        onChange={(e) => setFormDuration(e.target.value)}
-                        className="px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 text-sm"
-                      >
-                        <option value="">Any Duration</option>
-                        <option value="15min">15 min</option>
-                        <option value="30min">30 min</option>
-                        <option value="1hour">1 hour</option>
-                        <option value="1-2hours">1-2 hours</option>
-                        <option value="2-4hours">2-4 hours</option>
-                        <option value="4-8hours">4-8 hours</option>
-                        <option value="1-3days">1-3 days</option>
-                        <option value="4-7days">4-7 days</option>
-                        <option value="1-2weeks">1-2 weeks</option>
-                        <option value="2+weeks">2+ weeks</option>
-                      </select>
-                      <select
-                        value={formFocus}
-                        onChange={(e) => setFormFocus(e.target.value)}
-                        className="px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 text-sm"
-                      >
-                        <option value="">Any Focus</option>
-                        <option value="deep">Deep</option>
-                        <option value="light">Light</option>
-                        <option value="background">Background</option>
-                      </select>
-                    </div>
-                  </div>
-                )}
               </div>
 
               <div className="flex gap-3 mt-6">
@@ -670,7 +579,7 @@ export default function NotesAndListsPage() {
                 </button>
                 <button
                   onClick={createList}
-                  disabled={!formName.trim() || saving || (formType === "smart" && !formPriority && !formEffort && !formDuration && !formFocus)}
+                  disabled={!formName.trim() || saving}
                   className="flex-1 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-medium disabled:opacity-50"
                 >
                   {saving ? "Creating..." : "Create"}
@@ -679,6 +588,24 @@ export default function NotesAndListsPage() {
             </div>
           </div>
         )}
+
+        {/* FAB - Floating Action Button */}
+        <FAB
+          options={[
+            {
+              label: "New Note",
+              icon: "📝",
+              onClick: () => openNoteModal(),
+              color: "#3B82F6", // blue-600
+            },
+            {
+              label: "New List",
+              icon: "📋",
+              onClick: openListModal,
+              color: "#8B5CF6", // purple-600
+            },
+          ]}
+        />
 
         {/* Toasts */}
         <div className="fixed bottom-8 left-8 space-y-2 z-50">

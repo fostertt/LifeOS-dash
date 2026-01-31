@@ -4,6 +4,7 @@ import { useEffect, useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import Header from "@/components/Header";
+import TaskForm from "@/components/TaskForm";
 import { extractUniqueTags, itemMatchesTags } from "@/lib/tags";
 
 interface Item {
@@ -49,6 +50,10 @@ function AllTasksContent() {
   const [items, setItems] = useState<Item[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Task modal state
+  const [showTaskModal, setShowTaskModal] = useState(false);
+  const [editingTask, setEditingTask] = useState<Item | null>(null);
 
   // Filters
   const [selectedStates, setSelectedStates] = useState<string[]>([
@@ -163,9 +168,31 @@ function AllTasksContent() {
     return groups;
   }, [filteredItems, groupBy]);
 
-  // Handle task click (navigate to edit on main page)
+  // Handle task click (open modal)
   const handleTaskClick = (item: Item) => {
-    router.push(`/?edit=${item.id}`);
+    setEditingTask(item);
+    setShowTaskModal(true);
+  };
+
+  // Save task changes
+  const saveTask = async (taskData: any) => {
+    if (!editingTask) return;
+
+    try {
+      const res = await fetch(`/api/items/${editingTask.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(taskData),
+      });
+
+      if (!res.ok) throw new Error("Failed to update task");
+
+      // Reload tasks
+      await loadData();
+    } catch (error) {
+      console.error("Error updating task:", error);
+      throw error;
+    }
   };
 
   // Toggle state filter
@@ -477,6 +504,18 @@ function AllTasksContent() {
             </div>
           )}
         </main>
+
+        {/* Task Edit Modal */}
+        <TaskForm
+          isOpen={showTaskModal}
+          onClose={() => {
+            setShowTaskModal(false);
+            setEditingTask(null);
+          }}
+          onSave={saveTask}
+          existingTask={editingTask}
+          availableTags={availableTags}
+        />
       </div>
     </ProtectedRoute>
   );

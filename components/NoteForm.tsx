@@ -45,6 +45,25 @@ export default function NoteForm({
   const [pinned, setPinned] = useState(false);
   const [saving, setSaving] = useState(false);
 
+  // Handle browser back button/gesture to close modal
+  useEffect(() => {
+    if (isOpen) {
+      // Push a new history state when modal opens
+      window.history.pushState({ modalOpen: true }, '');
+
+      // Listen for back button/gesture
+      const handlePopState = () => {
+        onClose();
+      };
+
+      window.addEventListener('popstate', handlePopState);
+
+      return () => {
+        window.removeEventListener('popstate', handlePopState);
+      };
+    }
+  }, [isOpen, onClose]);
+
   // Populate form when editing existing note
   useEffect(() => {
     if (existingNote) {

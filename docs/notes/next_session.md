@@ -1,7 +1,7 @@
 # Next Session - Start Here
 
 **Last Updated:** January 31, 2026
-**Current Status:** Phase 3.5 Complete ✅
+**Current Status:** Phase 3.5 Complete + UI Polish ✅
 **Branch:** `feature/phase-3.1-foundation-data-model`
 **Production:** https://lifeos-dev.foster-home.net (PM2 on port 3002)
 
@@ -47,7 +47,7 @@ npm run dev
 
 **See:** `docs/notes/phase-3.4-complete-summary.md` for details
 
-### ✅ Phase 3.5 - Notes Feature
+### ✅ Phase 3.5 - Notes Feature + UI Polish
 - Note API routes (GET, POST, PATCH, DELETE at `/api/notes`)
 - NoteCard and NoteForm components with tag support
 - Combined "Notes & Lists" page at `/lists`
@@ -56,10 +56,18 @@ npm run dev
 - Sorting: Recent | Alphabetical
 - Pin/unpin functionality for both Notes and Lists
 - Pinned items section at top
-- Delete functionality for both types
 - ListCard component for consistency
 
-**Components:** `components/NoteCard.tsx`, `components/NoteForm.tsx`, `components/ListCard.tsx`
+**UI Polish Completed:**
+- Header title updated to "Notes & Lists"
+- Removed duplicate heading from page
+- Removed delete buttons from cards
+- Removed Smart Lists feature and Simple badges
+- Replaced header buttons with FAB (Floating Action Button)
+- Added back button/gesture support to all modals (NoteForm, ListForm, TaskForm)
+- Fixed All Tasks click bug - created TaskForm modal
+
+**Components:** `components/NoteCard.tsx`, `components/NoteForm.tsx`, `components/ListCard.tsx`, `components/FAB.tsx`, `components/TaskForm.tsx`
 
 ---
 
@@ -141,6 +149,36 @@ List model needs description field added:
 
 ---
 
+## UI Improvements Needed (Post Phase 3.6)
+
+### Completed in Current Session ✅
+1. ✅ Header Title: Changed to "Notes & Lists"
+2. ✅ Remove Duplicate Title: Removed large heading
+3. ✅ Remove Delete from Cards: Removed from main cards
+4. ✅ Remove Smart Lists: Removed option and badges
+5. ✅ Replace Header Buttons with FAB: Added floating action button
+6. ✅ Back Button/Gesture Support: Added to all modals
+7. ✅ Fix All Tasks click bug: Created TaskForm modal
+
+### Still To Do
+8. **Sidebar Menu Label**: Update Sidebar component to show "Notes & Lists" instead of "Lists"
+   - Location: `components/Sidebar.tsx`
+
+9. **TaskForm Styling Consistency**: TaskForm dialog looks different from NoteForm/ListForm
+   - Make TaskForm match the styling of other modals
+   - Ensure consistent spacing, colors, and layout
+   - Location: `components/TaskForm.tsx`
+
+10. **Add Pin Inside Lists**: Add pin/unpin button inside list detail view (like notes have)
+    - Location: `app/lists/[id]/page.tsx`
+
+11. **Delete in Detail Views**: Add delete buttons inside note/list/task detail views
+    - Currently removed from cards but not added to detail views yet
+
+**Reference Screenshot:** `docs/screenshots/lists-notes_Z Fold 6 Front).png`
+
+---
+
 ## Known Issues to Address
 
 ### From Phase 3.3
@@ -160,15 +198,9 @@ List model needs description field added:
 ## Git Status
 
 **Branch:** `feature/phase-3.1-foundation-data-model`
-**Uncommitted changes:** Phase 3.5 complete (needs commit)
-**Last pushed commit:** `a070941` Phase 3.4 complete
-
-**To commit and push:**
-```bash
-git add .
-git commit -m "Phase 3.5: Notes feature with filtering and pinning"
-git push origin feature/phase-3.1-foundation-data-model
-```
+**Last commit:** `f44672a` Phase 3.5: Notes feature with filtering and pinning
+**Uncommitted changes:** UI polish and TaskForm modal (needs commit)
+**Status:** Ready to commit UI improvements
 
 **To create new branch for 3.5:**
 ```bash
