@@ -73,7 +73,6 @@ function WeekViewContent() {
   const [completions, setCompletions] = useState<Map<string, Set<number>>>(
     new Map()
   );
-  const [showAddMenu, setShowAddMenu] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [modalMode, setModalMode] = useState<"create" | "edit">("create");
   const [selectedItemType, setSelectedItemType] = useState<ItemType>("habit");
@@ -303,7 +302,6 @@ function WeekViewContent() {
     setFormDuration("");
     setFormFocus("");
     setFormSubItems([]);
-    setShowAddMenu(false);
     setShowModal(true);
   };
 
@@ -1146,45 +1144,6 @@ function WeekViewContent() {
               </div>
             </div>
           )}
-        </div>
-
-        {/* Universal Add Button */}
-        <div className="fixed bottom-8 right-8 z-50">
-          {showAddMenu && (
-            <div className="absolute bottom-16 right-0 bg-white rounded-xl shadow-xl border border-gray-200 py-2 w-48 mb-2">
-              <button
-                onClick={() => openCreateModal("habit")}
-                className="w-full px-4 py-3 text-left hover:bg-purple-50 flex items-center gap-3 transition-colors"
-              >
-                <span className="text-2xl">🎯</span>
-                <span className="font-semibold text-gray-900">Add Habit</span>
-              </button>
-              <button
-                onClick={() => openCreateModal("task")}
-                className="w-full px-4 py-3 text-left hover:bg-blue-50 flex items-center gap-3 transition-colors"
-              >
-                <span className="text-2xl">✅</span>
-                <span className="font-semibold text-gray-900">Add Task</span>
-              </button>
-              <button
-                onClick={() => openCreateModal("reminder")}
-                className="w-full px-4 py-3 text-left hover:bg-yellow-50 flex items-center gap-3 transition-colors"
-              >
-                <span className="text-2xl">🔔</span>
-                <span className="font-semibold text-gray-900">
-                  Add Reminder
-                </span>
-              </button>
-            </div>
-          )}
-          <button
-            onClick={() => setShowAddMenu(!showAddMenu)}
-            className={`w-14 h-14 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-full shadow-lg hover:shadow-xl transition-all hover:scale-110 flex items-center justify-center text-2xl font-bold ${
-              showAddMenu ? "rotate-45" : ""
-            }`}
-          >
-            +
-          </button>
         </div>
 
         {/* Add/Edit Modal */}

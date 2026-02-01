@@ -3,6 +3,7 @@
 import { usePathname } from 'next/navigation';
 import SwipeContainer from './SwipeContainer';
 import GlobalCreateManager from './GlobalCreateManager';
+import { useMediaQuery } from '@/hooks/useMediaQuery';
 import { ReactNode } from 'react';
 
 // Import the three main page components
@@ -32,6 +33,7 @@ interface ClientRootLayoutProps {
 
 export default function ClientRootLayout({ children }: ClientRootLayoutProps) {
   const pathname = usePathname();
+  const isDesktop = useMediaQuery('(min-width: 768px)');
 
   // Check if we're on one of the 3 main swipeable pages
   // Use startsWith for /lists to handle /lists/[id] detail pages
@@ -46,7 +48,7 @@ export default function ClientRootLayout({ children }: ClientRootLayoutProps) {
   const slides = [
     {
       path: '/tasks',
-      label: 'Tasks',
+      label: 'All',
       content: <AllTasksPage />,
     },
     {
@@ -56,15 +58,21 @@ export default function ClientRootLayout({ children }: ClientRootLayoutProps) {
     },
     {
       path: '/lists',
-      label: 'Lists',
+      label: 'Vault',
       content: <NotesAndListsPage />,
     },
   ];
 
+  // Logic:
+  // 1. Always render GlobalCreateManager (FAB)
+  // 2. If NOT a swipe route, render children normally
+  // 3. If IS a swipe route but we are on DESKTOP, render children normally (restore desktop layout)
+  // 4. If IS a swipe route AND on MOBILE, render SwipeContainer
+
   return (
     <>
       <GlobalCreateManager />
-      {!isSwipeRoute ? (
+      {!isSwipeRoute || isDesktop ? (
         children
       ) : (
         <SwipeContainer slides={slides} defaultIndex={1} />

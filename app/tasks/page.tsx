@@ -229,36 +229,8 @@ function AllTasksContent() {
         {!insideSwipe && <Header />}
 
         <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          {/* Header */}
-          <div className="mb-6">
-            <h1 className="text-2xl font-bold text-gray-900">All Tasks</h1>
-            <p className="text-sm text-gray-600 mt-1">
-              View and filter all your tasks across all states
-            </p>
-          </div>
-
           {/* Filter and Group Controls */}
           <div className="bg-white rounded-lg shadow p-4 mb-6">
-            {/* State Pills (always visible) */}
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-2">State</label>
-              <div className="flex flex-wrap gap-2">
-                {Object.entries(STATE_LABELS).map(([state, label]) => (
-                  <button
-                    key={state}
-                    onClick={() => toggleStateFilter(state)}
-                    className={`px-3 py-1 text-sm rounded-full ${
-                      selectedStates.includes(state)
-                        ? STATE_COLORS[state as keyof typeof STATE_COLORS]
-                        : "bg-gray-200 text-gray-400"
-                    }`}
-                  >
-                    {label}
-                  </button>
-                ))}
-              </div>
-            </div>
-
             <div className="flex items-center justify-between">
               <button
                 onClick={() => setShowFilters(!showFilters)}
@@ -306,9 +278,29 @@ function AllTasksContent() {
 
             {/* Additional Filters */}
             {showFilters && (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 pt-4 border-t mt-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 pt-4 border-t mt-4">
+                {/* State */}
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">State</label>
+                  <div className="flex flex-wrap gap-2">
+                    {Object.entries(STATE_LABELS).map(([state, label]) => (
+                      <button
+                        key={state}
+                        onClick={() => toggleStateFilter(state)}
+                        className={`px-3 py-1 text-sm rounded-full ${
+                          selectedStates.includes(state)
+                            ? STATE_COLORS[state as keyof typeof STATE_COLORS]
+                            : "bg-gray-200 text-gray-400"
+                        }`}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
                 {/* Tags */}
-                <div>
+                <div className="md:col-span-2">
                   <label className="block text-sm font-medium text-gray-700 mb-2">Tags</label>
                   <div className="flex flex-wrap gap-2">
                     {availableTags.map((tag) => (
