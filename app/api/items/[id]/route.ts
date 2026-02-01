@@ -3,6 +3,29 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
+/**
+ * Convert duration string to minutes for timeline calculations.
+ * Phase 3.4: Uses smaller value for ranges, caps at 240 minutes (4 hours).
+ */
+function convertDurationToMinutes(duration: string | null | undefined): number {
+  if (!duration) return 30; // Default: 30 minutes
+
+  const durationMap: Record<string, number> = {
+    "15min": 15,
+    "30min": 30,
+    "1hour": 60,
+    "1-2hours": 60,      // Use smaller value
+    "2-4hours": 120,     // Use smaller value
+    "4-8hours": 240,     // Cap at 4 hours
+    "1-3days": 240,      // Cap at 4 hours
+    "4-7days": 240,      // Cap at 4 hours
+    "1-2weeks": 240,     // Cap at 4 hours
+    "2+weeks": 240,      // Cap at 4 hours
+  };
+
+  return durationMap[duration] || 30; // Default to 30 if unrecognized
+}
+
 // GET /api/items/[id] - Get a single item
 export async function GET(
   request: NextRequest,
@@ -84,30 +107,64 @@ export async function PATCH(
     const subItems = body.subItems;
     const hasSubItems = Array.isArray(subItems) && subItems.length > 0;
 
+    // Phase 3.4: Convert duration string to minutes for timeline calculations
+    const durationMinutes = body.duration !== undefined
+      ? convertDurationToMinutes(body.duration)
+      : undefined;
+
+    // Phase 3.1: Auto-update state when date changes
+    let updateData: any = {
+      name: body.name,
+      description: body.description,
+      scheduleType: body.scheduleType,
+      scheduleDays: body.scheduleDays,
+      scheduledTime: body.scheduledTime,
+      dueDate: body.dueDate ? new Date(body.dueDate) : null,
+      dueTime: body.dueTime,
+      priority: body.priority || null,
+      recurrenceType: body.recurrenceType,
+      recurrenceInterval: body.recurrenceInterval,
+      recurrenceUnit: body.recurrenceUnit,
+      recurrenceAnchor: body.recurrenceAnchor,
+      reminderDatetime: body.reminderDatetime ? new Date(body.reminderDatetime) : null,
+      reminderRecurrence: body.reminderRecurrence,
+      reminderDays: body.reminderDays,
+      complexity: body.complexity || null,
+      duration: body.duration || null,
+      durationMinutes, // Phase 3.4: Calculated minutes for timeline
+      energy: body.energy || null,
+      isParent: hasSubItems,
+    };
+
+    // Phase 3.4: Handle showOnCalendar if provided
+    if (body.showOnCalendar !== undefined) {
+      updateData.showOnCalendar = body.showOnCalendar;
+    }
+
+    // Phase 3.1: Handle state and tags if provided
+    if (body.state !== undefined) {
+      updateData.state = body.state;
+    } else {
+      // Auto-update state based on date changes
+      if (body.dueDate || body.reminderDatetime) {
+        if (existingItem.state === "unscheduled") {
+          updateData.state = "scheduled"; // Adding date to unscheduled task
+        }
+      } else if (body.dueDate === null && body.reminderDatetime === null) {
+        if (existingItem.state === "scheduled") {
+          updateData.state = "unscheduled"; // Removing date from scheduled task
+        }
+      }
+    }
+
+    if (body.tags !== undefined) {
+      updateData.tags = body.tags;
+    }
+
     // Update the item
     const updatedItem = await prisma.item.update({
       where: { id: itemId },
-      data: {
-        name: body.name,
-        description: body.description,
-        scheduleType: body.scheduleType,
-        scheduleDays: body.scheduleDays,
-        scheduledTime: body.scheduledTime,
-        dueDate: body.dueDate ? new Date(body.dueDate) : null,
-        dueTime: body.dueTime,
-        priority: body.priority || null,
-        recurrenceType: body.recurrenceType,
-        recurrenceInterval: body.recurrenceInterval,
-        recurrenceUnit: body.recurrenceUnit,
-        recurrenceAnchor: body.recurrenceAnchor,
-        reminderDatetime: body.reminderDatetime ? new Date(body.reminderDatetime) : null,
-        reminderRecurrence: body.reminderRecurrence,
-        reminderDays: body.reminderDays,
-        effort: body.effort || null,
-        duration: body.duration || null,
-        focus: body.focus || null,
-        isParent: hasSubItems,
-      },
+      data: updateData,
     });
 
     // Manage sub-items if provided
@@ -157,10 +214,11 @@ export async function PATCH(
               parentItemId: itemId,
               isParent: false,
               dueDate: subItem.dueDate ? new Date(subItem.dueDate) : null,
+              state: existingItem.state, // Inherit state from parent
               priority: null,
-              effort: null,
+              complexity: null,
               duration: null,
-              focus: null,
+              energy: null,
               scheduleType:
                 existingItem.itemType === "habit"
                   ? existingItem.scheduleType

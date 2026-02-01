@@ -39,6 +39,8 @@
 
 ### Auth & Multi-Tenancy
 - **User**: Standard NextAuth user extended with `firstName`, `lastName`.
+  - **Tyrrell's User ID**: `110753093651931352478` (Google OAuth ID)
+  - **Recovery Script**: `scripts/add-user.mjs` (run after DB resets)
 - **Family**: Groups users together.
 - **FamilyUser**: Join table for User-Family membership with roles (`owner`, `admin`, `member`).
 

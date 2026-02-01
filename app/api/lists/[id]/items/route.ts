@@ -19,7 +19,7 @@ export async function POST(
     const userId = session.user.id;
     const body = await request.json();
 
-    const { text, dueDate, priority, effort, duration, focus } = body;
+    const { text, dueDate, priority, complexity, duration, energy } = body;
 
     if (!text) {
       return NextResponse.json({ error: "Text is required" }, { status: 400 });
@@ -58,10 +58,11 @@ export async function POST(
           itemType: "task",
           name: text,
           dueDate: new Date(dueDate),
+          state: "scheduled", // Has a date = scheduled
           priority: priority || null,
-          effort: effort || null,
+          complexity: complexity || null,
           duration: duration || null,
-          focus: focus || null,
+          energy: energy || null,
           isParent: false,
           isCompleted: false,
         },
@@ -155,6 +156,7 @@ export async function PATCH(
           itemType: "task",
           name: existingItem.text,
           dueDate: new Date(dueDate),
+          state: "scheduled", // Has a date = scheduled
           isParent: false,
           isCompleted: existingItem.isChecked,
         },
