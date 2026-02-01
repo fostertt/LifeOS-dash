@@ -2,6 +2,7 @@
 
 import { usePathname } from 'next/navigation';
 import SwipeContainer from './SwipeContainer';
+import GlobalCreateManager from './GlobalCreateManager';
 import { ReactNode } from 'react';
 
 // Import the three main page components
@@ -41,11 +42,6 @@ export default function ClientRootLayout({ children }: ClientRootLayoutProps) {
     return pathname.startsWith(route);
   });
 
-  // If not a swipe route, render children normally
-  if (!isSwipeRoute) {
-    return <>{children}</>;
-  }
-
   // Render SwipeContainer with all 3 main pages pre-rendered
   const slides = [
     {
@@ -65,6 +61,14 @@ export default function ClientRootLayout({ children }: ClientRootLayoutProps) {
     },
   ];
 
-  // Default to Calendar (index 1)
-  return <SwipeContainer slides={slides} defaultIndex={1} />;
+  return (
+    <>
+      <GlobalCreateManager />
+      {!isSwipeRoute ? (
+        children
+      ) : (
+        <SwipeContainer slides={slides} defaultIndex={1} />
+      )}
+    </>
+  );
 }

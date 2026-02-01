@@ -591,24 +591,6 @@ export default function NotesAndListsPage() {
           </div>
         )}
 
-        {/* FAB - Floating Action Button */}
-        <FAB
-          options={[
-            {
-              label: "New Note",
-              icon: "📝",
-              onClick: () => openNoteModal(),
-              color: "#3B82F6", // blue-600
-            },
-            {
-              label: "New List",
-              icon: "📋",
-              onClick: openListModal,
-              color: "#8B5CF6", // purple-600
-            },
-          ]}
-        />
-
         {/* Toasts */}
         <div className="fixed bottom-8 left-8 space-y-2 z-50">
           {toasts.map((toast) => (

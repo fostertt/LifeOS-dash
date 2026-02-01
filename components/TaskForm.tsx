@@ -27,6 +27,7 @@ interface TaskFormProps {
     tags?: string[];
   } | null;
   availableTags: string[];
+  title?: string;
 }
 
 /**
@@ -44,6 +45,7 @@ export default function TaskForm({
   onSave,
   existingTask,
   availableTags,
+  title,
 }: TaskFormProps) {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
@@ -123,7 +125,7 @@ export default function TaskForm({
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-2xl p-8 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
         <h2 className="text-2xl font-bold text-gray-900 mb-6">
-          {existingTask ? "Edit Task" : "New Task"}
+          {title || (existingTask ? "Edit Task" : "New Task")}
         </h2>
 
         <div className="space-y-4">
