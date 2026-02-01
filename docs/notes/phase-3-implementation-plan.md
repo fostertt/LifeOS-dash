@@ -1,10 +1,11 @@
 # Phase 3.0 - Foundation Refactor
 ## Task Management Architecture Overhaul
 
-**Status:** Phases 3.1-3.4 Complete ✅ | 3.5+ In Progress
+**Status:** Phases 3.1–3.5 Complete ✅ | 3.6 Next
 **Started:** January 30, 2026
-**Last Updated:** January 31, 2026
+**Last Updated:** February 1, 2026
 **Branch:** `feature/phase-3.1-foundation-data-model`
+**Production:** https://lifeos-dev.foster-home.net (PM2 on port 3002)
 
 ---
 
@@ -15,138 +16,258 @@ Phase 2.6 plans have been superseded by this foundation refactor. Real-world usa
 - No project organization (needed: tags/categories)
 - Inflexible workflow (needed: task states beyond complete/incomplete)
 
-This refactor addresses these core issues before continuing feature development.
+This refactor addresses these core issues. It also establishes the data foundation for the broader LifeOS system architecture decided on February 1 — see **Section: System Architecture** below for the full picture of where Phase 3 fits.
+
+---
+
+## System Architecture (Decided February 1, 2026)
+
+Phase 3 isn't just a task app refactor. It's the shared data foundation for a three-layer system. Understanding this context matters for every schema and UI decision we make.
+
+### The Three Layers
+
+**Layer 1 — Knowledge Base** (source of truth, full detail)
+Everything at its richest form: recipes with all variations, project roadmaps with dependencies, research captures, inventory, journals, homelab docs. This is the "Notion-like" layer. It is NOT a separate app — it is the **deep mode** interface of LifeOS.
+
+**Layer 2 — LifeOS Quick-Access Portal** (what Phase 3 is building)
+Surfaces relevant pieces of the knowledge base based on context. Optimized for speed and low cognitive load: what's due today, quick task capture, shopping lists, quick notes. This is the **focused mode** interface of LifeOS.
+
+**Layer 3 — AI** (connective tissue, future)
+Sees both layers. Processes voice captures into knowledge base entries, surfaces knowledge base context into tasks, proactive notifications, day summaries, dependency watching. The voice capture pipeline already in progress is the first proof-of-concept of this layer.
+
+### The Two Modes (REPLACES the old /mobile and /desktop concept)
+
+The UI distinction is **context-based, not device-based.** Two modes available on any device:
+
+**Focused Mode** — streamlined, low cognitive load. 3-page swipe navigation. Quick capture, status checks, glance-and-go. Default on mobile (first launch only).
+
+**Deep Mode** — full interface, all features. Sidebar/top nav. Table views, project tracking with completion and dependencies, configurable columns, knowledge base browsing, research clips, nested project content. Default on desktop (first launch only).
+
+**Mode behavior:**
+- Defaults are device-based on first-ever launch only
+- After that, the app persists last state — both mode AND last page open
+- App close and reopen returns to exactly where you left off
+- Mode changes only on explicit user toggle
+- Toggle location: TBD, likely single-tap icon in top bar (revisit during UI design)
+
+**Route group naming:**
+- `/app/(focused)` — focused mode (was previously called `/app/(mobile)`)
+- `/app/(deep)` — deep mode (future phase, built after Phase 3 stabilizes)
+
+### What Builds on What (Sequencing)
+
+1. **Phase 3 as planned** — shared data foundation for both modes
+2. **Blocked-by and research clips added to Phase 3 schema** — small additions now, not bolted on later
+3. **Focused mode IS Phase 3's UI** — just with updated naming/mental model
+4. **Deep mode comes after Phase 3 stabilizes** — new UI layer on same data
+5. **Knowledge base content** (recipes, inventory, lists, homelab docs) — populated into deep mode after it exists
+6. **AI layer and voice capture** — separate workstream, integrates once both knowledge base and capture pipeline are functional
 
 ---
 
 ## Architectural Decisions
 
 ### ADR-009: Smart Lists Architecture
-**Decision:** Replace separate smart list sections with "All" view + preset filters  
-**Rationale:** Smart lists are filtered views, not distinct navigation items. Single source of truth is more flexible and matches mental model.  
-**Status:** Deferred - Will implement after foundation is solid
+**Decision:** Replace separate smart list sections with "All" view + preset filters
+**Rationale:** Smart lists are filtered views, not distinct navigation items. Single source of truth is more flexible.
+**Status:** Deferred — will implement after foundation is solid
 
-### ADR-010: Quick Add Simplification  
-**Decision:** Default to Title + Date, "Show more" toggle reveals other fields  
-**Rationale:** 90% of captures need minimal fields. Progressive disclosure balances speed with power.  
+### ADR-010: Quick Add Simplification
+**Decision:** Default to Title + Date, "Show more" toggle reveals other fields
+**Rationale:** 90% of captures need minimal fields. Progressive disclosure balances speed with power.
 **Implementation:** Phase 3.9
 
 ### ADR-011: Effort vs Focus → Complexity vs Energy
-**Decision:** Keep two separate fields, rename for clarity  
+**Decision:** Keep two separate fields, rename for clarity
 - **Complexity** (1-5): How hard to think through?
-- **Energy** (1-5): What state do I need to be in?  
-**Rationale:** These are complementary dimensions, not redundant. Low complexity + high energy = routine task when tired. High complexity + high energy = deep work requiring peak state.  
-**Implementation:** Phase 3.1 (schema rename)
+- **Energy** (1-5): What state do I need to be in?
+**Rationale:** Complementary dimensions. Low complexity + high energy = routine task when tired. High complexity + high energy = deep work requiring peak state.
+**Implementation:** Phase 3.1 ✅ COMPLETE
 
 ### ADR-012: Task State Model
-**Decision:** Implement 5-state system  
-- **Unscheduled** - Captured, not on calendar yet
-- **Scheduled** - Has a date/time, on calendar
-- **In Progress** - Actively working on it
-- **On Hold** - Paused/blocked, waiting on something
-- **Completed** - Done
+**Decision:** 5-state system
+- **Unscheduled** — Captured, not on calendar yet
+- **Scheduled** — Has a date/time, on calendar
+- **In Progress** — Actively working on it
+- **On Hold** — Paused, waiting on something (reason is contextual, not structural)
+- **Completed** — Done
 
-**Rationale:** Supports GTD-style workflow (capture → organize → schedule). "On Hold" is distinct from "someday/maybe" (use tags for that) - it means there's a specific blocker.  
-**Implementation:** Phase 3.1 (schema), Phase 3.3 (UI)
+**Rationale:** Supports GTD-style workflow. "On Hold" is distinct from "someday/maybe" (use tags for that) — it means there's a specific reason it's paused. It is also distinct from "Blocked By" — see ADR-016.
+**Implementation:** Phase 3.1 ✅ COMPLETE
 
 ### ADR-013: Tagging System
-**Decision:** Freeform, multi-tag support on Tasks, Lists, and Notes  
-**Format:** User-created tags, case-insensitive matching, stored as string array  
-**Use cases:** Projects ("The Deck"), contexts ("@home", "@work"), areas ("Health", "Career")  
-**Rationale:** Maximum flexibility. Users organize their way. Tags can reference across item types (task, list, note all tagged "The Deck").  
-**Implementation:** Phase 3.2
+**Decision:** Freeform, multi-tag support on Tasks, Lists, Notes, and Research Clips
+**Format:** User-created tags, case-insensitive matching, stored as string array
+**Use cases:** Projects ("The Deck"), contexts ("@home", "@work"), areas ("Health", "Career")
+**Rationale:** Maximum flexibility. Tags are the primary way to organize across item types. A task, a note, a recipe, and a research clip can all be tagged "The Deck" and the system treats them as related.
+**Implementation:** Phase 3.2 ✅ COMPLETE
 
 ### ADR-014: Navigation Structure
-**Decision:** 3-page swipeable main area with hamburger for secondary features  
+**Decision:** 3-page swipeable main area (focused mode) with hamburger for secondary features
 
-**Main Swipeable Area:**
-- Left: **Unscheduled** (captured tasks, filterable by tag/complexity/energy)
-- Center: **Calendar** (scheduled items, multiple view modes)
-- Right: **Notes & Lists** (reference materials, also filterable by tags)
+**Focused Mode — Main Swipeable Area:**
+- Left: **All Tasks** (all tasks with filtering by state/tag/complexity/energy)
+- Center: **Calendar** (scheduled items, timeline and compact view modes)
+- Right: **Notes & Lists** (reference materials, filterable by tags)
 
-**Calendar View Modes:**
-- Day (replaces old Today page)
-- Week (replaces old Week page)
-- Month (NEW)
-- Custom: Work Week, Next 7 Days
-
-**Hamburger Menu:**
+**Focused Mode — Hamburger Menu:**
 - Habits
 - Reminders
 - Settings
 - Future modules (Meals & Recipes, etc.)
 
-**Rationale:** Related content views (Unscheduled ↔ Calendar ↔ Reference) in main swipe area. Less-frequent features in menu. Modern UX pattern.  
-**Implementation:** Phase 3.6
+**Deep Mode — Navigation (future phase):**
+- Sidebar or top nav giving access to: Tasks, Projects, Calendar, Knowledge Base, Research Clips, Inventory, and other content areas
+- Table views with configurable columns
+- Project boards and timelines
+
+**Rationale:** Focused mode keeps the surface area tight for quick interactions. Deep mode opens everything up for planning and organizing. Same data, different presentation density.
+**Implementation:** Phase 3.6 (focused mode nav)
 
 ### ADR-015: Notes as Distinct Type
-**Decision:** Notes are separate from Lists, both coexist on same page  
+**Decision:** Notes are separate from Lists, both coexist on same page
+- **Notes:** Optional title, freeform text content, tags
+- **Lists:** Title + description, checkbox items, tags, pinnable
+**Rationale:** Different mental models. Notes = freeform capture. Lists = structured checklist.
+**Implementation:** Phase 3.5 ✅ COMPLETE
 
-**Notes:**
-- Optional title
-- Freeform text content
-- Can have tags
+### ADR-016: Blocked-By as a Relationship (NEW — February 1)
+**Decision:** "Blocked By" is a structural dependency relationship, distinct from "On Hold" state
 
-**Lists:**
-- Title + description (at list level)
-- Checkbox items (simple text + completed state)
-- Can have tags
-- Can be pinned to top
+| Concept | What it means | How the system knows | AI behavior |
+|---|---|---|---|
+| On Hold | Paused by choice or circumstance ("waiting for spring") | State field on task | Surfaces periodically to check if conditions changed |
+| Blocked By | Hard dependency on another task/project ("need server build done first") | Foreign key relationship to blocker task(s) | Watches blocker; notifies when blocker completes |
 
-**Rationale:** Different mental models. Notes = freeform capture. Lists = structured checklist. Both are reference material. Google Keep does this well.  
-**Implementation:** Phase 3.5
+A task can be On Hold AND Blocked By simultaneously, or either independently. They are orthogonal.
+
+**Schema:** `blockedBy: TaskID[]` — many-to-many relationship on tasks
+**Rationale:** The AI layer needs structured dependency data to do useful things like "hey, you finished the server build, this service deployment is unblocked now." That only works if the dependency is a relationship in the database, not just a status.
+**Implementation:** Phase 3.1 schema addition (migration)
+
+### ADR-017: Research Capture as Content Type (NEW — February 1)
+**Decision:** Research clips are a distinct content type alongside Tasks, Notes, and Lists
+
+**Use case:** You find a Reddit thread, blog post, or image while browsing. You want to pin it to a project or topic so it lives in your knowledge base and is findable later.
+
+**Schema:**
+```
+ResearchClip {
+  id
+  url: string (required)
+  title: string (auto-populated from page title, editable)
+  screenshot: image (optional)
+  notes: text (optional — user's commentary)
+  tags: string[] (same tagging system as everything else)
+  projectRef: TaskID or ProjectTag (optional, links to a project)
+  createdAt: timestamp
+}
+```
+
+**Capture scope:** Available on both mobile and desktop. Mobile = quick capture (url + tag). Desktop = full detail editing.
+**Rationale:** Research capture is core to the knowledge base layer. It uses the same tagging system so clips are findable alongside related tasks and notes. Quick capture on mobile fits the focused mode philosophy — grab it fast, flesh it out later in deep mode.
+**Implementation:** Phase 3.1 schema addition (migration). UI in a later phase.
+
+### ADR-018: Nested Content in Projects (NEW — February 1)
+**Decision:** Projects can contain nested pages/content, constrained to ~2-3 levels max
+
+**Example:** Project "The Deck" → Planning (page) → Material List, Timeline, Design Ideas (child pages)
+
+**Model:** Parent-child relationship on notes/pages within a project context. Not arbitrary-depth nesting — shallow hierarchy for organization.
+**Rationale:** Users need to organize related content under a project without it becoming a full document tree. Tags handle the "what project does this belong to" question. Nesting handles the "how is the content within this project organized" question.
+**Implementation:** Schema support in Phase 3.1. UI in deep mode (future phase).
 
 ---
 
-## Data Model Changes
+## Data Model
 
-### Task Model (Updated)
+### Task Model (Current — Phase 3.1 complete)
 ```typescript
 {
   id: string
   title: string
-  description?: string              // notes field
+  description?: string
   state: 'unscheduled' | 'scheduled' | 'in_progress' | 'on_hold' | 'completed'
-  date?: string                     // NULLABLE now
+  date?: string                     // nullable
   time?: string
-  duration?: number
+  duration?: string                 // user-friendly ("1-2hours")
+  durationMinutes?: number          // auto-calculated for timeline rendering
   priority?: number
   complexity?: 1-5                  // renamed from effort
   energy?: 1-5                      // renamed from focus
-  tags?: string[]                   // NEW
+  tags?: string[]
   recurrence?: {...}
   subtasks?: [{text, completed}]
   parentTaskId?: string
+  projectId?: number                // NEW (Phase 3.6) — optional association to a Project
+  showOnCalendar?: boolean          // pin to today feature
+  blockedBy?: string[]              // NEW (ADR-016) — array of task IDs this task depends on
   createdAt: timestamp
   updatedAt: timestamp
 }
 ```
 
-### Note Model (NEW)
+### Note Model (Current — Phase 3.5 complete)
 ```typescript
 {
   id: string
   title?: string                    // optional
   content: string                   // freeform text
   tags?: string[]
+  pinned?: boolean
+  parentNoteId?: string             // NEW (ADR-018) — for nested content, nullable
   createdAt: timestamp
   updatedAt: timestamp
 }
 ```
 
-### List Model (Updated)
+### List Model (Current — Phase 3.5 complete)
 ```typescript
 {
   id: string
   title: string
-  description?: string              // NEW
+  description?: string
   items: [{text, completed}]
-  tags?: string[]                   // NEW
-  pinned?: boolean                  // NEW - keep at top of view
+  tags?: string[]
+  pinned?: boolean
   createdAt: timestamp
   updatedAt: timestamp
 }
 ```
+
+### ResearchClip Model (NEW — ADR-017, needs migration)
+```typescript
+{
+  id: string
+  url: string                       // required
+  title: string                     // auto-populated, editable
+  screenshot?: string               // image path/url, optional
+  notes?: string                    // user commentary
+  tags?: string[]                   // same tagging system
+  projectRef?: string               // optional tag or task ID linking to a project
+  createdAt: timestamp
+  updatedAt: timestamp
+}
+```
+
+### Project Model (NEW — Phase 3.6, added Feb 1 2026)
+```typescript
+{
+  id: number
+  userId: string
+  name: string                      // Project name
+  description?: string              // Optional description
+  status: 'backlog' | 'in_progress' | 'on_hold' | 'completed'
+  blockedBy?: number[]              // Array of project IDs this project depends on
+  targetDate?: DateTime             // Optional target completion date
+  tags?: string[]                   // Same tagging system
+  createdAt: timestamp
+  updatedAt: timestamp
+  tasks: Item[]                     // Tasks associated with this project
+}
+```
+
+**Note:** Tasks have an optional `projectId` field linking them to a Project. This is an association, not containment — tasks remain in the `items` table and optionally reference a project.
 
 ### Event, Habit, Reminder Models
 No changes needed for Phase 3.0. Can add tags later if desired.
@@ -156,491 +277,242 @@ No changes needed for Phase 3.0. Can add tags later if desired.
 ## Implementation Phases
 
 ### Phase 3.1 - Data Model & Migration ✅ COMPLETE
-**Goal:** Update schema, migrate existing data safely
-**Completed:** January 30, 2026
+**Completed:** January 30, 2026 (initial), February 1, 2026 (supplement)
 
-**Tasks:**
-1. Examine current schema (Prisma/TypeORM/SQL)
-2. Create migration:
-   - Add `state` enum to tasks (default: 'scheduled')
-   - Add `tags` JSONB/array column to tasks, lists
-   - Add `description` text to lists
-   - Add `pinned` boolean to lists
-   - Rename `effort` → `complexity`
-   - Rename `focus` → `energy`
-   - Make `date` nullable in tasks
-3. Migrate existing data (all tasks → 'scheduled' state)
-4. Update TypeScript types
-5. Test migration locally
+What was built: state enum, tags, complexity/energy rename, nullable dates, subtasks, showOnCalendar, durationMinutes.
 
-**Branch:** `feature/phase-3.1-data-model`
+**Supplemental migrations (February 1, 2026):**
+- ✅ `blockedBy` field on tasks (JSONB array) — ADR-016
+- ✅ `ResearchClip` model — ADR-017
+- ✅ `parentNoteId` on notes (nullable) — ADR-018
+- ✅ `Project` model with status, blockedBy, targetDate, tags
+- ✅ `projectId` on tasks (optional association)
 
-**Success Criteria:**
-- [ ] Schema updated with all new fields
-- [ ] Migration runs successfully  
-- [ ] Existing data preserved
-- [ ] TypeScript types match schema
-- [ ] App runs without errors
-- [ ] Can create/read/update tasks with new fields
+All schema foundations complete and ready for future phases.
 
 ---
 
 ### Phase 3.2 - Tag System ✅ COMPLETE
-**Goal:** Build tagging infrastructure and UI components
 **Completed:** January 30, 2026
 
-**Tasks:**
-1. Create TagInput component:
-   - Multi-select interface
-   - Autocomplete from existing tags
-   - Create new tags on-the-fly
-   - Remove tags (X button)
-   - Visual: chip/badge display
-2. Create TagFilter component:
-   - Filter items by selected tags
-   - AND/OR logic options
-3. Tag management utilities:
-   - Get all unique tags (for autocomplete)
-   - Case-insensitive matching
-   - Tag search
-4. Update forms:
-   - Add TagInput to task create/edit
-   - Add TagInput to list create/edit
-   - Prepare for notes (will use in Phase 3.5)
-
-**Branch:** `feature/phase-3.2-tags`
-
-**Success Criteria:**
-- [ ] Can add tags to tasks
-- [ ] Can add tags to lists
-- [ ] Tags autocomplete from existing
-- [ ] Can filter by tags
-- [ ] Tags display as chips/badges
-- [ ] Case-insensitive matching works
+TagInput component with autocomplete, multi-tag support on tasks and lists, tag filtering. Works across all item types that have tags.
 
 ---
 
 ### Phase 3.3 - All Tasks View ✅ COMPLETE
-**Goal:** Create dedicated view for all tasks with filtering (renamed from "Unscheduled")
 **Completed:** January 30, 2026
 
-**Tasks:**
-1. Create Unscheduled page component:
-   - Display all tasks with state='unscheduled'
-   - Empty state message
-   - Task cards with drag handles
-2. Filtering interface:
-   - By tags (multi-select)
-   - By complexity (1-5 range)
-   - By energy (1-5 range)
-   - By priority
-3. Grouping options:
-   - Group by tag
-   - Group by complexity
-   - Group by energy
-   - Flat list (default)
-4. Task state management:
-   - When task gets a date → auto-change to 'scheduled'
-   - When date removed → back to 'unscheduled'
-   - Manual state changes: → 'in_progress', → 'on_hold'
-   - State indicator badges on task cards
-5. Update task creation:
-   - If no date provided → state='unscheduled'
-   - If date provided → state='scheduled'
+`/tasks` route with filtering by state, tags, complexity, energy. State badges. 
 
-**Branch:** `feature/phase-3.3-unscheduled-view`
-
-**Success Criteria:**
-- [ ] Unscheduled page exists and routes correctly
-- [ ] Shows only unscheduled tasks
-- [ ] Filtering works (tags, complexity, energy)
-- [ ] Grouping options work
-- [ ] State transitions work automatically
-- [ ] Can manually change states
-- [ ] Task cards show current state
+**Known issue:** Clicking task in /tasks previously navigated to Today instead of opening modal. **Fixed in Phase 3.5 UI polish** — TaskForm modal now opens correctly.
 
 ---
 
 ### Phase 3.4 - Calendar View Modes ✅ COMPLETE
-**Goal:** Timeline vs Compact view modes with categorized display
 **Completed:** January 31, 2026
-**See:** `phase-3.4-complete-summary.md`
+**See:** `phase-3.4-complete-summary.md` for full details
 
-**Tasks:**
-1. Update Calendar data queries:
-   - Only fetch tasks in 'scheduled' or 'in_progress' states
-   - Continue showing events, habits, reminders as before
-2. Add filter bar to Calendar:
-   - All | Tasks | Events | Habits | Reminders
-   - Apply across all view modes
-   - Persist filter selection
-3. Implement view mode switching:
-   - Day view (migrate Today page logic)
-   - Week view (existing Week page logic)
-   - Month view (NEW - calendar grid component)
-   - Custom views: Work Week (Mon-Fri), Next 7 Days
-4. Month view specifics:
-   - Calendar grid showing all days
-   - Click day → switch to Day view for that date
-   - Click week number → switch to Week view for that week
-   - Show item counts per day
-5. View mode persistence:
-   - Remember user's preferred default view (localStorage or DB)
-   - Setting to choose default on app open
+Timeline mode (hour axis 5am–11pm, zoom controls) and compact mode (categorized list). View toggle persists. Duration auto-calculation. Pin to today. Categorized sections: Reminders, Overdue, In Progress, Scheduled, Quick Captures.
 
-**Branch:** `feature/phase-3.4-calendar-views`
-
-**Success Criteria:**
-- [ ] Calendar only shows scheduled/in-progress items
-- [ ] Filter bar works across all views
-- [ ] Day view works (migrated from Today)
-- [ ] Week view works (existing logic)
-- [ ] Month view displays correctly
-- [ ] Can switch between view modes
-- [ ] Month → Day/Week navigation works
-- [ ] Default view setting works
+**What was originally planned but deferred:** Week/Month views. Current implementation focuses on single-day with two visualization modes (timeline vs compact). Week/Month views can be added later if needed.
 
 ---
 
-### Phase 3.5 - Notes Feature
-**Goal:** Add Notes as distinct type alongside Lists
+### Phase 3.5 - Notes Feature + UI Polish ✅ COMPLETE
+**Completed:** January 31, 2026
 
-**Tasks:**
-1. Create Note schema and API:
-   - Database model (already planned in 3.1, now implement)
-   - API routes: create, read, update, delete
-   - Validation
-2. Rename "Lists" page → "Notes & Lists":
-   - Update route
-   - Update navigation labels
-3. Create Note components:
-   - NoteCard (display)
-   - NoteForm (create/edit)
-   - Freeform textarea with optional title
-   - Tag support (use TagInput from Phase 3.2)
-4. Update Lists:
-   - Add description field to list forms
-   - Description displays below title
-   - List items remain simple (text + checkbox)
-5. Combined view:
-   - Show both Notes and Lists on same page
-   - Filter toggle: All | Notes | Lists
-   - Sort options: Recent, Alphabetical, Pinned first
-6. Pin/unpin functionality:
-   - Pin button on Notes and Lists
-   - Pinned items always at top regardless of sort
+Notes API (GET/POST/PATCH/DELETE at `/api/notes`). NoteCard and NoteForm components. Combined "Notes & Lists" page at `/lists`. Filtering (All | Notes | Lists), sorting (Recent | Alphabetical), pin/unpin. ListCard component. FAB replaces header buttons. Back button/gesture on all modals.
 
-**Branch:** `feature/phase-3.5-notes`
+**UI Polish completed in this phase:**
+- Header → "Notes & Lists"
+- Removed duplicate heading, delete buttons from cards, Smart Lists feature and Simple badges
+- FAB (Floating Action Button) added
+- Back button/gesture support on all modals (NoteForm, ListForm, TaskForm)
+- All Tasks click bug fixed (TaskForm modal)
 
-**Success Criteria:**
-- [ ] Can create notes with optional title
-- [ ] Can edit notes (inline or modal)
-- [ ] Can add tags to notes
-- [ ] Lists have description field
-- [ ] Notes & Lists page shows both types
-- [ ] Filter toggle works
-- [ ] Can pin/unpin items
-- [ ] Pinned items stay at top
+**Still to do (post Phase 3.6):**
+- Sidebar label update to "Notes & Lists" in `components/Sidebar.tsx`
+- TaskForm styling consistency with other modals
+- Pin button inside list detail view
+- Delete buttons inside detail views (note/list/task)
 
 ---
 
 ### Phase 3.6 - Navigation Refactor
-**Goal:** Implement swipeable 3-page navigation
+**Goal:** Swipeable 3-page navigation (focused mode)
 
 **Tasks:**
-1. Choose swipe library:
-   - Evaluate: framer-motion, react-swipeable, react-spring
-   - Implement chosen solution
+1. Choose swipe library (evaluate: framer-motion, react-swipeable, react-spring)
 2. Create SwipeContainer component:
-   - Manages 3 pages: Unscheduled | Calendar | Notes/Lists
-   - Smooth animations between pages
+   - 3 pages: All Tasks ↔ Calendar ↔ Notes & Lists
+   - Smooth animations
    - Touch gesture support
    - Keyboard navigation (arrow keys)
-3. Page indicators:
-   - Dots or tabs showing current page
-   - Can tap to jump to page (not just swipe)
+3. Page indicators (dots or tabs, tappable to jump)
 4. Update hamburger menu:
    - Remove: Today, Tasks, Week, Lists (now in swipe nav)
    - Keep: Habits, Reminders, Settings
-   - Future: Meals & Recipes section
-5. Default page on app open:
-   - Calendar (center page)
-   - Or remember last viewed page
-6. Handle navigation from other pages:
-   - Habits page → how to get back to swipe area?
-   - Consider breadcrumb or back button
+   - Future: Meals & Recipes
+5. Default page: Calendar (center). Remember last viewed page.
+6. Handle navigation back from Habits/Reminders/Settings pages
 
-**Branch:** `feature/phase-3.6-navigation`
+**Route group:** This navigation IS the focused mode layout. Route group should be `/app/(focused)`.
 
 **Success Criteria:**
 - [ ] Can swipe between 3 pages
-- [ ] Animations are smooth
-- [ ] Page indicators show current page
-- [ ] Can tap indicators to jump
-- [ ] Hamburger menu updated correctly
-- [ ] Default page opens correctly
-- [ ] Navigation from other pages works
+- [ ] Animations smooth
+- [ ] Page indicators show current page, tappable
+- [ ] Hamburger menu updated
+- [ ] Last viewed page persists across app close/reopen
+- [ ] Navigation from secondary pages (Habits, etc.) works
+
+**Branch:** `feature/phase-3.6-navigation`
 
 ---
 
 ### Phase 3.7 - FAB Menu
-**Goal:** Global floating action button for creating items
+**Goal:** Global floating action button for creating any item type
+
+**Note:** FAB component already exists from Phase 3.5 UI polish. This phase expands it into a full creation menu.
 
 **Tasks:**
-1. Create FAB component:
-   - Floating button (bottom-right on mobile, accessible position)
-   - Plus icon default state
-   - Expandable menu on click/tap
-2. Menu options:
-   - Task
-   - Event
-   - Habit
-   - Reminder
-   - List
-   - Note
-3. Menu behavior:
-   - Expands upward (most common pattern)
-   - Icons + labels for each option
-   - Closes on selection or outside click
-   - Animated expand/collapse
-4. Wire to creation flows:
-   - Each option opens appropriate form
-   - Forms open as modal or slide-in panel
-   - Pre-populate context if relevant (e.g., date if on Calendar)
-5. Global positioning:
-   - Works on all pages
-   - Doesn't overlap critical content
-   - Z-index management
-6. Accessibility:
-   - Keyboard accessible
-   - Screen reader labels
-   - Focus management
-
-**Branch:** `feature/phase-3.7-fab`
+1. Expand FAB into multi-option menu:
+   - Task, Event, Habit, Reminder, List, Note
+   - Future: Research Clip (once UI is built)
+2. Menu behavior: expands upward, icons + labels, closes on selection or outside click, animated
+3. Wire each option to appropriate creation form (modal or slide-in)
+4. Pre-populate context where relevant (e.g., date if on Calendar page)
+5. Global positioning — works on all pages, doesn't overlap content
 
 **Success Criteria:**
 - [ ] FAB visible on all pages
 - [ ] Menu expands/collapses smoothly
-- [ ] All 6 creation options work
-- [ ] Forms open correctly
-- [ ] FAB doesn't block content
+- [ ] All creation options work
+- [ ] Context pre-population works
 - [ ] Keyboard accessible
-- [ ] Mobile and desktop friendly
+
+**Branch:** `feature/phase-3.7-fab`
 
 ---
 
 ### Phase 3.8 - Drag & Drop Scheduling
-**Goal:** Enable dragging tasks from Unscheduled → Calendar to schedule them
+**Goal:** Drag tasks from All Tasks → Calendar to schedule them
 
 **Tasks:**
-1. Choose drag-drop library:
-   - Evaluate: react-beautiful-dnd, dnd-kit, react-dnd
-   - Implement chosen solution
-2. Make Unscheduled tasks draggable:
-   - Drag handle on task cards
-   - Visual feedback during drag (ghost image)
-   - Constraints (can't drop on invalid targets)
+1. Choose drag-drop library (evaluate: dnd-kit, react-beautiful-dnd)
+2. Make tasks draggable (drag handle, ghost image during drag)
 3. Make Calendar dates/times droppable:
-   - Drop zones in Day view (time slots)
-   - Drop zones in Week view (day columns, time rows)
-   - Drop zones in Month view (day cells)
-   - Visual feedback on hover (highlight drop zone)
-4. Handle drop:
-   - Update task with new date/time
-   - Change state: 'unscheduled' → 'scheduled'
-   - Optimistic UI update
-   - API call to persist
-   - Error handling (revert on failure)
-5. Reverse drag (scheduled → unscheduled):
-   - Can drag task off Calendar
-   - Special "Unscheduled" drop zone (sidebar or dedicated area)
-   - Clears date, changes state back to 'unscheduled'
-6. Within-calendar drag:
-   - Drag scheduled task to different date/time
-   - Updates date, keeps 'scheduled' state
-7. Mobile considerations:
-   - Long-press to initiate drag on touch devices
-   - Touch feedback
-   - Auto-scroll when dragging near edge
-
-**Branch:** `feature/phase-3.8-drag-drop`
+   - Timeline mode: drop on time slots
+   - Compact mode: drop on day sections
+4. Handle drop: update date/time, state → 'scheduled', optimistic UI update
+5. Reverse drag: drag scheduled task off calendar → clears date, state → 'unscheduled'
+6. Within-calendar reschedule: drag to different time/date
+7. Mobile: long-press to initiate, touch feedback, auto-scroll near edge
 
 **Success Criteria:**
-- [ ] Can drag unscheduled tasks
-- [ ] Can drop on calendar dates/times
-- [ ] Task gets scheduled correctly
-- [ ] State changes to 'scheduled'
-- [ ] Can drag scheduled tasks off calendar
-- [ ] Task becomes unscheduled, date cleared
-- [ ] Can reschedule by dragging within calendar
-- [ ] Visual feedback works
+- [ ] Can drag unscheduled tasks onto calendar
+- [ ] Task gets scheduled correctly (date, time, state)
+- [ ] Can drag scheduled tasks off calendar (becomes unscheduled)
+- [ ] Can reschedule within calendar
 - [ ] Works on mobile (touch)
-- [ ] Error handling works
+- [ ] Visual feedback throughout
+
+**Branch:** `feature/phase-3.8-drag-drop`
 
 ---
 
 ### Phase 3.9 - UI Polish & Bug Fixes
-**Goal:** Address original Phase 2.6 issues, polish UX
+**Goal:** Polish UX, fix remaining issues, simplify Quick Add
 
 **Tasks:**
-1. Fix list editing bugs (BUG-001 from old Phase 2.6):
-   - Text input shows full content (no overflow)
-   - Fix title styling (too large)
-   - Remove "Simple" tag
-   - Restore quick add button at bottom of lists
-2. Text wrapping fixes:
-   - List items wrap properly
-   - Task titles wrap in cards
-   - No horizontal overflow anywhere
-3. Quick Add simplification:
-   - Default view: Title + Date only
-   - "Show more" toggle button
-   - Expanded view: Time, Priority, Complexity, Energy, Duration, Recurrence, Tags
-   - Smooth expand/collapse animation
-4. General UX improvements:
-   - Loading states
-   - Empty states with helpful messages
-   - Error messages (user-friendly)
-   - Success feedback (toasts/snackbars)
-   - Confirm dialogs for destructive actions
-5. Responsive design check:
-   - Test all new features on mobile
-   - Adjust layouts for small screens
-   - Touch target sizes (min 44px)
-6. Performance:
-   - Optimize queries (only fetch what's needed)
-   - Lazy load components
-   - Debounce search/filter inputs
-7. Testing:
-   - Manual testing of all workflows
-   - Test state transitions
-   - Test data integrity
-   - Test on different devices/browsers
+1. Quick Add simplification:
+   - Default: Title + Date only
+   - "Show more" toggle reveals: Time, Priority, Complexity, Energy, Duration, Recurrence, Tags
+2. Text wrapping fixes across all components
+3. General UX: loading states, empty states, error messages, success feedback, confirm dialogs
+4. Responsive check on all new features
+5. Performance: optimize queries, lazy load, debounce inputs
+6. Full manual testing across devices
 
 **Branch:** `feature/phase-3.9-polish`
-
-**Success Criteria:**
-- [ ] List editing works correctly
-- [ ] Text wrapping fixed everywhere
-- [ ] Quick Add has simplified default view
-- [ ] "Show more" toggle works
-- [ ] All empty states have helpful messages
-- [ ] Error handling is user-friendly
-- [ ] Responsive on mobile
-- [ ] Performance is acceptable
-- [ ] No critical bugs
-
----
-
-## Testing Strategy
-
-### Per-Phase Testing
-- Unit tests for new utilities/functions
-- Component tests for new UI components
-- Integration tests for state management
-- Manual testing of user workflows
-
-### End-to-End Testing (after Phase 3.9)
-- Complete user journeys:
-  - Capture task → tag it → schedule it → complete it
-  - Create note → tag it → pin it → edit it
-  - Create list → add items → check off → unpin
-- Cross-feature interactions:
-  - Tags work across tasks, notes, lists
-  - Filters work correctly
-  - Drag-drop updates states correctly
-- Edge cases:
-  - Empty states
-  - No network
-  - Concurrent edits
-  - Long content
-
-### Regression Testing
-- Ensure existing features still work:
-  - Events
-  - Habits
-  - Reminders
-  - Recurrence
-
----
-
-## Migration Strategy
-
-### Development
-1. Work in feature branches
-2. Merge to `develop` branch for integration testing
-3. Test full Phase 3.0 together before merging to `main`
-
-### Database Migration
-1. Backup production database before migration
-2. Run migration on staging environment first
-3. Verify data integrity
-4. If successful, run on production
-5. Keep rollback script ready
-
-### User Communication
-- If this is a shared/family app, notify users of upcoming changes
-- Provide changelog or what's new guide
-- Offer brief tutorial on new features (especially Unscheduled view, tags, states)
-
----
-
-## Rollback Plan
-
-If Phase 3.0 causes critical issues:
-
-1. **Code rollback:** Revert to last stable commit on `main`
-2. **Database rollback:** Restore from pre-migration backup
-3. **Investigate issue:** Determine what went wrong
-4. **Fix in feature branch:** Address the issue
-5. **Re-test thoroughly:** Ensure fix works
-6. **Re-deploy:** Try again when confident
 
 ---
 
 ## Post-Phase 3.0 Roadmap
 
-Once foundation is solid, future phases can include:
+### Phase 3.10 - Schema Migration Supplement
+Add the three items from ADR-016, ADR-017, ADR-018 if not already added during Phase 3.1 patch:
+- `blockedBy` on tasks
+- `ResearchClip` model
+- `parentNoteId` on notes
 
-### Phase 3.10 - Smart List Presets (ADR-009)
-- Implement preset filters as buttons
-- "Quick Wins" (low complexity, low energy)
-- "Deep Work" (high complexity, high energy)
-- "Waiting On" (state = on_hold)
-- User-definable presets
+### Phase 3.11 - Deep Mode UI (Future)
+The second interface layer. Sidebar nav, table views with configurable columns, project tracking (completion %, blocked-by visualization), knowledge base browsing, research clip management, nested project content. Built on the same data as focused mode — no new backend work, just a richer frontend.
 
-### Phase 3.11 - Advanced Recurrence
-- More flexible recurrence patterns
-- Exclusions (every day except holidays)
-- Nth day of month (first Monday, last Friday)
+### Phase 3.12 - Smart List Presets (ADR-009)
+Preset filter buttons: "Quick Wins" (low complexity, low energy), "Deep Work" (high complexity, high energy), "Waiting On" (on hold), user-definable presets.
 
-### Phase 3.12 - Collaboration Features
-- Share tasks/lists with family members
-- Assign tasks
-- Comments/notes on tasks
+### Phase 3.13 - Collaboration Features
+Share tasks/lists with family. Assign tasks. Both users see shared recipes, movie lists, calendars. Basic shared family account — not a full permission system.
 
-### Phase 3.13 - Integrations
-- Calendar sync (Google Calendar, Apple Calendar)
-- Import/export
-- Email → task
+### Phase 3.14 - Integrations
+Google Calendar (already done — read-only sync). Gmail integration (future). Extensible integration layer so adding new sources isn't a rebuild each time.
+
+### Phase 3.15 - Research Clip UI
+Capture interface on both mobile (quick: url + tag) and desktop (full detail). Browse and filter clips. Link clips to projects via tags.
+
+---
+
+## Testing Strategy
+
+### Per-Phase
+- Component and integration testing as features are built
+- Manual testing of user workflows after each phase
+- Test on mobile (phone + tablet) and desktop
+
+### End-to-End (after Phase 3.9)
+- Full user journeys: capture → tag → schedule → complete
+- Cross-feature: tags work across tasks/notes/lists/clips, filters correct, drag-drop updates states
+- Edge cases: empty states, long content, concurrent edits
+
+### Regression
+- Events, Habits, Reminders, Recurrence still work after each phase
+
+---
+
+## Migration Strategy
+
+1. Work in feature branches
+2. Merge to develop for integration testing
+3. Full Phase 3.0 test before merging to main
+4. Backup production DB before any migration
+5. Run migration on staging first, verify, then production
+6. Keep rollback script ready
+
+---
+
+## Rollback Plan
+
+1. Code rollback to last stable commit on main
+2. Database restore from pre-migration backup
+3. Investigate, fix in feature branch, re-test, re-deploy
 
 ---
 
 ## Notes & Considerations
 
 ### Why Not Just Use Existing Tools?
-This project is about building a tailored system that fits your family's workflow. Off-the-shelf tools require adapting to their models. This is your model.
+This project is about building a system tailored to your family's workflow. Off-the-shelf tools require adapting to their models. This is your model. The composable headless approach (Vikunja/Memos as backends) was explored and rejected — custom build gives full control over schema, UI, and AI integration without fighting someone else's abstractions.
 
 ### Technical Debt Decisions
 - Not implementing robust error handling upfront (add when issues arise)
 - Not building comprehensive test suite initially (focus on user-facing features)
-- These are conscious trade-offs for speed; revisit as app matures
+- Conscious trade-offs for speed; revisit as app matures
 
 ### AI Context Management
-- Comprehensive inline comments in code
-- Session wrap-up .md files capturing decisions
-- This plan itself serves as context for future AI sessions
-- Update this plan as phases complete or requirements change
+- Inline comments in code
+- Session wrap-up .md files
+- This plan is the source of truth — update it as phases complete or requirements change
 
 ---
 
@@ -648,11 +520,10 @@ This project is about building a tailored system that fits your family's workflo
 
 After each work session:
 1. Update phase status in this document
-2. Check off completed success criteria
-3. Document any deviations from plan
-4. Update `next_session.md` with where to pick up
-5. Commit changes with descriptive messages
+2. Document any deviations from plan
+3. Update `next_session.md` with where to pick up
+4. Commit with descriptive messages
 
 ---
 
-**This document is the source of truth for Phase 3.0. Update it as the project evolves.**
+**This document is the source of truth for Phase 3.0 and the LifeOS system architecture. Update it as the project evolves.**

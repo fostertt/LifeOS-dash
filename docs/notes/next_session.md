@@ -1,7 +1,7 @@
 # Next Session - Start Here
 
-**Last Updated:** January 31, 2026
-**Current Status:** Phase 3.5 Complete + UI Polish ✅
+**Last Updated:** February 1, 2026
+**Current Status:** Phase 3.5 Complete ✅ | Phase 3.6 Next
 **Branch:** `feature/phase-3.1-foundation-data-model`
 **Production:** https://lifeos-dev.foster-home.net (PM2 on port 3002)
 
@@ -10,229 +10,145 @@
 ## Quick Start
 
 ```bash
-# Start dev server
+# SSH to foster-forge, then:
 npm run dev
-
 # Dev server runs on port 3002
 # Access at: http://localhost:3002
 ```
 
 ---
 
+## Architecture Context (Read This First)
+
+LifeOS is a **two-mode, single-platform** system. Understanding this shapes every decision:
+
+**Focused Mode** — streamlined, low cognitive load. 3-page swipe. Quick capture and status checks. This is what Phase 3 builds. Route group: `/app/(focused)`.
+
+**Deep Mode** — full interface. Sidebar nav, table views, project tracking, knowledge base, research clips. Same data as focused mode, richer UI. Built after Phase 3 stabilizes. Route group: `/app/(deep)` (future).
+
+Both modes available on any device. Default on first launch: focused on mobile, deep on desktop. After that, app persists last mode + last page. Mode only changes on explicit user toggle.
+
+**Full architecture doc:** `phase-3-implementation-plan.md` — this is the source of truth.
+
+---
+
 ## What's Complete
 
 ### ✅ Phase 3.1 - Data Model & Migration
-- Schema updated with state, tags, complexity, energy fields
-- Migration applied successfully
-- All fields working in UI
+- Schema: state, tags, complexity, energy, nullable dates, subtasks, showOnCalendar, durationMinutes
+- Migration applied, all fields working
+- **Supplemental migrations (Feb 1, 2026):**
+  - ✅ `blockedBy` on tasks (JSONB array) — ADR-016
+  - ✅ `ResearchClip` model — ADR-017
+  - ✅ `parentNoteId` on notes — ADR-018
+  - ✅ `Project` model (name, description, status, blockedBy, targetDate, tags)
+  - ✅ `projectId` on tasks (optional association)
 
 ### ✅ Phase 3.2 - Tag System
-- TagInput component with autocomplete
-- Multi-tag support on tasks and lists
-- Tag filtering functional
+- TagInput with autocomplete, multi-tag on tasks and lists, tag filtering
 
 ### ✅ Phase 3.3 - All Tasks View
-- `/tasks` route shows all tasks with filtering
-- State badges (unscheduled, scheduled, in progress, on hold)
-- Complexity, energy, tag filters
-- **Known Issue:** Clicking task navigates to Today instead of opening modal
+- `/tasks` route, state/tag/complexity/energy filtering, state badges
+- Click bug fixed in Phase 3.5 (TaskForm modal opens correctly)
 
 ### ✅ Phase 3.4 - Calendar View Modes
-- Timeline mode (hour axis 5am-11pm, zoom controls)
-- Compact mode (categorized list)
-- View toggle (desktop + mobile)
-- Duration auto-calculation
-- Pin to today feature (showOnCalendar)
-- Categorized sections (Reminders, Overdue, In Progress, Scheduled, Quick Captures)
+- Timeline mode (hour axis 5am–11pm, zoom) and compact mode
+- View toggle persists. Duration auto-calc. Pin to today. Categorized sections.
+- See `phase-3.4-complete-summary.md`
 
-**See:** `docs/notes/phase-3.4-complete-summary.md` for details
-
-### ✅ Phase 3.5 - Notes Feature + UI Polish
-- Note API routes (GET, POST, PATCH, DELETE at `/api/notes`)
-- NoteCard and NoteForm components with tag support
+### ✅ Phase 3.5 - Notes + UI Polish
+- Notes API (`/api/notes` — GET/POST/PATCH/DELETE)
+- NoteCard, NoteForm, ListCard components
 - Combined "Notes & Lists" page at `/lists`
-- List description field added to schema and UI
-- Filtering: All | Notes | Lists
-- Sorting: Recent | Alphabetical
-- Pin/unpin functionality for both Notes and Lists
-- Pinned items section at top
-- ListCard component for consistency
-
-**UI Polish Completed:**
-- Header title updated to "Notes & Lists"
-- Removed duplicate heading from page
-- Removed delete buttons from cards
-- Removed Smart Lists feature and Simple badges
-- Replaced header buttons with FAB (Floating Action Button)
-- Added back button/gesture support to all modals (NoteForm, ListForm, TaskForm)
-- Fixed All Tasks click bug - created TaskForm modal
-
-**Components:** `components/NoteCard.tsx`, `components/NoteForm.tsx`, `components/ListCard.tsx`, `components/FAB.tsx`, `components/TaskForm.tsx`
+- Filter (All | Notes | Lists), sort (Recent | Alphabetical), pin/unpin
+- FAB component added
+- All modals have back button/gesture
+- All Tasks click bug fixed (TaskForm modal)
 
 ---
 
 ## Next: Phase 3.6 - Navigation Refactor
 
-**Goal:** Swipeable navigation between All Tasks ↔ Calendar ↔ Notes/Lists
+**Goal:** Swipeable 3-page navigation. This IS the focused mode layout.
 
 ### What to Build
 
-1. **Note API Routes**
-   - GET /api/notes - List all notes
-   - POST /api/notes - Create note
-   - PATCH /api/notes/[id] - Update note
-   - DELETE /api/notes/[id] - Delete note
+1. **Choose swipe library** — evaluate framer-motion, react-swipeable, react-spring
+2. **SwipeContainer component:**
+   - 3 pages: All Tasks ↔ Calendar ↔ Notes & Lists
+   - Smooth animations, touch gestures, keyboard nav (arrow keys)
+3. **Page indicators** — dots or tabs, tappable to jump between pages
+4. **Update hamburger menu:**
+   - Remove from nav: Today, Tasks, Week, Lists (these are now the swipe pages)
+   - Keep: Habits, Reminders, Settings
+   - Future placeholder: Meals & Recipes
+5. **Default page:** Calendar (center page). Persist last viewed page across sessions.
+6. **Back navigation** from Habits/Reminders/Settings back to swipe area
 
-2. **Note Components**
-   - NoteCard - Display component
-   - NoteForm - Create/edit modal
-   - Optional title field
-   - Freeform textarea for content
-   - Tag support (reuse TagInput from Phase 3.2)
-
-3. **Rename Lists Page**
-   - Route: `/lists` → `/notes-and-lists` or keep `/lists`
-   - Page title: "Notes & Lists"
-   - Combined view showing both types
-
-4. **List Enhancements**
-   - Add description field to list model/forms
-   - Description displays below title
-   - Keep list items simple (text + checkbox)
-
-5. **Combined View Features**
-   - Filter toggle: All | Notes | Lists
-   - Sort options: Recent, Alphabetical, Pinned first
-   - Pin/unpin button on both Notes and Lists
-   - Pinned items always at top
-
-### Database Schema
-
-Note model already exists in schema (from Phase 3.1):
-```prisma
-model Note {
-  id        Int      @id @default(autoincrement())
-  userId    String   @map("user_id")
-  title     String?  // Optional title
-  content   String   // Freeform text content
-  tags      Json?    @db.JsonB // Array of tag strings
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([userId])
-  @@map("notes")
-}
+### Route Structure
 ```
-
-List model needs description field added:
-- Add `description String?` to List model
-- Migration needed for this field
-
-### Reference Files
-
-- **Phase plan:** `docs/notes/phase-3-implementation-plan.md` (see Phase 3.5)
-- **Schema:** `prisma/schema.prisma`
-- **Existing Lists page:** `app/lists/page.tsx`
-- **Tag component:** `components/TagInput.tsx`
+/app/(focused)/          — focused mode layout with swipe container
+  page.tsx               — SwipeContainer with 3 child pages
+  tasks/                 — All Tasks page (currently at /tasks)
+  calendar/              — Calendar page (currently at /)
+  lists/                 — Notes & Lists page (currently at /lists)
+  habits/                — Habits (from hamburger)
+  reminders/             — Reminders (from hamburger)
+  settings/              — Settings (from hamburger)
+```
 
 ### Success Criteria
+- [ ] Can swipe between 3 pages smoothly
+- [ ] Page indicators show current page, are tappable
+- [ ] Hamburger menu updated (removed swipe pages, kept secondary)
+- [ ] Calendar is default on first open
+- [ ] Last viewed page persists across app close/reopen
+- [ ] Navigation from Habits/Reminders/Settings back to swipe works
 
-- [ ] Can create notes with optional title and content
-- [ ] Can create lists with description
-- [ ] Notes and Lists both display on same page
-- [ ] Can filter by type (All | Notes | Lists)
-- [ ] Can add tags to notes
-- [ ] Can pin/unpin notes and lists
-- [ ] Pinned items sort to top
-- [ ] Sort options work (Recent, Alphabetical)
-
----
-
-## UI Improvements Needed (Post Phase 3.6)
-
-### Completed in Current Session ✅
-1. ✅ Header Title: Changed to "Notes & Lists"
-2. ✅ Remove Duplicate Title: Removed large heading
-3. ✅ Remove Delete from Cards: Removed from main cards
-4. ✅ Remove Smart Lists: Removed option and badges
-5. ✅ Replace Header Buttons with FAB: Added floating action button
-6. ✅ Back Button/Gesture Support: Added to all modals
-7. ✅ Fix All Tasks click bug: Created TaskForm modal
-
-### Still To Do
-8. **Sidebar Menu Label**: Update Sidebar component to show "Notes & Lists" instead of "Lists"
-   - Location: `components/Sidebar.tsx`
-
-9. **TaskForm Styling Consistency**: TaskForm dialog looks different from NoteForm/ListForm
-   - Make TaskForm match the styling of other modals
-   - Ensure consistent spacing, colors, and layout
-   - Location: `components/TaskForm.tsx`
-
-10. **Add Pin Inside Lists**: Add pin/unpin button inside list detail view (like notes have)
-    - Location: `app/lists/[id]/page.tsx`
-
-11. **Delete in Detail Views**: Add delete buttons inside note/list/task detail views
-    - Currently removed from cards but not added to detail views yet
-
-**Reference Screenshot:** `docs/screenshots/lists-notes_Z Fold 6 Front).png`
+### Branch
+`feature/phase-3.6-navigation`
 
 ---
 
-## Known Issues to Address
+## Remaining UI Polish (do after Phase 3.6)
 
-### From Phase 3.3
-**All Tasks Click Bug:**
-- Symptom: Clicking task in /tasks navigates to Today instead of opening modal
-- Location: `app/tasks/page.tsx`
-- Likely cause: onClick handler or navigation logic
-- Priority: Medium (functionality works, just wrong behavior)
+1. **Sidebar label** — update to "Notes & Lists" in `components/Sidebar.tsx`
+2. **TaskForm styling** — make consistent with NoteForm/ListForm modals (`components/TaskForm.tsx`)
+3. **Pin inside list detail** — add pin/unpin button in `app/lists/[id]/page.tsx`
+4. **Delete in detail views** — add delete buttons inside note/list/task detail views (removed from cards, not yet added to details)
 
-### General
+---
+
+## Known Issues
+
 - No critical bugs blocking development
-- All features from 3.1-3.5 working as designed
-- Production build deployed and accessible at https://lifeos-dev.foster-home.net
+- All Phase 3.1–3.5 features working as designed
+- Production build deployed and accessible
 
 ---
 
-## Git Status
+## After Phase 3.6
 
-**Branch:** `feature/phase-3.1-foundation-data-model`
-**Last commit:** `f44672a` Phase 3.5: Notes feature with filtering and pinning
-**Uncommitted changes:** UI polish and TaskForm modal (needs commit)
-**Status:** Ready to commit UI improvements
+| Phase | What | Notes |
+|---|---|---|
+| 3.7 | FAB Menu expansion | FAB component exists, needs multi-option menu wired to all creation forms |
+| 3.8 | Drag & Drop | Unscheduled ↔ Calendar scheduling via drag |
+| 3.9 | UI Polish | Quick Add simplification, text wrapping, loading/empty/error states |
+| 3.10 | Schema supplement | blockedBy, ResearchClip, parentNoteId (if not added earlier) |
+| 3.11 | Deep Mode UI | Second interface layer — sidebar nav, tables, project tracking, knowledge base |
 
-**To create new branch for 3.5:**
-```bash
-# Option 1: Continue on same branch (recommended)
-# Just keep working on feature/phase-3.1-foundation-data-model
-
-# Option 2: New branch
-git checkout -b feature/phase-3.5-notes
-git push -u origin feature/phase-3.5-notes
-```
+See `phase-3-implementation-plan.md` for full details on all phases.
 
 ---
 
 ## Important Reminders
 
-1. **Port 3002** - Dev server runs on 3002, NOT 3000 (that's OpenWebUI)
-2. **After schema changes** - Run `npx prisma generate` and restart dev server
-3. **Timezone:** Server runs UTC, client handles local time conversion
-4. **Phase 3.1-3.4** are all on the same branch (feature/phase-3.1-foundation-data-model)
-5. **Task list** - Use TaskCreate/TaskUpdate tools to track progress if needed
+1. **Port 3002** — dev server is 3002, NOT 3000 (that's OpenWebUI)
+2. **After schema changes** — run `npx prisma generate` and restart dev server
+3. **Timezone** — server runs UTC, client handles local time conversion
+4. **All Phase 3.1–3.5** on same branch: `feature/phase-3.1-foundation-data-model`
+5. **Route group naming** — focused mode is `/app/(focused)`, not `/app/(mobile)`
 
 ---
 
-## After Phase 3.5
-
-**Phase 3.6:** Navigation Refactor (swipeable All Tasks ↔ Calendar ↔ Notes/Lists)
-**Phase 3.7:** FAB Menu (global add button)
-**Phase 3.8:** Drag & Drop Scheduling
-**Phase 3.9:** UI Polish & Bug Fixes
-
-See `phase-3-implementation-plan.md` for full roadmap.
-
----
-
-**Session Management:** This file updated at end of each session. Delete or archive when project reaches clean state.
+**This file updated at end of each session. It is the starting point for the next Claude Code session.**

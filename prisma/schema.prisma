@@ -28,6 +28,8 @@ model User {
   familyUsers       FamilyUser[]
   lists             List[]
   notes             Note[]
+  researchClips     ResearchClip[]
+  projects          Project[]
   calendarSyncs     CalendarSync[]
   calendarEvents    CalendarEvent[]
 
@@ -169,10 +171,12 @@ model Item {
   durationMinutes    Int?                 @map("duration_minutes") // Phase 3.4: Actual duration in minutes for timeline calculations
   energy             String?              // Renamed from 'focus' - What state do I need to be in? (1-5)
   showOnCalendar     Boolean?             @default(false) @map("show_on_calendar") // Phase 3.4: Pin to today's calendar view
+  blockedBy          Json?                @db.JsonB @map("blocked_by") // Phase 3.6: Array of task IDs this task depends on (ADR-016)
 
-  // Hierarchy
+  // Hierarchy and Project Association
   parentItemId       Int?                 @map("parent_item_id")
   isParent           Boolean              @map("is_parent")
+  projectId          Int?                 @map("project_id") // Phase 3.6: Optional association to a Project
 
   // Recurrence
   recurrenceType     String?              @map("recurrence_type")
@@ -189,9 +193,11 @@ model Item {
   parent             Item?                @relation("ItemHierarchy", fields: [parentItemId], references: [id], onDelete: Cascade, onUpdate: NoAction)
   subItems           Item[]               @relation("ItemHierarchy")
   user               User                 @relation(fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  project            Project?             @relation(fields: [projectId], references: [id], onDelete: SetNull)
   listItem           ListItem?            @relation("ListItemTask")
 
   @@index([parentItemId])
+  @@index([projectId])
   @@map("items")
 }
 
@@ -257,18 +263,63 @@ model ListItem {
 
 // Phase 3.1: Notes feature - freeform text notes distinct from checklists
 model Note {
-  id        Int      @id @default(autoincrement())
-  userId    String   @map("user_id")
-  title     String?  // Optional title
-  content   String   // Freeform text content
-  tags      Json?    @db.JsonB // Array of tag strings for organization
-  pinned    Boolean  @default(false) // Pin note to top of view
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id           Int      @id @default(autoincrement())
+  userId       String   @map("user_id")
+  title        String?  // Optional title
+  content      String   // Freeform text content
+  tags         Json?    @db.JsonB // Array of tag strings for organization
+  pinned       Boolean  @default(false) // Pin note to top of view
+  parentNoteId Int?     @map("parent_note_id") // Phase 3.6: For nested content (ADR-018)
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  parent       Note?    @relation("NoteHierarchy", fields: [parentNoteId], references: [id], onDelete: Cascade)
+  childNotes   Note[]   @relation("NoteHierarchy")
 
   @@index([userId])
+  @@index([parentNoteId])
   @@map("notes")
+}
+
+// Phase 3.6: Research Capture - save URLs/articles/references with tags (ADR-017)
+model ResearchClip {
+  id         Int      @id @default(autoincrement())
+  userId     String   @map("user_id")
+  url        String   // Required - the URL being saved
+  title      String   // Auto-populated from page title, editable
+  screenshot String?  // Optional image path/URL
+  notes      String?  // Optional user commentary
+  tags       Json?    @db.JsonB // Array of tag strings for organization
+  projectRef String?  @map("project_ref") // Optional tag or task ID linking to a project
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("research_clips")
+}
+
+// Phase 3.6: Project model - organize tasks and content under projects
+model Project {
+  id          Int       @id @default(autoincrement())
+  userId      String    @map("user_id")
+  name        String    // Project name
+  description String?   // Optional description
+  status      String    @default("backlog") // backlog | in_progress | on_hold | completed
+  blockedBy   Json?     @db.JsonB @map("blocked_by") // Array of project IDs this project depends on
+  targetDate  DateTime? @map("target_date") // Optional target completion date
+  tags        Json?     @db.JsonB // Array of tag strings for organization
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  // Relations
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tasks       Item[]    // Tasks associated with this project
+
+  @@index([userId])
+  @@map("projects")
 }
 
 // Google Calendar Integration models
