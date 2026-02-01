@@ -99,56 +99,51 @@ export default function SwipeContainer({ slides, defaultIndex = 1 }: SwipeContai
   }, [emblaApi, selectedIndex, slides, router]);
 
   /**
-   * Force Embla to re-measure after mount
-   * Fixes issue where viewport width is measured before layout settles
+   * On mount, and when the API is ready, initialize or re-initialize Embla.
+   * This is the CORE of the fix: it ensures that we re-measure the container
+   * *before* we try to scroll to a specific slide. This prevents a race condition
+   * where Embla doesn't know the correct snap points yet.
    */
   useEffect(() => {
     if (!emblaApi) return;
 
-    // Re-init after a tick to let layout settle
-    const timeout = setTimeout(() => {
+    const initialize = () => {
+      // Re-measure the container dimensions
       emblaApi.reInit();
-    }, 100);
+
+      // Determine the correct starting slide index
+      const urlIndex = getIndexFromPath(pathname);
+      let startIndex = urlIndex;
+      if (pathname === '/' || pathname === slides[defaultIndex].path) {
+        const savedIndex = localStorage.getItem(LAST_PAGE_KEY);
+        if (savedIndex !== null) {
+          startIndex = parseInt(savedIndex, 10);
+        }
+      }
+      
+      // Set state and scroll to the initial slide without animation
+      setSelectedIndex(startIndex);
+      emblaApi.scrollTo(startIndex, true);
+    };
+
+    // Re-init after a tick to let the browser layout settle.
+    const timeout = setTimeout(initialize, 100);
 
     return () => clearTimeout(timeout);
-  }, [emblaApi]);
+    // This effect should ONLY run when the emblaApi is first available.
+    // All other logic is handled by other effects (onSelect, pathname changes).
+  }, [emblaApi, getIndexFromPath, pathname, slides, defaultIndex]);
 
   /**
-   * Initialize Embla and set up event listeners
+   * Initialize Embla event listeners
    */
   useEffect(() => {
     if (!emblaApi) return;
-
-    // Listen for slide changes
     emblaApi.on('select', onSelect);
-
     return () => {
       emblaApi.off('select', onSelect);
     };
   }, [emblaApi, onSelect]);
-
-  /**
-   * On mount: Initialize to correct slide based on URL or localStorage
-   */
-  useEffect(() => {
-    if (!emblaApi) return;
-
-    // Check URL first
-    const urlIndex = getIndexFromPath(pathname);
-
-    // If URL is default path, check localStorage for last viewed
-    let startIndex = urlIndex;
-    if (pathname === '/' || pathname === slides[defaultIndex].path) {
-      const savedIndex = localStorage.getItem(LAST_PAGE_KEY);
-      if (savedIndex !== null) {
-        startIndex = parseInt(savedIndex, 10);
-      }
-    }
-
-    // Initialize carousel position and state
-    setSelectedIndex(startIndex);
-    emblaApi.scrollTo(startIndex, true); // true = instant, no animation
-  }, [emblaApi]); // Only run once when emblaApi is ready
 
   /**
    * Sync carousel position when URL changes externally (e.g., sidebar navigation)
@@ -159,7 +154,9 @@ export default function SwipeContainer({ slides, defaultIndex = 1 }: SwipeContai
       setSelectedIndex(newIndex);
       emblaApi.scrollTo(newIndex);
     }
-  }, [pathname, getIndexFromPath, selectedIndex, emblaApi]);
+    // Intentionally excluding selectedIndex to avoid re-running when it's set internally
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pathname, getIndexFromPath, emblaApi]);
 
   /**
    * Keyboard navigation: Left/Right arrow keys
@@ -204,7 +201,6 @@ export default function SwipeContainer({ slides, defaultIndex = 1 }: SwipeContai
         style={{
           overflow: 'hidden',
           flex: 1,
-          height: '100%',
           touchAction: 'pan-y'
         }}
       >

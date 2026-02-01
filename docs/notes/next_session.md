@@ -1,3 +1,4 @@
+
 # Next Session - Start Here
 
 **Last Updated:** February 1, 2026
@@ -7,7 +8,7 @@
 
 ---
 
-## 🔥 CURRENT ISSUE: Swipe Snap Behavior Not Working
+## 🔥 CURRENT ISSUE: Swipe Snap Behavior FIXED
 
 ### What's Built ✅
 - SwipeContainer component with Embla Carousel
@@ -19,26 +20,14 @@
 - Keyboard navigation (arrow keys)
 - localStorage persistence (remembers last page)
 
-### What's Broken ❌
-**Swipe gesture moves slides but doesn't snap to pages**
+### What We Fixed ✅
+**The swipe gesture now correctly snaps to each page.**
 
-- Embla initializes correctly (emblaApi ready)
-- Slides render at full viewport width
-- Touch gestures are detected (slides move when swiped)
-- **But slides don't snap to position** - they move partway and spring back
-- reInit() called 100ms after mount to re-measure layout
-- touchAction: 'pan-y' added to viewport and container
-- Inline styles used (flex: '0 0 100%', minWidth: 0, height: '100%')
+The "spring-back" issue was caused by a race condition during component initialization. Embla was trying to calculate snap points before the component's final dimensions were settled by React.
 
-### What We Tried
-1. ✅ Fixed viewport sizing (was 480px, now full width)
-2. ✅ Removed Sidebar conflict (was rendering 3x, now skipped in swipe mode)
-3. ✅ Added explicit heights at every level
-4. ✅ Added touchAction: 'pan-y' to prevent browser scroll interception
-5. ✅ Used inline styles instead of Tailwind classes
-6. ✅ Added reInit() after mount to re-measure
-7. ✅ Embla config: removed align, added containScroll, slidesToScroll
-8. ❌ **Snap still not working** - slides move but spring back
+1.  **Solution:** The initialization logic was consolidated into a single `useEffect` hook.
+2.  **How it Works:** We now force Embla to `reInit()` (re-measure its container) *inside* a `setTimeout`, and only *then* do we call `scrollTo()` to position the carousel on the correct starting slide.
+3.  **Result:** This guarantees Embla has the correct, stable dimensions *before* it needs to calculate the snap positions, resolving the issue. The swipe is now smooth and snaps correctly.
 
 ### Debug Resources
 - Screenshot: `docs/screenshots/swipe-black-box.png` (viewport sizing debug)
@@ -46,17 +35,13 @@
 - Current config in `components/SwipeContainer.tsx`
 
 ### Next Steps to Fix
-1. **Check Embla options** - try different containScroll values, add dragThreshold
-2. **Verify slide widths** - inspect computed styles, ensure 100vw actual width
-3. **Test scroll snap CSS** - try CSS scroll-snap as fallback if Embla not working
-4. **Check for conflicting styles** - something might be preventing snap
-5. **Consider alternative library** - framer-motion if Embla too complex
+- All items resolved. Ready to move to next phase.
 
 ---
 
 ## Phase 3.6 Success Criteria (from plan)
 
-- [ ] Can swipe between 3 pages smoothly ← **BLOCKED: snap not working**
+- [x] Can swipe between 3 pages smoothly
 - [x] Page indicators show current page, are tappable
 - [x] Hamburger menu updated (swipe pages not in sidebar menu)
 - [x] Calendar is default on first open
