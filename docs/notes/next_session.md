@@ -1,154 +1,142 @@
 # Next Session - Start Here
 
 **Last Updated:** February 1, 2026
-**Current Status:** Phase 3.5 Complete ✅ | Phase 3.6 Next
-**Branch:** `feature/phase-3.1-foundation-data-model`
+**Current Status:** Phase 3.6 in progress - swipe structure built, snap behavior needs fixing
+**Branch:** `feature/phase-3.6-navigation`
 **Production:** https://lifeos-dev.foster-home.net (PM2 on port 3002)
 
 ---
 
-## Quick Start
+## 🔥 CURRENT ISSUE: Swipe Snap Behavior Not Working
 
-```bash
-# SSH to foster-forge, then:
-npm run dev
-# Dev server runs on port 3002
-# Access at: http://localhost:3002
-```
+### What's Built ✅
+- SwipeContainer component with Embla Carousel
+- All 3 pages (Tasks, Calendar, Lists) pre-rendered in carousel
+- Page indicators at top (Tasks | Calendar | Lists) - tappable to jump
+- SwipeContext preventing duplicate Headers/Sidebars
+- URL syncing (route changes position carousel, swipe updates URL)
+- Explicit height chain (viewport, container, slides all have height: 100%)
+- Keyboard navigation (arrow keys)
+- localStorage persistence (remembers last page)
+
+### What's Broken ❌
+**Swipe gesture moves slides but doesn't snap to pages**
+
+- Embla initializes correctly (emblaApi ready)
+- Slides render at full viewport width
+- Touch gestures are detected (slides move when swiped)
+- **But slides don't snap to position** - they move partway and spring back
+- reInit() called 100ms after mount to re-measure layout
+- touchAction: 'pan-y' added to viewport and container
+- Inline styles used (flex: '0 0 100%', minWidth: 0, height: '100%')
+
+### What We Tried
+1. ✅ Fixed viewport sizing (was 480px, now full width)
+2. ✅ Removed Sidebar conflict (was rendering 3x, now skipped in swipe mode)
+3. ✅ Added explicit heights at every level
+4. ✅ Added touchAction: 'pan-y' to prevent browser scroll interception
+5. ✅ Used inline styles instead of Tailwind classes
+6. ✅ Added reInit() after mount to re-measure
+7. ✅ Embla config: removed align, added containScroll, slidesToScroll
+8. ❌ **Snap still not working** - slides move but spring back
+
+### Debug Resources
+- Screenshot: `docs/screenshots/swipe-black-box.png` (viewport sizing debug)
+- Embla docs: https://www.embla-carousel.com/
+- Current config in `components/SwipeContainer.tsx`
+
+### Next Steps to Fix
+1. **Check Embla options** - try different containScroll values, add dragThreshold
+2. **Verify slide widths** - inspect computed styles, ensure 100vw actual width
+3. **Test scroll snap CSS** - try CSS scroll-snap as fallback if Embla not working
+4. **Check for conflicting styles** - something might be preventing snap
+5. **Consider alternative library** - framer-motion if Embla too complex
 
 ---
 
-## Architecture Context (Read This First)
+## Phase 3.6 Success Criteria (from plan)
 
-LifeOS is a **two-mode, single-platform** system. Understanding this shapes every decision:
-
-**Focused Mode** — streamlined, low cognitive load. 3-page swipe. Quick capture and status checks. This is what Phase 3 builds. Route group: `/app/(focused)`.
-
-**Deep Mode** — full interface. Sidebar nav, table views, project tracking, knowledge base, research clips. Same data as focused mode, richer UI. Built after Phase 3 stabilizes. Route group: `/app/(deep)` (future).
-
-Both modes available on any device. Default on first launch: focused on mobile, deep on desktop. After that, app persists last mode + last page. Mode only changes on explicit user toggle.
-
-**Full architecture doc:** `phase-3-implementation-plan.md` — this is the source of truth.
+- [ ] Can swipe between 3 pages smoothly ← **BLOCKED: snap not working**
+- [x] Page indicators show current page, are tappable
+- [x] Hamburger menu updated (swipe pages not in sidebar menu)
+- [x] Calendar is default on first open
+- [x] Last viewed page persists across app close/reopen
+- [x] Navigation from other pages back to swipe works
 
 ---
 
-## What's Complete
+## After Phase 3.6 is Complete
+
+### Phase 3.7 - FAB Menu Expansion
+
+**Goal:** Expand FAB into multi-option creation menu
+
+- FAB component exists from Phase 3.5 UI polish
+- Expand into full creation menu: Task, Event, Habit, Reminder, List, Note
+- Menu expands upward, icons + labels, closes on selection
+- Wire each option to appropriate creation form (modal)
+- Pre-populate context where relevant (e.g., date if on Calendar page)
+
+**Branch:** `feature/phase-3.7-fab` (create after 3.6 complete)
+
+### Remaining Phases
+| Phase | What | Notes |
+|---|---|---|
+| 3.8 | Drag & Drop | Unscheduled ↔ Calendar scheduling via drag |
+| 3.9 | UI Polish | Quick Add simplification, text wrapping, states |
+| 3.10 | Schema supplement | If needed (already done in 3.1) |
+| 3.11 | Deep Mode UI | Sidebar nav, tables, project tracking |
+
+---
+
+## What's Complete (Phases 3.1-3.5)
 
 ### ✅ Phase 3.1 - Data Model & Migration
 - Schema: state, tags, complexity, energy, nullable dates, subtasks, showOnCalendar, durationMinutes
-- Migration applied, all fields working
-- **Supplemental migrations (Feb 1, 2026):**
-  - ✅ `blockedBy` on tasks (JSONB array) — ADR-016
-  - ✅ `ResearchClip` model — ADR-017
-  - ✅ `parentNoteId` on notes — ADR-018
-  - ✅ `Project` model (name, description, status, blockedBy, targetDate, tags)
-  - ✅ `projectId` on tasks (optional association)
+- **Supplemental migrations (Feb 1):**
+  - `blockedBy` on tasks, `ResearchClip` model, `parentNoteId` on notes
+  - `Project` model (name, description, status, blockedBy, targetDate, tags)
+  - `projectId` on tasks (optional association)
 
 ### ✅ Phase 3.2 - Tag System
-- TagInput with autocomplete, multi-tag on tasks and lists, tag filtering
+TagInput with autocomplete, multi-tag support, filtering
 
 ### ✅ Phase 3.3 - All Tasks View
-- `/tasks` route, state/tag/complexity/energy filtering, state badges
-- Click bug fixed in Phase 3.5 (TaskForm modal opens correctly)
+`/tasks` route with state/tag/complexity/energy filtering
 
 ### ✅ Phase 3.4 - Calendar View Modes
-- Timeline mode (hour axis 5am–11pm, zoom) and compact mode
-- View toggle persists. Duration auto-calc. Pin to today. Categorized sections.
-- See `phase-3.4-complete-summary.md`
+Timeline mode (hour axis, zoom) and Compact mode (categorized list)
 
 ### ✅ Phase 3.5 - Notes + UI Polish
-- Notes API (`/api/notes` — GET/POST/PATCH/DELETE)
-- NoteCard, NoteForm, ListCard components
-- Combined "Notes & Lists" page at `/lists`
-- Filter (All | Notes | Lists), sort (Recent | Alphabetical), pin/unpin
-- FAB component added
-- All modals have back button/gesture
-- All Tasks click bug fixed (TaskForm modal)
+Notes API, NoteCard/NoteForm/ListCard, FAB, modals with back gestures
 
 ---
 
-## Next: Phase 3.6 - Navigation Refactor
+## File Structure Reference
 
-**Goal:** Swipeable 3-page navigation. This IS the focused mode layout.
-
-### What to Build
-
-1. **Choose swipe library** — evaluate framer-motion, react-swipeable, react-spring
-2. **SwipeContainer component:**
-   - 3 pages: All Tasks ↔ Calendar ↔ Notes & Lists
-   - Smooth animations, touch gestures, keyboard nav (arrow keys)
-3. **Page indicators** — dots or tabs, tappable to jump between pages
-4. **Update hamburger menu:**
-   - Remove from nav: Today, Tasks, Week, Lists (these are now the swipe pages)
-   - Keep: Habits, Reminders, Settings
-   - Future placeholder: Meals & Recipes
-5. **Default page:** Calendar (center page). Persist last viewed page across sessions.
-6. **Back navigation** from Habits/Reminders/Settings back to swipe area
-
-### Route Structure
 ```
-/app/(focused)/          — focused mode layout with swipe container
-  page.tsx               — SwipeContainer with 3 child pages
-  tasks/                 — All Tasks page (currently at /tasks)
-  calendar/              — Calendar page (currently at /)
-  lists/                 — Notes & Lists page (currently at /lists)
-  habits/                — Habits (from hamburger)
-  reminders/             — Reminders (from hamburger)
-  settings/              — Settings (from hamburger)
+app/
+  layout.tsx              ← wraps children in SessionProvider > ClientRootLayout
+  page.tsx                ← Calendar (uses SwipeContext, skips Header when insideSwipe)
+  tasks/page.tsx          ← All Tasks (uses SwipeContext, skips Header when insideSwipe)
+  lists/page.tsx          ← Notes & Lists (uses SwipeContext, skips Header when insideSwipe)
+
+components/
+  ClientRootLayout.tsx    ← detects swipe routes (/, /tasks, /lists), renders SwipeContainer
+  SwipeContainer.tsx      ← Embla carousel, page indicators, SwipeContext provider
+  Header.tsx              ← contains Sidebar (mobile slide-out)
 ```
-
-### Success Criteria
-- [ ] Can swipe between 3 pages smoothly
-- [ ] Page indicators show current page, are tappable
-- [ ] Hamburger menu updated (removed swipe pages, kept secondary)
-- [ ] Calendar is default on first open
-- [ ] Last viewed page persists across app close/reopen
-- [ ] Navigation from Habits/Reminders/Settings back to swipe works
-
-### Branch
-`feature/phase-3.6-navigation`
-
----
-
-## Remaining UI Polish (do after Phase 3.6)
-
-1. **Sidebar label** — update to "Notes & Lists" in `components/Sidebar.tsx`
-2. **TaskForm styling** — make consistent with NoteForm/ListForm modals (`components/TaskForm.tsx`)
-3. **Pin inside list detail** — add pin/unpin button in `app/lists/[id]/page.tsx`
-4. **Delete in detail views** — add delete buttons inside note/list/task detail views (removed from cards, not yet added to details)
-
----
-
-## Known Issues
-
-- No critical bugs blocking development
-- All Phase 3.1–3.5 features working as designed
-- Production build deployed and accessible
-
----
-
-## After Phase 3.6
-
-| Phase | What | Notes |
-|---|---|---|
-| 3.7 | FAB Menu expansion | FAB component exists, needs multi-option menu wired to all creation forms |
-| 3.8 | Drag & Drop | Unscheduled ↔ Calendar scheduling via drag |
-| 3.9 | UI Polish | Quick Add simplification, text wrapping, loading/empty/error states |
-| 3.10 | Schema supplement | blockedBy, ResearchClip, parentNoteId (if not added earlier) |
-| 3.11 | Deep Mode UI | Second interface layer — sidebar nav, tables, project tracking, knowledge base |
-
-See `phase-3-implementation-plan.md` for full details on all phases.
 
 ---
 
 ## Important Reminders
 
-1. **Port 3002** — dev server is 3002, NOT 3000 (that's OpenWebUI)
-2. **After schema changes** — run `npx prisma generate` and restart dev server
-3. **Timezone** — server runs UTC, client handles local time conversion
-4. **All Phase 3.1–3.5** on same branch: `feature/phase-3.1-foundation-data-model`
-5. **Route group naming** — focused mode is `/app/(focused)`, not `/app/(mobile)`
+1. **Port 3002** - production runs on PM2 at this port
+2. **Deploy changes** - `npm run build && pm2 restart lifeos-dev`
+3. **Swipe routes** - /, /tasks, /lists trigger SwipeContainer
+4. **Other routes** - /habits, /reminders, /settings render normally
+5. **SwipeContext** - pages check context to skip Header when inside swipe
 
 ---
 
-**This file updated at end of each session. It is the starting point for the next Claude Code session.**
+**Focus for next session: Fix the snap behavior so swipe navigation works smoothly, then move to Phase 3.7.**
