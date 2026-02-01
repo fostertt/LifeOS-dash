@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useContext } from "react";
 import { useRouter } from "next/navigation";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import Header from "@/components/Header";
+import { SwipeContext } from "@/components/SwipeContainer";
 import NoteCard from "@/components/NoteCard";
 import NoteForm from "@/components/NoteForm";
 import ListCard from "@/components/ListCard";
@@ -48,6 +49,7 @@ interface Toast {
 const COLORS = ["#8B5CF6", "#3B82F6", "#10B981", "#F59E0B", "#EF4444", "#EC4899"];
 
 export default function NotesAndListsPage() {
+  const { insideSwipe } = useContext(SwipeContext);
   const router = useRouter();
   const [lists, setLists] = useState<List[]>([]);
   const [notes, setNotes] = useState<Note[]>([]);
@@ -354,7 +356,7 @@ export default function NotesAndListsPage() {
     <ProtectedRoute>
       <div className="min-h-screen bg-gradient-to-br from-purple-50 to-blue-50">
         <div className="max-w-5xl mx-auto p-8">
-          <Header onFilterClick={() => setShowFilterMenu(!showFilterMenu)} />
+          {!insideSwipe && <Header onFilterClick={() => setShowFilterMenu(!showFilterMenu)} />}
 
           {/* Filter and Sort dropdown menu */}
           {showFilterMenu && (

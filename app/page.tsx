@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useState, Suspense, useMemo } from "react";
+import { useEffect, useState, Suspense, useMemo, useContext } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import Header from "@/components/Header";
+import { SwipeContext } from "@/components/SwipeContainer";
 import EventDetailModal, { CalendarEvent } from "@/components/EventDetailModal";
 import TagInput from "@/components/TagInput";
 import { extractUniqueTags } from "@/lib/tags";
@@ -65,6 +66,7 @@ type ItemType = "habit" | "task" | "reminder" | "event";
 type ViewMode = "timeline" | "compact";
 
 function HomeContent() {
+  const { insideSwipe } = useContext(SwipeContext);
   const searchParams = useSearchParams();
   const router = useRouter();
 
@@ -1063,7 +1065,7 @@ function HomeContent() {
     <ProtectedRoute>
       <div className="min-h-screen bg-gradient-to-br from-purple-50 to-blue-50 overflow-x-hidden">
         <div className="max-w-5xl mx-auto px-4 py-4 md:p-8">
-          <Header onFilterClick={() => setShowFilterMenu(!showFilterMenu)} />
+          {!insideSwipe && <Header onFilterClick={() => setShowFilterMenu(!showFilterMenu)} />}
 
           {error && (
             <div className="bg-red-50 border-2 border-red-200 rounded-xl p-4 mb-6 flex items-start gap-3">

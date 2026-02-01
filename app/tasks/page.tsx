@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useContext } from "react";
 import { useRouter } from "next/navigation";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import Header from "@/components/Header";
+import { SwipeContext } from "@/components/SwipeContainer";
 import TaskForm from "@/components/TaskForm";
 import { extractUniqueTags, itemMatchesTags } from "@/lib/tags";
 
@@ -46,6 +47,7 @@ const STATE_LABELS = {
 };
 
 function AllTasksContent() {
+  const { insideSwipe } = useContext(SwipeContext);
   const router = useRouter();
   const [items, setItems] = useState<Item[]>([]);
   const [loading, setLoading] = useState(true);
@@ -224,7 +226,7 @@ function AllTasksContent() {
   return (
     <ProtectedRoute>
       <div className="min-h-screen bg-gray-50">
-        <Header />
+        {!insideSwipe && <Header />}
 
         <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           {/* Header */}
