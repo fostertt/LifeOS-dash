@@ -8,6 +8,20 @@ import { SwipeContext } from "@/components/SwipeContainer";
 import EventDetailModal, { CalendarEvent } from "@/components/EventDetailModal";
 import TagInput from "@/components/TagInput";
 import { extractUniqueTags } from "@/lib/tags";
+import {
+  DndContext,
+  DragOverlay,
+  useSensor,
+  useSensors,
+  PointerSensor,
+  TouchSensor,
+  DragEndEvent,
+  DragStartEvent,
+} from "@dnd-kit/core";
+import BacklogSidebar from "@/components/BacklogSidebar";
+import DroppableTimeSlot from "@/components/DroppableTimeSlot";
+import DroppableSection from "@/components/DroppableSection";
+import DraggableTaskCard from "@/components/DraggableTaskCard";
 
 interface SubItem {
   id?: number;
@@ -38,7 +52,7 @@ interface Item {
   durationMinutes?: number; // Phase 3.4: Actual duration in minutes for timeline
   energy?: string; // Renamed from 'focus'
   // Phase 3.1: New fields
-  state?: string; // unscheduled | scheduled | in_progress | on_hold | completed
+  state?: string; // backlog | active | in_progress | completed
   tags?: string[]; // Array of tag strings
   // Phase 3.4: Calendar display fields
   showOnCalendar?: boolean; // Pin to today's calendar view
@@ -60,6 +74,7 @@ interface CategorizedCalendarData {
   scheduled: Item[];
   scheduledNoTime: Item[];
   pinned: Item[];
+  backlog: Item[];
 }
 
 type ItemType = "habit" | "task" | "reminder" | "event";
@@ -143,6 +158,25 @@ function HomeContent() {
 
   // Track expanded items for sub-item display
   const [expandedItems, setExpandedItems] = useState<Set<number>>(new Set());
+
+  // Phase 3.8: Drag and drop state
+  const [activeId, setActiveId] = useState<number | null>(null);
+  const [draggedItem, setDraggedItem] = useState<Item | null>(null);
+
+  // Phase 3.8: Drag and drop sensors
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8, // 8px movement required to start drag
+      },
+    }),
+    useSensor(TouchSensor, {
+      activationConstraint: {
+        delay: 250,
+        tolerance: 5,
+      },
+    })
+  );
 
   // Date navigation functions
   const navigateToDate = (date: Date) => {
@@ -635,6 +669,106 @@ function HomeContent() {
     });
   };
 
+  // Phase 3.8: Drag and drop handlers
+  const handleDragStart = (event: DragStartEvent) => {
+    const { active } = event;
+
+    // Parse task ID from "task-{id}" format
+    const taskIdStr = (active.id as string).replace("task-", "");
+    const taskId = parseInt(taskIdStr);
+
+    setActiveId(taskId);
+
+    // Find the dragged item from all possible sources
+    const allItems = [
+      ...(categorizedData?.backlog || []),
+      ...(categorizedData?.overdue || []),
+      ...(categorizedData?.scheduledNoTime || []),
+      ...(categorizedData?.scheduled || []),
+      ...(categorizedData?.inProgress || []),
+    ];
+
+    const item = allItems.find((i) => i.id === taskId);
+    if (item) {
+      setDraggedItem(item);
+    }
+  };
+
+  const handleDragEnd = async (event: DragEndEvent) => {
+    const { over } = event;
+
+    setActiveId(null);
+    const tempDraggedItem = draggedItem; // Save reference before clearing
+    setDraggedItem(null);
+
+    if (!over || !tempDraggedItem) return;
+
+    // Extract drop target ID (format: "time-slot-{hour}", "scheduled-no-time", or "backlog-drop-zone")
+    const droppableId = over.id as string;
+
+    try {
+      let updateData: any = {};
+
+      if (droppableId.startsWith("time-slot-")) {
+        // Dropped on timeline - set date and time
+        const hour = parseInt(droppableId.replace("time-slot-", ""));
+
+        // Format date as YYYY-MM-DD
+        const dateStr = `${selectedDate.getFullYear()}-${String(
+          selectedDate.getMonth() + 1
+        ).padStart(2, "0")}-${String(selectedDate.getDate()).padStart(2, "0")}`;
+
+        // Format time as HH:MM
+        const timeStr = `${String(hour).padStart(2, "0")}:00`;
+
+        updateData = {
+          dueDate: dateStr,
+          dueTime: timeStr,
+        };
+      } else if (droppableId === "scheduled-no-time") {
+        // Dropped on "Scheduled (No Time)" section - set date but clear time
+        const dateStr = `${selectedDate.getFullYear()}-${String(
+          selectedDate.getMonth() + 1
+        ).padStart(2, "0")}-${String(selectedDate.getDate()).padStart(2, "0")}`;
+
+        updateData = {
+          dueDate: dateStr,
+          dueTime: null,
+        };
+      } else if (droppableId === "backlog-drop-zone") {
+        // Dropped on backlog sidebar - unschedule (clear date) and move to backlog state
+        // Per ADR-012: Moving to backlog clears date and showOnCalendar
+        updateData = {
+          dueDate: null,
+          dueTime: null,
+          showOnCalendar: false,
+          state: "backlog",
+        };
+      } else {
+        // Unknown drop target
+        return;
+      }
+
+      // Update the task
+      const response = await fetch(`/api/items/${tempDraggedItem.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(updateData),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to schedule task");
+      }
+
+      // Reload data to reflect changes
+      await loadData();
+      showToast("Task scheduled successfully!", "success");
+    } catch (error) {
+      console.error("Error scheduling task:", error);
+      showToast("Failed to schedule task", "error");
+    }
+  };
+
   const todayItems = items.filter(isScheduledForDate);
   const filteredItems = todayItems.filter((item) =>
     filterTypes.has(item.itemType)
@@ -709,10 +843,10 @@ function HomeContent() {
     const itemTime = getItemTime(item);
 
     return (
-      <div
-        key={item.id}
-        onClick={() => openEditModal(item)}
-        className={`border-2 rounded-xl p-3 md:p-5 hover:shadow-md transition-all duration-200 cursor-pointer ${
+      <DraggableTaskCard key={item.id} id={item.id} data={item}>
+        <div
+          onClick={() => openEditModal(item)}
+          className={`border-2 rounded-xl p-3 md:p-5 hover:shadow-md transition-all duration-200 cursor-pointer ${
           isOverdue
             ? "border-red-300 bg-gradient-to-r from-red-50 to-orange-50"
             : isCompleted
@@ -910,6 +1044,7 @@ function HomeContent() {
           </div>
         </div>
       </div>
+      </DraggableTaskCard>
     );
   };
 
@@ -973,6 +1108,33 @@ function HomeContent() {
 
         {/* Timeline grid */}
         <div className="relative border-l-2 border-gray-300 ml-12 md:ml-0">
+          
+          {/* Phase 3.8: Droppable Background Layer */}
+          <div className="absolute inset-0 z-0 w-full h-full">
+             {hours.map(hour => {
+               const topPosition = (hour - startHour) * timelineZoom;
+               // Don't render slot for the last hour marker (it's just the end line)
+               if (hour === endHour + 1) return null;
+               
+               return (
+                 <div 
+                    key={`slot-${hour}`} 
+                    className="absolute w-full"
+                    style={{ 
+                        top: `${topPosition}px`, 
+                        height: `${timelineZoom}px` 
+                    }}
+                 >
+                    <DroppableTimeSlot 
+                       id={`time-slot-${hour}`} 
+                       time={`${hour}:00`} 
+                       date={selectedDate} 
+                    />
+                 </div>
+               );
+             })}
+          </div>
+
           {hours.map((hour) => {
             const topPosition = (hour - startHour) * timelineZoom;
             const timeLabel = hour === 12 ? '12 PM' : hour > 12 ? `${hour - 12} PM` : `${hour} AM`;
@@ -980,7 +1142,7 @@ function HomeContent() {
             return (
               <div
                 key={hour}
-                className="absolute w-full border-t border-gray-200"
+                className="absolute w-full border-t border-gray-200 pointer-events-none"
                 style={{ top: `${topPosition}px` }}
               >
                 <span className="absolute -left-11 md:-left-16 -top-3 text-xs text-gray-600 font-medium w-10 md:w-14 text-right">
@@ -1003,21 +1165,27 @@ function HomeContent() {
             return (
               <div
                 key={item.id}
-                className={`absolute left-2 right-2 rounded-lg p-2 cursor-pointer border-l-4 ${
-                  isCompleted
-                    ? 'bg-green-50 border-green-400'
-                    : 'bg-purple-50 border-purple-400 hover:bg-purple-100'
-                }`}
+                className="absolute left-2 right-2 z-10"
                 style={{
                   top: `${topPosition}px`,
-                  height: `${Math.max(height, 30)}px`, // Minimum height for readability
+                  height: `${Math.max(height, 30)}px`,
                 }}
-                onClick={() => openEditModal(item)}
               >
-                <div className="text-xs font-semibold text-gray-900 truncate">{item.name}</div>
-                {height > 40 && item.description && (
-                  <div className="text-xs text-gray-600 truncate mt-1">{item.description}</div>
-                )}
+                <DraggableTaskCard id={item.id} data={item}>
+                  <div
+                    className={`w-full h-full rounded-lg p-2 cursor-grab active:cursor-grabbing border-l-4 ${
+                      isCompleted
+                        ? 'bg-green-50 border-green-400'
+                        : 'bg-purple-50 border-purple-400 hover:bg-purple-100'
+                    }`}
+                    onClick={() => openEditModal(item)}
+                  >
+                    <div className="text-xs font-semibold text-gray-900 truncate">{item.name}</div>
+                    {height > 40 && item.description && (
+                      <div className="text-xs text-gray-600 truncate mt-1">{item.description}</div>
+                    )}
+                  </div>
+                </DraggableTaskCard>
               </div>
             );
           })}
@@ -1038,7 +1206,7 @@ function HomeContent() {
             return (
               <div
                 key={`event-${event.id}`}
-                className="absolute left-2 right-2 rounded-lg p-2 cursor-pointer border-l-4 bg-green-50 border-green-400 hover:bg-green-100"
+                className="absolute left-2 right-2 rounded-lg p-2 cursor-pointer border-l-4 bg-green-50 border-green-400 hover:bg-green-100 z-10"
                 style={{
                   top: `${topPosition}px`,
                   height: `${Math.max(height, 30)}px`,
@@ -1063,6 +1231,11 @@ function HomeContent() {
 
   return (
     <ProtectedRoute>
+      <DndContext
+        sensors={sensors}
+        onDragStart={handleDragStart}
+        onDragEnd={handleDragEnd}
+      >
       <div className="min-h-screen bg-gradient-to-br from-purple-50 to-blue-50 overflow-x-hidden">
         <div className="max-w-5xl mx-auto px-4 py-4 md:p-8">
           {!insideSwipe && <Header onFilterClick={() => setShowFilterMenu(!showFilterMenu)} />}
@@ -1224,9 +1397,19 @@ function HomeContent() {
             </div>
           </div>
 
-          {/* Items Section */}
-          <div className="bg-white rounded-2xl shadow-lg p-3 md:p-8 mb-6">
-            {/* Desktop: Show header with Today/Items title and count badges */}
+          {/* Main content area with sidebar (Phase 3.8: Drag & Drop) */}
+          <div className="flex gap-6 items-start">
+            {/* Phase 3.8: Backlog Sidebar for drag source */}
+            {categorizedData && (
+              <BacklogSidebar
+                items={categorizedData.backlog || []}
+                onEditItem={openEditModal}
+              />
+            )}
+
+            {/* Items Section */}
+            <div className="flex-1 bg-white rounded-2xl shadow-lg p-3 md:p-8 mb-6">
+              {/* Desktop: Show header with Today/Items title and count badges */}
             <div className="hidden md:flex items-center gap-3 mb-6 flex-wrap">
               <span className="text-3xl">📋</span>
               <h2 className="text-lg font-semibold text-gray-800">
@@ -1526,12 +1709,12 @@ function HomeContent() {
 
                 {/* Scheduled (no time) Section */}
                 {categorizedData && categorizedData.scheduledNoTime.length > 0 && filterTypes.has("task") && (
-                  <>
+                  <DroppableSection id="scheduled-no-time">
                     {renderSectionHeader("Scheduled (No Time)", "text-gray-600")}
                     <div className="space-y-3">
                       {categorizedData.scheduledNoTime.map((item) => renderItemCard(item, false))}
                     </div>
-                  </>
+                  </DroppableSection>
                 )}
 
                 {/* Pinned / Quick Captures Section */}
@@ -1588,12 +1771,12 @@ function HomeContent() {
 
                 {/* Scheduled (no time) Section (below timeline) */}
                 {categorizedData && categorizedData.scheduledNoTime.length > 0 && filterTypes.has("task") && (
-                  <>
+                  <DroppableSection id="scheduled-no-time">
                     {renderSectionHeader("Scheduled (No Time)", "text-gray-600")}
                     <div className="space-y-3">
                       {categorizedData.scheduledNoTime.map((item) => renderItemCard(item, false))}
                     </div>
-                  </>
+                  </DroppableSection>
                 )}
 
                 {/* Pinned / Quick Captures Section (below timeline) */}
@@ -1607,6 +1790,7 @@ function HomeContent() {
                 )}
               </div>
             )}
+            </div>
           </div>
         </div>
 
@@ -2122,6 +2306,7 @@ function HomeContent() {
           />
         )}
       </div>
+      </DndContext>
     </ProtectedRoute>
   );
 }
