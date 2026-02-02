@@ -18,6 +18,7 @@ import { prisma } from "@/lib/prisma";
  *   scheduled: Item[]       // Tasks scheduled for the specified date (with time)
  *   scheduledNoTime: Item[] // Tasks scheduled for the specified date (without time)
  *   pinned: Item[]          // Tasks with showOnCalendar=true
+ *   backlog: Item[]         // Tasks with state='backlog'
  * }
  */
 export async function GET(request: NextRequest) {
@@ -71,15 +72,20 @@ export async function GET(request: NextRequest) {
               lte: targetDate,
             },
           },
-          // Tasks in 'scheduled' state
+          // Tasks in 'active' state (formerly scheduled)
           {
             itemType: "task",
-            state: "scheduled",
+            state: "active",
           },
           // Tasks in 'in_progress' state
           {
             itemType: "task",
             state: "in_progress",
+          },
+          // Tasks in 'backlog' state
+          {
+            itemType: "task",
+            state: "backlog",
           },
           // Habits (all daily habits or those scheduled for today)
           {
@@ -114,6 +120,7 @@ export async function GET(request: NextRequest) {
     const scheduled: any[] = [];
     const scheduledNoTime: any[] = [];
     const pinned: any[] = [];
+    const backlog: any[] = [];
 
     for (const item of allItems) {
       // Skip completed items (unless they're reminders or pinned)
@@ -137,14 +144,20 @@ export async function GET(request: NextRequest) {
         continue;
       }
 
+      // Backlog
+      if (item.state === "backlog") {
+        backlog.push(item);
+        continue;
+      }
+
       // In Progress: Always show on today
       if (item.state === "in_progress") {
         inProgress.push(item);
         continue;
       }
 
-      // Overdue: scheduled + date < target date + not completed
-      if (item.state === "scheduled" && item.dueDate && !isCompleted) {
+      // Overdue: active + date < target date + not completed
+      if (item.state === "active" && item.dueDate && !isCompleted) {
         const itemDate = new Date(item.dueDate);
         itemDate.setHours(0, 0, 0, 0);
         const itemDateStr = formatDate(itemDate);
@@ -174,7 +187,8 @@ export async function GET(request: NextRequest) {
           overdue.includes(item) ||
           inProgress.includes(item) ||
           scheduled.includes(item) ||
-          scheduledNoTime.includes(item);
+          scheduledNoTime.includes(item) ||
+          backlog.includes(item);
 
         if (!alreadyCategorized) {
           pinned.push(item);
@@ -202,6 +216,7 @@ export async function GET(request: NextRequest) {
       scheduled,
       scheduledNoTime,
       pinned,
+      backlog,
     });
   } catch (error) {
     console.error("Error fetching calendar items:", error);

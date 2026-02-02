@@ -1,10 +1,10 @@
 # Phase 3.0 - Foundation Refactor
 ## Task Management Architecture Overhaul
 
-**Status:** Phases 3.1–3.5 Complete ✅ | 3.6 Next
+**Status:** Phases 3.1–3.8 Complete ✅ | 3.9 Next
 **Started:** January 30, 2026
-**Last Updated:** February 1, 2026
-**Branch:** `feature/phase-3.1-foundation-data-model`
+**Last Updated:** February 2, 2026
+**Branch:** `feature/phase-3.8-drag-drop` (merging to master)
 **Production:** https://lifeos-dev.foster-home.net (PM2 on port 3002)
 
 ---
@@ -395,44 +395,81 @@ Notes API (GET/POST/PATCH/DELETE at `/api/notes`). NoteCard and NoteForm compone
 
 ---
 
-### Phase 3.8 - Drag & Drop Scheduling
-**Goal:** Drag tasks from All Tasks → Calendar to schedule them
+### Phase 3.8 - Drag & Drop Scheduling ✅ COMPLETE
+**Completed:** February 2, 2026
+**Goal:** Bidirectional drag-and-drop following ADR-012 state model
 
-**Tasks:**
-1. Choose drag-drop library (evaluate: dnd-kit, react-beautiful-dnd)
-2. Make tasks draggable (drag handle, ghost image during drag)
-3. Make Calendar dates/times droppable:
-   - Timeline mode: drop on time slots
-   - Compact mode: drop on day sections
-4. Handle drop: update date/time, state → 'scheduled', optimistic UI update
-5. Reverse drag: drag scheduled task off calendar → clears date, state → 'unscheduled'
-6. Within-calendar reschedule: drag to different time/date
-7. Mobile: long-press to initiate, touch feedback, auto-scroll near edge
+**What Was Built:**
+1. ✅ Implemented ADR-012 revised state model (4 states: backlog | active | in_progress | completed)
+2. ✅ Fixed date timezone bug (parseLocalDate helper for both saving and display)
+3. ✅ Added BacklogSidebar component (droppable)
+4. ✅ TaskForm auto-promotes backlog→active when date is added
+5. ✅ Forward drag operations:
+   - Drag from Backlog → Timeline (schedules with time)
+   - Drag from Scheduled → Timeline (reschedules)
+   - Drag from Overdue → Timeline (reschedules)
+6. ✅ Reverse drag operations:
+   - Drag from Timeline → Backlog Sidebar (unschedules)
+   - Drag from Timeline → "Scheduled (No Time)" (removes time, keeps date)
+   - Drag within Timeline (reschedule)
+7. ✅ Visual feedback on all drop zones
+8. ✅ Desktop functionality fully tested and working
 
 **Success Criteria:**
-- [ ] Can drag unscheduled tasks onto calendar
-- [ ] Task gets scheduled correctly (date, time, state)
-- [ ] Can drag scheduled tasks off calendar (becomes unscheduled)
-- [ ] Can reschedule within calendar
-- [ ] Works on mobile (touch)
-- [ ] Visual feedback throughout
+- [x] Can drag tasks onto calendar from backlog/scheduled/overdue
+- [x] Task gets scheduled correctly (date, time, state auto-promotion per ADR-012)
+- [x] Can drag tasks off calendar to backlog (unschedules completely)
+- [x] Can drag tasks to scheduled-no-time (removes time)
+- [x] Can reschedule within calendar
+- [x] Visual feedback throughout
+- [ ] Works on mobile (touch) - **Testing in Phase 3.9**
 
 **Branch:** `feature/phase-3.8-drag-drop`
 
 ---
 
-### Phase 3.9 - UI Polish & Bug Fixes
-**Goal:** Polish UX, fix remaining issues, simplify Quick Add
+### Phase 3.9 - Mobile Testing, UI Polish & Bug Fixes
+**Goal:** Test mobile D&D, polish UX, fix bugs, simplify Quick Add
+
+**Status:** Next Up
 
 **Tasks:**
-1. Quick Add simplification:
+1. **Mobile D&D Testing:**
+   - Test all drag-and-drop operations on mobile/touch devices
+   - Verify touch sensors work correctly (250ms delay, 5px tolerance)
+   - Adjust mobile UX if needed (touch feedback, scroll behavior, hit targets)
+   - Test on both phone and tablet sizes
+
+2. **Quick Add Simplification (ADR-010):**
    - Default: Title + Date only
    - "Show more" toggle reveals: Time, Priority, Complexity, Energy, Duration, Recurrence, Tags
-2. Text wrapping fixes across all components
-3. General UX: loading states, empty states, error messages, success feedback, confirm dialogs
-4. Responsive check on all new features
-5. Performance: optimize queries, lazy load, debounce inputs
-6. Full manual testing across devices
+   - Applies to TaskForm when creating new tasks
+
+3. **UI Polish:**
+   - TaskForm styling consistency with other modals
+   - Text wrapping fixes across all components
+   - Empty states, loading states, error messages
+   - Success feedback, confirm dialogs where appropriate
+
+4. **Bug Fixes:**
+   - Address any small bugs discovered during testing
+   - Edge case handling (long content, empty data, etc.)
+
+5. **Performance:**
+   - Optimize queries if needed
+   - Check for any lag during drag operations
+   - Debounce inputs where appropriate
+
+6. **Full Manual Testing:**
+   - Test all features across devices (phone, tablet, desktop)
+   - Verify all Phase 3.8 features work on production
+
+**Success Criteria:**
+- [ ] Drag-and-drop works smoothly on mobile devices
+- [ ] Quick Add form simplified and tested
+- [ ] No visual bugs or UX issues
+- [ ] Performance is acceptable on all devices
+- [ ] All edge cases handled gracefully
 
 **Branch:** `feature/phase-3.9-polish`
 
@@ -440,25 +477,54 @@ Notes API (GET/POST/PATCH/DELETE at `/api/notes`). NoteCard and NoteForm compone
 
 ## Post-Phase 3.0 Roadmap
 
-### Phase 3.10 - Schema Migration Supplement
-Add the three items from ADR-016, ADR-017, ADR-018 if not already added during Phase 3.1 patch:
+### Phase 3.10 - Overdue Persistence Feature
+**Goal:** Make overdue status persistent until explicitly cleared
+
+**User Request:** "Overdue items stay red at the top even after getting a new date/time. They don't leave overdue status until explicitly unmarked or completed."
+
+**Current behavior:** Overdue is calculated as `state='active' AND date < today`, so rescheduling automatically removes items from overdue section.
+
+**Implementation:**
+1. Add `isOverdue` boolean flag to task schema (requires migration)
+2. Add "Clear Overdue" action button/UI element
+3. Update overdue logic:
+   - Item becomes overdue when date passes AND not completed
+   - Item stays overdue even after rescheduling until explicitly cleared
+   - Clearing overdue: manual action OR completing the task
+4. Update UI to show overdue flag and clear action
+
+**Success Criteria:**
+- [ ] Task becomes marked overdue when date passes
+- [ ] Rescheduling task doesn't clear overdue flag
+- [ ] User can explicitly clear overdue status
+- [ ] Completing task clears overdue flag
+- [ ] Overdue items visually distinct (red, at top)
+
+**Branch:** `feature/phase-3.10-overdue-persistence`
+
+---
+
+### Phase 3.11 - Schema Migration Supplement (if needed)
+Add any remaining items from ADR-016, ADR-017, ADR-018 if not already added during Phase 3.1 patch:
 - `blockedBy` on tasks
 - `ResearchClip` model
 - `parentNoteId` on notes
 
-### Phase 3.11 - Deep Mode UI (Future)
+**Note:** Most of these were added in Phase 3.1 migrations. This is a catch-all for any missed items.
+
+### Phase 3.12 - Deep Mode UI (Future)
 The second interface layer. Sidebar nav, table views with configurable columns, project tracking (completion %, blocked-by visualization), knowledge base browsing, research clip management, nested project content. Built on the same data as focused mode — no new backend work, just a richer frontend.
 
-### Phase 3.12 - Smart List Presets (ADR-009)
+### Phase 3.13 - Smart List Presets (ADR-009)
 Preset filter buttons: "Quick Wins" (low complexity, low energy), "Deep Work" (high complexity, high energy), "Waiting On" (on hold), user-definable presets.
 
-### Phase 3.13 - Collaboration Features
+### Phase 3.14 - Collaboration Features
 Share tasks/lists with family. Assign tasks. Both users see shared recipes, movie lists, calendars. Basic shared family account — not a full permission system.
 
-### Phase 3.14 - Integrations
+### Phase 3.15 - Integrations
 Google Calendar (already done — read-only sync). Gmail integration (future). Extensible integration layer so adding new sources isn't a rebuild each time.
 
-### Phase 3.15 - Research Clip UI
+### Phase 3.16 - Research Clip UI
 Capture interface on both mobile (quick: url + tag) and desktop (full detail). Browse and filter clips. Link clips to projects via tags.
 
 ---

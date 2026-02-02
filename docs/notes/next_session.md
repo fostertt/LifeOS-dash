@@ -1,15 +1,39 @@
 # Next Session - Start Here
 
-**Last Updated:** February 2, 2026 (3:30 PM)
-**Current Status:** Phase 3.8 COMPLETE - Ready to Merge
-**Branch:** `feature/phase-3.8-drag-drop`
+**Last Updated:** February 2, 2026 (Evening)
+**Current Status:** Phase 3.8 COMPLETE - Starting Phase 3.9
+**Branch:** `feature/phase-3.8-drag-drop` (will merge to master)
 **Production:** https://lifeos-dev.foster-home.net (PM2 on port 3002)
 
 ---
 
-## ✅ SESSION COMPLETE (Feb 2, 2026 - Final)
+## 🎯 NEXT: Phase 3.9 - Mobile Testing, UI Polish & Bug Fixes
 
-### All Phase 3.8 Features Complete
+### What We're Doing
+Phase 3.8 drag-and-drop is complete on desktop. Phase 3.9 focuses on:
+
+1. **Mobile D&D Testing** - Verify touch interactions work correctly
+2. **UI Polish** - Fix any visual/UX issues that emerged
+3. **Bug Fixes** - Address small bugs and edge cases
+4. **Quick Add Simplification** (ADR-010) - Default to Title + Date, "Show more" for other fields
+
+### Known Items to Check
+- [ ] Test drag-and-drop on mobile/touch devices (phone + tablet)
+- [ ] Verify touch sensors work (250ms delay, 5px tolerance configured)
+- [ ] Check TaskForm styling consistency with other modals
+- [ ] Review text wrapping across all components
+- [ ] Test empty states, loading states, error handling
+- [ ] Full responsive check on new features
+- [ ] Performance check (optimize queries if needed)
+
+### Future Phase Work (not in 3.9)
+- Overdue persistence feature → **Tracked in Phase 3.10** (see implementation plan for details)
+
+---
+
+## ✅ PHASE 3.8 COMPLETE (Feb 2, 2026)
+
+### All Features Implemented and Tested on Desktop
 
 **1. State Model Mismatch** ✅
 - Fixed API endpoints to use correct 4-state model (`backlog`, `active`, `in_progress`, `completed`)

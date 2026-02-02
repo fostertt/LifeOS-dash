@@ -136,6 +136,7 @@ export default function GlobalCreateManager() {
           onSave={handleSaveTask}
           availableTags={availableTags}
           title={getTaskFormTitle()}
+          itemType={activeModal}
         />
       )}
 

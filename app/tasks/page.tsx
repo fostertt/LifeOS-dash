@@ -31,18 +31,16 @@ type GroupBy = "none" | "state" | "tag" | "complexity" | "energy" | "priority";
 
 // State badge colors
 const STATE_COLORS = {
-  unscheduled: "bg-gray-100 text-gray-800",
-  scheduled: "bg-blue-100 text-blue-800",
+  backlog: "bg-gray-100 text-gray-800",
+  active: "bg-blue-100 text-blue-800",
   in_progress: "bg-yellow-100 text-yellow-800",
-  on_hold: "bg-orange-100 text-orange-800",
   completed: "bg-green-100 text-green-800",
 };
 
 const STATE_LABELS = {
-  unscheduled: "Unscheduled",
-  scheduled: "Scheduled",
+  backlog: "Backlog",
+  active: "Active",
   in_progress: "In Progress",
-  on_hold: "On Hold",
   completed: "Completed",
 };
 
@@ -59,10 +57,9 @@ function AllTasksContent() {
 
   // Filters
   const [selectedStates, setSelectedStates] = useState<string[]>([
-    "unscheduled",
-    "scheduled",
+    "backlog",
+    "active",
     "in_progress",
-    "on_hold",
   ]); // Don't show completed by default
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [selectedPriority, setSelectedPriority] = useState<string>("");
@@ -100,7 +97,7 @@ function AllTasksContent() {
   const filteredItems = useMemo(() => {
     return items.filter((item) => {
       // State filter
-      if (!selectedStates.includes(item.state || "scheduled")) {
+      if (!selectedStates.includes(item.state || "active")) {
         return false;
       }
 
@@ -141,7 +138,7 @@ function AllTasksContent() {
 
       switch (groupBy) {
         case "state":
-          groupKey = STATE_LABELS[item.state as keyof typeof STATE_LABELS] || "Scheduled";
+          groupKey = STATE_LABELS[item.state as keyof typeof STATE_LABELS] || "Active";
           break;
         case "tag":
           if (item.tags && item.tags.length > 0) {
@@ -213,7 +210,7 @@ function AllTasksContent() {
 
   // Clear all filters (but keep default states)
   const clearFilters = () => {
-    setSelectedStates(["unscheduled", "scheduled", "in_progress", "on_hold"]);
+    setSelectedStates(["backlog", "active", "in_progress"]);
     setSelectedTags([]);
     setSelectedPriority("");
     setSelectedComplexity("");
@@ -419,22 +416,28 @@ function AllTasksContent() {
                               <span
                                 className={`text-xs px-2 py-0.5 rounded-full ${
                                   STATE_COLORS[item.state as keyof typeof STATE_COLORS] ||
-                                  STATE_COLORS.scheduled
+                                  STATE_COLORS.active
                                 }`}
                               >
                                 {STATE_LABELS[item.state as keyof typeof STATE_LABELS] ||
-                                  "Scheduled"}
+                                  "Active"}
                               </span>
                             </div>
 
                             {/* Date if scheduled */}
                             {item.dueDate && (
                               <p className="text-sm text-gray-600">
-                                {new Date(item.dueDate).toLocaleDateString("en-US", {
-                                  weekday: "short",
-                                  month: "short",
-                                  day: "numeric",
-                                })}
+                                {(() => {
+                                  // Parse date as local to avoid timezone shift
+                                  const dateStr = item.dueDate.split('T')[0]; // Get YYYY-MM-DD part
+                                  const [year, month, day] = dateStr.split('-').map(Number);
+                                  const localDate = new Date(year, month - 1, day);
+                                  return localDate.toLocaleDateString("en-US", {
+                                    weekday: "short",
+                                    month: "short",
+                                    day: "numeric",
+                                  });
+                                })()}
                                 {item.dueTime && ` at ${item.dueTime}`}
                               </p>
                             )}
@@ -509,6 +512,7 @@ function AllTasksContent() {
           onSave={saveTask}
           existingTask={editingTask}
           availableTags={availableTags}
+          itemType="task"
         />
       </div>
     </ProtectedRoute>
