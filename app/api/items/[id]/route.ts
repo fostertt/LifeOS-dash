@@ -26,6 +26,21 @@ function convertDurationToMinutes(duration: string | null | undefined): number {
   return durationMap[duration] || 30; // Default to 30 if unrecognized
 }
 
+/**
+ * Parse a date string as local date, not UTC.
+ * Fixes timezone bug where "YYYY-MM-DD" gets interpreted as UTC midnight (previous day in US timezones).
+ *
+ * @param dateStr - Date string in "YYYY-MM-DD" format
+ * @returns Date object at local midnight, or null if input is falsy
+ */
+function parseLocalDate(dateStr: string | null | undefined): Date | null {
+  if (!dateStr) return null;
+
+  // Split the date string and create a date at local midnight
+  const [year, month, day] = dateStr.split('-').map(Number);
+  return new Date(year, month - 1, day, 0, 0, 0, 0);
+}
+
 // GET /api/items/[id] - Get a single item
 export async function GET(
   request: NextRequest,
@@ -119,7 +134,7 @@ export async function PATCH(
       scheduleType: body.scheduleType,
       scheduleDays: body.scheduleDays,
       scheduledTime: body.scheduledTime,
-      dueDate: body.dueDate ? new Date(body.dueDate) : null,
+      dueDate: parseLocalDate(body.dueDate), // Use local date parsing to avoid timezone issues
       dueTime: body.dueTime,
       priority: body.priority || null,
       recurrenceType: body.recurrenceType,
@@ -142,18 +157,26 @@ export async function PATCH(
     }
 
     // Phase 3.1: Handle state and tags if provided
+    // ADR-012 Revised: Use 4-state model (backlog, active, in_progress, completed)
     if (body.state !== undefined) {
       updateData.state = body.state;
+
+      // ADR-012 Rule: Backlog cannot have dates
+      if (body.state === "backlog") {
+        updateData.dueDate = null;
+        updateData.dueTime = null;
+        updateData.showOnCalendar = false;
+      }
     } else {
-      // Auto-update state based on date changes
+      // Auto-update state based on date changes (ADR-012)
       if (body.dueDate || body.reminderDatetime) {
-        if (existingItem.state === "unscheduled") {
-          updateData.state = "scheduled"; // Adding date to unscheduled task
+        // Adding date to backlog task → auto-move to active
+        if (existingItem.state === "backlog") {
+          updateData.state = "active";
         }
       } else if (body.dueDate === null && body.reminderDatetime === null) {
-        if (existingItem.state === "scheduled") {
-          updateData.state = "unscheduled"; // Removing date from scheduled task
-        }
+        // Removing date from active task → stays active (doesn't auto-move to backlog)
+        // User must explicitly move to backlog if desired
       }
     }
 
@@ -201,7 +224,7 @@ export async function PATCH(
             where: { id: subItem.id },
             data: {
               name: subItem.name?.trim() || "",
-              dueDate: subItem.dueDate ? new Date(subItem.dueDate) : null,
+              dueDate: parseLocalDate(subItem.dueDate), // Use local date parsing
             },
           });
         } else if (subItem.name && subItem.name.trim()) {
@@ -213,7 +236,7 @@ export async function PATCH(
               name: subItem.name.trim(),
               parentItemId: itemId,
               isParent: false,
-              dueDate: subItem.dueDate ? new Date(subItem.dueDate) : null,
+              dueDate: parseLocalDate(subItem.dueDate), // Use local date parsing
               state: existingItem.state, // Inherit state from parent
               priority: null,
               complexity: null,

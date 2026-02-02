@@ -14,6 +14,11 @@ interface TaskFormProps {
     complexity?: string;
     energy?: string;
     tags?: string[];
+    dueDate?: string;
+    dueTime?: string;
+    scheduledTime?: string;
+    scheduleType?: string;
+    showOnCalendar?: boolean;
   }) => Promise<void>;
   existingTask?: {
     id: number;
@@ -25,8 +30,15 @@ interface TaskFormProps {
     duration?: string;
     energy?: string;
     tags?: string[];
+    dueDate?: string;
+    dueTime?: string;
+    scheduledTime?: string;
+    scheduleType?: string;
+    showOnCalendar?: boolean;
   } | null;
   availableTags: string[];
+  title?: string;
+  itemType?: "task" | "habit" | "reminder";
 }
 
 /**
@@ -34,6 +46,7 @@ interface TaskFormProps {
  *
  * Features:
  * - Task name and description
+ * - Date and Time scheduling
  * - State, priority, complexity, energy fields
  * - Tag support with autocomplete
  * - Back button/gesture support
@@ -44,14 +57,23 @@ export default function TaskForm({
   onSave,
   existingTask,
   availableTags,
+  title,
+  itemType = "task",
 }: TaskFormProps) {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
-  const [state, setState] = useState("scheduled");
+  const [state, setState] = useState("backlog");
   const [priority, setPriority] = useState("");
   const [complexity, setComplexity] = useState("");
   const [energy, setEnergy] = useState("");
   const [tags, setTags] = useState<string[]>([]);
+  
+  // Schedule fields
+  const [date, setDate] = useState("");
+  const [time, setTime] = useState("");
+  const [isRecurring, setIsRecurring] = useState(false);
+  const [showOnCalendar, setShowOnCalendar] = useState(false);
+
   const [saving, setSaving] = useState(false);
 
   // Handle browser back button/gesture to close modal
@@ -78,20 +100,43 @@ export default function TaskForm({
     if (existingTask) {
       setName(existingTask.name);
       setDescription(existingTask.description || "");
-      setState(existingTask.state || "scheduled");
+      setState(existingTask.state || "backlog");
       setPriority(existingTask.priority || "");
       setComplexity(existingTask.complexity || "");
       setEnergy(existingTask.energy || "");
       setTags(existingTask.tags || []);
+      
+      // Populate schedule fields
+      // Handle both date string (YYYY-MM-DD) and ISO date objects
+      if (existingTask.dueDate) {
+        const d = typeof existingTask.dueDate === 'string' ? existingTask.dueDate.split('T')[0] : '';
+        setDate(d);
+      } else {
+        setDate("");
+      }
+
+      // Handle time
+      const t = existingTask.dueTime || existingTask.scheduledTime || "";
+      setTime(t ? t.substring(0, 5) : ""); // Ensure HH:MM format
+
+      // Handle recurrence
+      setIsRecurring(existingTask.scheduleType === "daily");
+      
+      // Handle Pin to Today
+      setShowOnCalendar(existingTask.showOnCalendar || false);
     } else {
       // Reset form for new task
       setName("");
       setDescription("");
-      setState("scheduled");
+      setState("backlog");
       setPriority("");
       setComplexity("");
       setEnergy("");
       setTags([]);
+      setDate("");
+      setTime("");
+      setIsRecurring(false);
+      setShowOnCalendar(false);
     }
   }, [existingTask, isOpen]);
 
@@ -100,15 +145,43 @@ export default function TaskForm({
 
     setSaving(true);
     try {
-      await onSave({
+      // ADR-012: Auto-adjust state based on date presence
+      let finalState = state;
+      if (itemType === "task" || itemType === "reminder") {
+        if (date && state === "backlog") {
+          // Adding date to backlog task → auto-promote to active
+          finalState = "active";
+        } else if (!date && state === "active" && !existingTask?.dueDate) {
+          // Creating new task without date in active state → suggest backlog
+          // (but don't force it - user may want active without date)
+        }
+      }
+
+      const payload: any = {
         name: name.trim(),
         description: description.trim() || undefined,
-        state,
+        state: finalState,
         priority: priority || undefined,
         complexity: complexity || undefined,
         energy: energy || undefined,
         tags,
-      });
+        showOnCalendar,
+      };
+
+      // Add scheduling data based on itemType
+      if (itemType === "habit") {
+        if (time) payload.scheduledTime = time;
+        // Habits are daily by default if created here, or use checkbox
+        payload.scheduleType = "daily";
+      } else {
+        // Task or Reminder
+        // Ensure date is sent as YYYY-MM-DD string to avoid timezone issues
+        if (date) payload.dueDate = date;
+        if (time) payload.dueTime = time;
+        if (isRecurring) payload.scheduleType = "daily";
+      }
+
+      await onSave(payload);
       onClose();
     } catch (error) {
       console.error("Error saving task:", error);
@@ -123,20 +196,20 @@ export default function TaskForm({
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-2xl p-8 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
         <h2 className="text-2xl font-bold text-gray-900 mb-6">
-          {existingTask ? "Edit Task" : "New Task"}
+          {title || (existingTask ? `Edit ${itemType === 'habit' ? 'Habit' : 'Task'}` : `New ${itemType === 'habit' ? 'Habit' : 'Task'}`)}
         </h2>
 
         <div className="space-y-4">
           {/* Task name */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Task Name <span className="text-red-500">*</span>
+              Name <span className="text-red-500">*</span>
             </label>
             <input
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="What needs to be done?"
+              placeholder={itemType === 'habit' ? "e.g., Morning Jog" : "What needs to be done?"}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-white text-gray-900"
               autoFocus
             />
@@ -156,20 +229,74 @@ export default function TaskForm({
             />
           </div>
 
-          {/* State */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">State</label>
-            <select
-              value={state}
-              onChange={(e) => setState(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-white text-gray-900"
-            >
-              <option value="unscheduled">Unscheduled</option>
-              <option value="scheduled">Scheduled</option>
-              <option value="in_progress">In Progress</option>
-              <option value="on_hold">On Hold</option>
-            </select>
+          {/* Schedule Row */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-gray-50 p-4 rounded-lg">
+             {itemType !== 'habit' && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Date</label>
+                  <input
+                    type="date"
+                    value={date}
+                    onChange={(e) => setDate(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 bg-white text-gray-900"
+                  />
+                </div>
+             )}
+             
+             <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Time</label>
+                <input
+                  type="time"
+                  value={time}
+                  onChange={(e) => setTime(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 bg-white text-gray-900"
+                />
+             </div>
+
+             {itemType !== 'habit' && (
+               <div className="sm:col-span-2 space-y-2">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={isRecurring}
+                      onChange={(e) => setIsRecurring(e.target.checked)}
+                      className="w-4 h-4 text-purple-600 rounded focus:ring-2 focus:ring-purple-500"
+                    />
+                    <span className="text-sm font-medium text-gray-700">Recurring (daily)</span>
+                  </label>
+
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={showOnCalendar}
+                      onChange={(e) => setShowOnCalendar(e.target.checked)}
+                      className="w-4 h-4 text-purple-600 rounded focus:ring-2 focus:ring-purple-500"
+                    />
+                    <div className="flex flex-col">
+                      <span className="text-sm font-medium text-gray-700">Pin to Today</span>
+                      <span className="text-xs text-gray-500">Show on calendar regardless of due date</span>
+                    </div>
+                  </label>
+               </div>
+             )}
           </div>
+
+          {/* State (Tasks only) */}
+          {itemType === 'task' && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">State</label>
+              <select
+                value={state}
+                onChange={(e) => setState(e.target.value)}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-white text-gray-900"
+              >
+                <option value="backlog">Backlog</option>
+                <option value="active">Active</option>
+                <option value="in_progress">In Progress</option>
+                <option value="completed">Completed</option>
+              </select>
+            </div>
+          )}
 
           {/* Priority, Complexity, Energy row */}
           <div className="grid grid-cols-3 gap-3">

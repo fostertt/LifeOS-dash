@@ -26,6 +26,21 @@ function convertDurationToMinutes(duration: string | null | undefined): number {
   return durationMap[duration] || 30; // Default to 30 if unrecognized
 }
 
+/**
+ * Parse a date string as local date, not UTC.
+ * Fixes timezone bug where "YYYY-MM-DD" gets interpreted as UTC midnight (previous day in US timezones).
+ *
+ * @param dateStr - Date string in "YYYY-MM-DD" format
+ * @returns Date object at local midnight, or null if input is falsy
+ */
+function parseLocalDate(dateStr: string | null | undefined): Date | null {
+  if (!dateStr) return null;
+
+  // Split the date string and create a date at local midnight
+  const [year, month, day] = dateStr.split('-').map(Number);
+  return new Date(year, month - 1, day, 0, 0, 0, 0);
+}
+
 // GET /api/items - Get all items (tasks, habits, reminders)
 export async function GET(request: NextRequest) {
   try {
@@ -144,16 +159,22 @@ export async function POST(request: NextRequest) {
     // Check if this item will have sub-items
     const hasSubItems = Array.isArray(subItems) && subItems.length > 0;
 
-    // Phase 3.1: Determine task state based on whether it has a date
-    // If state is explicitly provided, use it; otherwise auto-determine
+    // Phase 3.1 / ADR-012 Revised: Determine task state based on whether it has a date
+    // 4-state model: backlog (no date) | active (has date) | in_progress | completed
     let taskState = state;
     if (!taskState) {
       if (dueDate || reminderDatetime) {
-        taskState = "scheduled"; // Has a date = scheduled
+        taskState = "active"; // Has a date = active
       } else {
-        taskState = "unscheduled"; // No date = unscheduled (inbox/backlog)
+        taskState = "backlog"; // No date = backlog
       }
     }
+
+    // ADR-012 Rule: Backlog cannot have dates
+    // If state is explicitly set to backlog, clear any dates
+    const finalDueDate = taskState === "backlog" ? null : parseLocalDate(dueDate);
+    const finalDueTime = taskState === "backlog" ? null : dueTime;
+    const finalShowOnCalendar = taskState === "backlog" ? false : (showOnCalendar || false);
 
     // Phase 3.4: Convert duration string to minutes for timeline calculations
     const durationMinutes = convertDurationToMinutes(duration);
@@ -168,8 +189,8 @@ export async function POST(request: NextRequest) {
         scheduleType,
         scheduleDays,
         scheduledTime,
-        dueDate: dueDate ? new Date(dueDate) : null,
-        dueTime,
+        dueDate: finalDueDate, // Use local date parsing to avoid timezone issues
+        dueTime: finalDueTime,
         priority: priority || null,
         recurrenceType,
         recurrenceInterval,
@@ -188,7 +209,7 @@ export async function POST(request: NextRequest) {
         durationMinutes, // Phase 3.4: Calculated minutes for timeline
         energy: energy || null,
         // Phase 3.4: Calendar display
-        showOnCalendar: showOnCalendar || false,
+        showOnCalendar: finalShowOnCalendar,
       },
     });
 
@@ -211,7 +232,7 @@ export async function POST(request: NextRequest) {
               name: subItem.name.trim(),
               parentItemId: item.id,
               isParent: false,
-              dueDate: subItem.dueDate ? new Date(subItem.dueDate) : null,
+              dueDate: parseLocalDate(subItem.dueDate), // Use local date parsing
               // Sub-items inherit state from parent
               state: taskState,
               // Sub-items don't get metadata fields

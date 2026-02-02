@@ -1,154 +1,188 @@
 # Next Session - Start Here
 
-**Last Updated:** February 1, 2026
-**Current Status:** Phase 3.5 Complete ✅ | Phase 3.6 Next
-**Branch:** `feature/phase-3.1-foundation-data-model`
+**Last Updated:** February 2, 2026 (Evening)
+**Current Status:** Phase 3.8 COMPLETE - Starting Phase 3.9
+**Branch:** `feature/phase-3.8-drag-drop` (will merge to master)
 **Production:** https://lifeos-dev.foster-home.net (PM2 on port 3002)
 
 ---
 
-## Quick Start
+## 🎯 NEXT: Phase 3.9 - Mobile Testing, UI Polish & Bug Fixes
 
-```bash
-# SSH to foster-forge, then:
-npm run dev
-# Dev server runs on port 3002
-# Access at: http://localhost:3002
+### What We're Doing
+Phase 3.8 drag-and-drop is complete on desktop. Phase 3.9 focuses on:
+
+1. **Mobile D&D Testing** - Verify touch interactions work correctly
+2. **UI Polish** - Fix any visual/UX issues that emerged
+3. **Bug Fixes** - Address small bugs and edge cases
+4. **Quick Add Simplification** (ADR-010) - Default to Title + Date, "Show more" for other fields
+
+### Known Items to Check
+- [ ] Test drag-and-drop on mobile/touch devices (phone + tablet)
+- [ ] Verify touch sensors work (250ms delay, 5px tolerance configured)
+- [ ] Check TaskForm styling consistency with other modals
+- [ ] Review text wrapping across all components
+- [ ] Test empty states, loading states, error handling
+- [ ] Full responsive check on new features
+- [ ] Performance check (optimize queries if needed)
+
+### Future Phase Work (not in 3.9)
+- Overdue persistence feature → **Tracked in Phase 3.10** (see implementation plan for details)
+
+---
+
+## ✅ PHASE 3.8 COMPLETE (Feb 2, 2026)
+
+### All Features Implemented and Tested on Desktop
+
+**1. State Model Mismatch** ✅
+- Fixed API endpoints to use correct 4-state model (`backlog`, `active`, `in_progress`, `completed`)
+- Removed references to old states (`unscheduled`, `scheduled`, `on_hold`)
+- ADR-012 rules fully enforced
+
+**2. Date Timezone Bug** ✅
+- Fixed off-by-one day issue in both saving AND displaying
+- Created `parseLocalDate()` helper to parse dates at local midnight instead of UTC
+- Applied to POST, PATCH endpoints and All Tasks view
+
+**3. Backlog Sidebar** ✅
+- Now renders on desktop in flex layout
+- Shows all backlog tasks
+- Connected to edit modal
+- **NOW DROPPABLE** - can unschedule items by dropping here
+
+**4. TaskForm Auto-State** ✅
+- Auto-promotes tasks from `backlog` to `active` when date is added
+- No more manual state selection needed
+
+**5. Drag & Drop Implementation - FORWARD** ✅
+- **TESTED AND WORKING**
+- Drag from Backlog → Timeline (schedules with time)
+- Drag from Scheduled → Timeline (reschedules)
+- Drag from Overdue → Timeline (reschedules)
+- All items now draggable via `DraggableTaskCard` wrapper
+- Fixed ID parsing (`task-{id}` format)
+- DndContext wraps entire page with sensors for pointer and touch
+
+**6. Drag & Drop Implementation - REVERSE** ✅
+- **TESTED AND WORKING ON DESKTOP**
+- Drag from Timeline → Backlog Sidebar (unschedules - clears date/time, sets state to backlog)
+- Drag from Timeline → "Scheduled (No Time)" section (removes time, keeps date)
+- Drag within Timeline (reschedule to different time slot)
+- Visual feedback: Gray dashed border on Backlog, purple on Scheduled (No Time)
+- Backlog sidebar now uses `useDroppable` hook
+- Created `DroppableSection` component for generic drop zones
+- Updated `handleDragEnd` to handle all reverse operations per ADR-012 rules
+
+---
+
+## 🎯 FUTURE ENHANCEMENTS
+
+### 1. Mobile Drag & Drop Testing
+**Status:** Not yet tested on mobile/touch devices
+- Timeline drag on mobile needs verification
+- Touch sensors are configured (250ms delay, 5px tolerance)
+- May need adjustments for mobile UX
+
+### 2. Overdue Persistence (Optional Enhancement)
+**User Request:** "Overdue items stay red at the top even after getting a new date/time. They don't leave overdue status until explicitly unmarked or completed."
+
+**Current behavior:** Overdue is calculated as `state='active' AND date < today`, so rescheduling automatically removes them from overdue section.
+
+**Implementation options:**
+1. Add `isOverdue` boolean flag to schema (persistent marker)
+2. Add "Clear Overdue" action to explicitly mark items as no longer overdue
+3. Change overdue logic to check the flag instead of just date comparison
+
+**Considerations:**
+- Requires schema migration to add `isOverdue` field
+- Need UI button to "Clear Overdue" status
+- Logic: Item becomes overdue when date passes AND not completed
+- Logic: Item stays overdue even after rescheduling until explicitly cleared or completed
+
+---
+
+## 📋 FILES MODIFIED TODAY
+
+### Morning Session (Core Features)
+1. **`app/api/items/route.ts`** - POST endpoint date/state fixes, parseLocalDate helper
+2. **`app/api/items/[id]/route.ts`** - PATCH endpoint date/state fixes, ADR-012 enforcement
+3. **`app/page.tsx`** - Added BacklogSidebar, DndContext, drag handlers, DraggableTaskCard wrapping
+4. **`components/BacklogSidebar.tsx`** - Fixed TypeScript interface
+5. **`components/TaskForm.tsx`** - Auto-promote backlog→active when date added
+6. **`app/tasks/page.tsx`** - Fixed date display timezone issue
+
+### Afternoon Session (Reverse Drag Operations)
+7. **`components/BacklogSidebar.tsx`** - Added `useDroppable` hook, visual feedback for drag-over
+8. **`components/DroppableSection.tsx`** - NEW: Generic droppable section wrapper component
+9. **`app/page.tsx`** - Multiple updates:
+   - Imported `DroppableSection` component
+   - Updated `handleDragEnd` to handle `backlog-drop-zone` drop target
+   - Wrapped "Scheduled (No Time)" sections with `DroppableSection`
+   - Fixed timeline item positioning - moved absolute positioning to outer wrapper
+   - Wrapped timeline items in `DraggableTaskCard` to make them draggable
+
+---
+
+## 🏆 PHASE 3.8 STATUS
+
+### ✅ ALL FEATURES COMPLETE
+- [x] New 4-state model implemented and working
+- [x] TaskForm has correct fields
+- [x] Date timezone bug fixed (saving & display)
+- [x] Backlog Sidebar visible and working
+- [x] State transition logic correct (backlog ↔ active)
+- [x] **Forward drag & drop** - Tested and confirmed
+  - [x] Drag from backlog to timeline
+  - [x] Drag from scheduled to timeline
+  - [x] Drag from overdue to timeline
+  - [x] Items properly schedule with date & time
+- [x] **Reverse drag operations** - Tested and confirmed on desktop
+  - [x] Drag from timeline to backlog sidebar (unschedules)
+  - [x] Drag from timeline to scheduled-no-time (removes time)
+  - [x] Drag within timeline (reschedule)
+  - [x] Visual feedback on all drop zones
+
+### Optional Future Work
+- [ ] Mobile D&D testing and optimization (not blocking merge)
+- [ ] Overdue persistence feature (optional enhancement)
+
+---
+
+## 💡 TECHNICAL NOTES
+
+### Drag & Drop Implementation Details
+
+**ID Format:** DraggableTaskCard uses `task-{id}` format, so drag handlers parse with:
+```typescript
+const taskIdStr = (active.id as string).replace("task-", "");
+const taskId = parseInt(taskIdStr);
 ```
 
----
+**Drag Sources:** All items wrapped in `<DraggableTaskCard>` via `renderItemCard()` function
 
-## Architecture Context (Read This First)
+**Drop Targets:**
+- Currently: Timeline slots (`time-slot-{hour}`)
+- Planned: Backlog sidebar, Scheduled-no-time section
 
-LifeOS is a **two-mode, single-platform** system. Understanding this shapes every decision:
+**Sensors:** Pointer (8px drag threshold) and Touch (250ms delay, 5px tolerance)
 
-**Focused Mode** — streamlined, low cognitive load. 3-page swipe. Quick capture and status checks. This is what Phase 3 builds. Route group: `/app/(focused)`.
-
-**Deep Mode** — full interface. Sidebar nav, table views, project tracking, knowledge base, research clips. Same data as focused mode, richer UI. Built after Phase 3 stabilizes. Route group: `/app/(deep)` (future).
-
-Both modes available on any device. Default on first launch: focused on mobile, deep on desktop. After that, app persists last mode + last page. Mode only changes on explicit user toggle.
-
-**Full architecture doc:** `phase-3-implementation-plan.md` — this is the source of truth.
+**State Updates:** Backend handles state promotion (backlog→active) automatically when date is set
 
 ---
 
-## What's Complete
+## 🚀 READY FOR MERGE
 
-### ✅ Phase 3.1 - Data Model & Migration
-- Schema: state, tags, complexity, energy, nullable dates, subtasks, showOnCalendar, durationMinutes
-- Migration applied, all fields working
-- **Supplemental migrations (Feb 1, 2026):**
-  - ✅ `blockedBy` on tasks (JSONB array) — ADR-016
-  - ✅ `ResearchClip` model — ADR-017
-  - ✅ `parentNoteId` on notes — ADR-018
-  - ✅ `Project` model (name, description, status, blockedBy, targetDate, tags)
-  - ✅ `projectId` on tasks (optional association)
+**Branch:** `feature/phase-3.8-drag-drop`
+**Status:** All features complete and tested on desktop
+**Next Step:** Merge to master when ready
 
-### ✅ Phase 3.2 - Tag System
-- TagInput with autocomplete, multi-tag on tasks and lists, tag filtering
-
-### ✅ Phase 3.3 - All Tasks View
-- `/tasks` route, state/tag/complexity/energy filtering, state badges
-- Click bug fixed in Phase 3.5 (TaskForm modal opens correctly)
-
-### ✅ Phase 3.4 - Calendar View Modes
-- Timeline mode (hour axis 5am–11pm, zoom) and compact mode
-- View toggle persists. Duration auto-calc. Pin to today. Categorized sections.
-- See `phase-3.4-complete-summary.md`
-
-### ✅ Phase 3.5 - Notes + UI Polish
-- Notes API (`/api/notes` — GET/POST/PATCH/DELETE)
-- NoteCard, NoteForm, ListCard components
-- Combined "Notes & Lists" page at `/lists`
-- Filter (All | Notes | Lists), sort (Recent | Alphabetical), pin/unpin
-- FAB component added
-- All modals have back button/gesture
-- All Tasks click bug fixed (TaskForm modal)
-
----
-
-## Next: Phase 3.6 - Navigation Refactor
-
-**Goal:** Swipeable 3-page navigation. This IS the focused mode layout.
-
-### What to Build
-
-1. **Choose swipe library** — evaluate framer-motion, react-swipeable, react-spring
-2. **SwipeContainer component:**
-   - 3 pages: All Tasks ↔ Calendar ↔ Notes & Lists
-   - Smooth animations, touch gestures, keyboard nav (arrow keys)
-3. **Page indicators** — dots or tabs, tappable to jump between pages
-4. **Update hamburger menu:**
-   - Remove from nav: Today, Tasks, Week, Lists (these are now the swipe pages)
-   - Keep: Habits, Reminders, Settings
-   - Future placeholder: Meals & Recipes
-5. **Default page:** Calendar (center page). Persist last viewed page across sessions.
-6. **Back navigation** from Habits/Reminders/Settings back to swipe area
-
-### Route Structure
-```
-/app/(focused)/          — focused mode layout with swipe container
-  page.tsx               — SwipeContainer with 3 child pages
-  tasks/                 — All Tasks page (currently at /tasks)
-  calendar/              — Calendar page (currently at /)
-  lists/                 — Notes & Lists page (currently at /lists)
-  habits/                — Habits (from hamburger)
-  reminders/             — Reminders (from hamburger)
-  settings/              — Settings (from hamburger)
-```
-
-### Success Criteria
-- [ ] Can swipe between 3 pages smoothly
-- [ ] Page indicators show current page, are tappable
-- [ ] Hamburger menu updated (removed swipe pages, kept secondary)
-- [ ] Calendar is default on first open
-- [ ] Last viewed page persists across app close/reopen
-- [ ] Navigation from Habits/Reminders/Settings back to swipe works
-
-### Branch
-`feature/phase-3.6-navigation`
-
----
-
-## Remaining UI Polish (do after Phase 3.6)
-
-1. **Sidebar label** — update to "Notes & Lists" in `components/Sidebar.tsx`
-2. **TaskForm styling** — make consistent with NoteForm/ListForm modals (`components/TaskForm.tsx`)
-3. **Pin inside list detail** — add pin/unpin button in `app/lists/[id]/page.tsx`
-4. **Delete in detail views** — add delete buttons inside note/list/task detail views (removed from cards, not yet added to details)
-
----
-
-## Known Issues
-
-- No critical bugs blocking development
-- All Phase 3.1–3.5 features working as designed
-- Production build deployed and accessible
-
----
-
-## After Phase 3.6
-
-| Phase | What | Notes |
-|---|---|---|
-| 3.7 | FAB Menu expansion | FAB component exists, needs multi-option menu wired to all creation forms |
-| 3.8 | Drag & Drop | Unscheduled ↔ Calendar scheduling via drag |
-| 3.9 | UI Polish | Quick Add simplification, text wrapping, loading/empty/error states |
-| 3.10 | Schema supplement | blockedBy, ResearchClip, parentNoteId (if not added earlier) |
-| 3.11 | Deep Mode UI | Second interface layer — sidebar nav, tables, project tracking, knowledge base |
-
-See `phase-3-implementation-plan.md` for full details on all phases.
-
----
-
-## Important Reminders
-
-1. **Port 3002** — dev server is 3002, NOT 3000 (that's OpenWebUI)
-2. **After schema changes** — run `npx prisma generate` and restart dev server
-3. **Timezone** — server runs UTC, client handles local time conversion
-4. **All Phase 3.1–3.5** on same branch: `feature/phase-3.1-foundation-data-model`
-5. **Route group naming** — focused mode is `/app/(focused)`, not `/app/(mobile)`
-
----
-
-**This file updated at end of each session. It is the starting point for the next Claude Code session.**
+### Summary of Changes
+Phase 3.8 implements a complete bidirectional drag-and-drop system following ADR-012 state model:
+- ✅ Tasks can be dragged FROM backlog/scheduled/overdue TO timeline (schedules with time)
+- ✅ Tasks can be dragged FROM timeline TO backlog (unschedules completely)
+- ✅ Tasks can be dragged FROM timeline TO scheduled-no-time (removes time, keeps date)
+- ✅ Tasks can be dragged within timeline (reschedule to different time)
+- ✅ All state transitions follow ADR-012 rules (backlog clears date, auto-promotion to active)
+- ✅ Visual feedback on all drop zones
+- ✅ Desktop functionality fully tested and working

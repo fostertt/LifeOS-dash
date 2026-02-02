@@ -145,7 +145,7 @@ model Item {
   description        String?
 
   // Phase 3.1: Task state and organization
-  state              String               @default("scheduled") // unscheduled | scheduled | in_progress | on_hold | completed
+  state              String               @default("backlog") // backlog | active | in_progress | completed
   tags               Json?                @db.JsonB // Array of tag strings for project/context organization
 
   // Schedule and timing
