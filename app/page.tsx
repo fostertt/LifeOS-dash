@@ -56,6 +56,8 @@ interface Item {
   tags?: string[]; // Array of tag strings
   // Phase 3.4: Calendar display fields
   showOnCalendar?: boolean; // Pin to today's calendar view
+  // Phase 3.10: Overdue persistence
+  isOverdue?: boolean; // Persistent overdue flag
   subItems?: SubItem[];
   completions?: Array<{ completionDate: string }>;
 }
@@ -673,8 +675,12 @@ function HomeContent() {
   const handleDragStart = (event: DragStartEvent) => {
     const { active } = event;
 
-    // Parse task ID from "task-{id}" format
-    const taskIdStr = (active.id as string).replace("task-", "");
+    // Phase 3.10: Parse task ID from "task-{context}-{id}" or "task-{id}" format
+    const activeIdStr = active.id as string;
+    const parts = activeIdStr.split("-");
+
+    // Extract the actual task ID (last part of the ID)
+    const taskIdStr = parts[parts.length - 1];
     const taskId = parseInt(taskIdStr);
 
     setActiveId(taskId);
@@ -744,6 +750,14 @@ function HomeContent() {
           showOnCalendar: false,
           state: "backlog",
         };
+      } else if (droppableId === "overdue-drop-zone") {
+        // Phase 3.10: Dropped on overdue section
+        // Clear both date and time so it only appears in Overdue section
+        // Keep isOverdue=true so it stays in the overdue list
+        updateData = {
+          dueDate: null,
+          dueTime: null,
+        };
       } else {
         // Unknown drop target
         return;
@@ -762,7 +776,14 @@ function HomeContent() {
 
       // Reload data to reflect changes
       await loadData();
-      showToast("Task scheduled successfully!", "success");
+
+      // Phase 3.10: Show appropriate success message based on action
+      const successMessage = droppableId === "overdue-drop-zone"
+        ? "Task unscheduled"
+        : droppableId === "backlog-drop-zone"
+        ? "Moved to backlog!"
+        : "Task scheduled successfully!";
+      showToast(successMessage, "success");
     } catch (error) {
       console.error("Error scheduling task:", error);
       showToast("Failed to schedule task", "error");
@@ -835,7 +856,7 @@ function HomeContent() {
   );
 
   // Phase 3.4: Helper to render item cards
-  const renderItemCard = (item: Item, isOverdue: boolean = false) => {
+  const renderItemCard = (item: Item, isOverdue: boolean = false, context: string = "compact") => {
     const isRecurring = item.scheduleType && item.scheduleType !== "";
     const isCompleted = isRecurring
       ? completedToday.has(item.id)
@@ -843,7 +864,7 @@ function HomeContent() {
     const itemTime = getItemTime(item);
 
     return (
-      <DraggableTaskCard key={item.id} id={item.id} data={item}>
+      <DraggableTaskCard key={`${context}-${item.id}`} id={item.id} data={item} context={context}>
         <div
           onClick={() => openEditModal(item)}
           className={`border-2 rounded-xl p-3 md:p-5 hover:shadow-md transition-all duration-200 cursor-pointer ${
@@ -1030,8 +1051,32 @@ function HomeContent() {
             )}
           </div>
 
-          {/* Completion checkbox */}
-          <div className="ml-4 flex-shrink-0">
+          {/* Completion checkbox and Clear Overdue button */}
+          <div className="ml-4 flex-shrink-0 flex items-center gap-2">
+            {/* Clear Overdue button - Phase 3.10 */}
+            {isOverdue && !isCompleted && (
+              <button
+                onClick={async (e) => {
+                  e.stopPropagation();
+                  try {
+                    await fetch(`/api/items/${item.id}`, {
+                      method: "PATCH",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ isOverdue: false }),
+                    });
+                    await loadData();
+                    showToast("Cleared overdue status", "success");
+                  } catch (error) {
+                    console.error("Error clearing overdue:", error);
+                    showToast("Failed to clear overdue", "error");
+                  }
+                }}
+                className="px-2 py-1 text-xs font-medium text-red-700 bg-red-50 border border-red-200 rounded hover:bg-red-100 transition-colors"
+                title="Clear overdue status"
+              >
+                Clear
+              </button>
+            )}
             <input
               type="checkbox"
               checked={isCompleted}
@@ -1164,18 +1209,20 @@ function HomeContent() {
 
             return (
               <div
-                key={item.id}
+                key={`timeline-scheduled-${item.id}`}
                 className="absolute left-2 right-2 z-10"
                 style={{
                   top: `${topPosition}px`,
                   height: `${Math.max(height, 30)}px`,
                 }}
               >
-                <DraggableTaskCard id={item.id} data={item}>
+                <DraggableTaskCard id={item.id} data={item} context="timeline-scheduled">
                   <div
                     className={`w-full h-full rounded-lg p-2 cursor-grab active:cursor-grabbing border-l-4 ${
                       isCompleted
                         ? 'bg-green-50 border-green-400'
+                        : item.isOverdue
+                        ? 'bg-red-50 border-red-400 hover:bg-red-100'
                         : 'bg-purple-50 border-purple-400 hover:bg-purple-100'
                     }`}
                     onClick={() => openEditModal(item)}
@@ -1567,19 +1614,19 @@ function HomeContent() {
                   <>
                     {renderSectionHeader("Reminders", "text-yellow-700", "🔔")}
                     <div className="space-y-3">
-                      {categorizedData.reminders.map((item) => renderItemCard(item, false))}
+                      {categorizedData.reminders.map((item) => renderItemCard(item, false, "compact-reminders"))}
                     </div>
                   </>
                 )}
 
-                {/* Overdue Section */}
+                {/* Overdue Section - Phase 3.10: Droppable to clear overdue flag */}
                 {categorizedData && categorizedData.overdue.length > 0 && filterTypes.has("task") && (
-                  <>
+                  <DroppableSection id="overdue-drop-zone">
                     {renderSectionHeader("Overdue", "text-red-700", "⚠️")}
                     <div className="space-y-3">
-                      {categorizedData.overdue.map((item) => renderItemCard(item, true))}
+                      {categorizedData.overdue.map((item) => renderItemCard(item, true, "compact-overdue"))}
                     </div>
-                  </>
+                  </DroppableSection>
                 )}
 
                 {/* In Progress Section */}
@@ -1587,7 +1634,7 @@ function HomeContent() {
                   <>
                     {renderSectionHeader("In Progress", "text-blue-700", "🔵")}
                     <div className="space-y-3">
-                      {categorizedData.inProgress.map((item) => renderItemCard(item, false))}
+                      {categorizedData.inProgress.map((item) => renderItemCard(item, false, "compact-inprogress"))}
                     </div>
                   </>
                 )}
@@ -1702,7 +1749,7 @@ function HomeContent() {
                   <>
                     {renderSectionHeader("Scheduled", "text-purple-700", "📋")}
                     <div className="space-y-3">
-                      {categorizedData.scheduled.map((item) => renderItemCard(item, false))}
+                      {categorizedData.scheduled.map((item) => renderItemCard(item, item.isOverdue || false, "compact-scheduled"))}
                     </div>
                   </>
                 )}
@@ -1712,7 +1759,7 @@ function HomeContent() {
                   <DroppableSection id="scheduled-no-time">
                     {renderSectionHeader("Scheduled (No Time)", "text-gray-600")}
                     <div className="space-y-3">
-                      {categorizedData.scheduledNoTime.map((item) => renderItemCard(item, false))}
+                      {categorizedData.scheduledNoTime.map((item) => renderItemCard(item, item.isOverdue || false, "compact-notime"))}
                     </div>
                   </DroppableSection>
                 )}
@@ -1722,7 +1769,7 @@ function HomeContent() {
                   <>
                     {renderSectionHeader("Quick Captures", "text-gray-500", "📌")}
                     <div className="space-y-3">
-                      {categorizedData.pinned.map((item) => renderItemCard(item, false))}
+                      {categorizedData.pinned.map((item) => renderItemCard(item, false, "compact-pinned"))}
                     </div>
                   </>
                 )}
@@ -1736,19 +1783,19 @@ function HomeContent() {
                   <>
                     {renderSectionHeader("Reminders", "text-yellow-700", "🔔")}
                     <div className="space-y-3">
-                      {categorizedData.reminders.map((item) => renderItemCard(item, false))}
+                      {categorizedData.reminders.map((item) => renderItemCard(item, false, "timeline-reminders"))}
                     </div>
                   </>
                 )}
 
-                {/* Overdue Section (above timeline) */}
+                {/* Overdue Section (above timeline) - Phase 3.10: Droppable to clear overdue flag */}
                 {categorizedData && categorizedData.overdue.length > 0 && filterTypes.has("task") && (
-                  <>
+                  <DroppableSection id="overdue-drop-zone">
                     {renderSectionHeader("Overdue", "text-red-700", "⚠️")}
                     <div className="space-y-3">
-                      {categorizedData.overdue.map((item) => renderItemCard(item, true))}
+                      {categorizedData.overdue.map((item) => renderItemCard(item, true, "timeline-overdue"))}
                     </div>
-                  </>
+                  </DroppableSection>
                 )}
 
                 {/* In Progress Section (above timeline) */}
@@ -1756,7 +1803,7 @@ function HomeContent() {
                   <>
                     {renderSectionHeader("In Progress", "text-blue-700", "🔵")}
                     <div className="space-y-3">
-                      {categorizedData.inProgress.map((item) => renderItemCard(item, false))}
+                      {categorizedData.inProgress.map((item) => renderItemCard(item, false, "timeline-inprogress"))}
                     </div>
                   </>
                 )}
@@ -1774,7 +1821,7 @@ function HomeContent() {
                   <DroppableSection id="scheduled-no-time">
                     {renderSectionHeader("Scheduled (No Time)", "text-gray-600")}
                     <div className="space-y-3">
-                      {categorizedData.scheduledNoTime.map((item) => renderItemCard(item, false))}
+                      {categorizedData.scheduledNoTime.map((item) => renderItemCard(item, item.isOverdue || false, "timeline-notime"))}
                     </div>
                   </DroppableSection>
                 )}
@@ -1784,7 +1831,7 @@ function HomeContent() {
                   <>
                     {renderSectionHeader("Quick Captures", "text-gray-500", "📌")}
                     <div className="space-y-3">
-                      {categorizedData.pinned.map((item) => renderItemCard(item, false))}
+                      {categorizedData.pinned.map((item) => renderItemCard(item, false, "timeline-pinned"))}
                     </div>
                   </>
                 )}

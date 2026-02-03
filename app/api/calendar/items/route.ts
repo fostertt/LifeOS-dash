@@ -113,6 +113,36 @@ export async function GET(request: NextRequest) {
       },
     });
 
+    // Phase 3.10: Auto-set isOverdue flag for tasks that have become overdue
+    // Check for tasks that should be marked as overdue but aren't yet
+    const tasksToMarkOverdue = allItems.filter((item) => {
+      return (
+        item.state === "active" &&
+        item.dueDate &&
+        !item.isCompleted &&
+        !item.isOverdue && // Not already marked
+        formatDate(new Date(item.dueDate)) < formatDate(today) // Date has passed
+      );
+    });
+
+    // Update those tasks in the database
+    if (tasksToMarkOverdue.length > 0) {
+      const idsToUpdate = tasksToMarkOverdue.map((item) => item.id);
+      await prisma.item.updateMany({
+        where: {
+          id: { in: idsToUpdate },
+        },
+        data: {
+          isOverdue: true,
+        },
+      });
+
+      // Update the in-memory items as well
+      tasksToMarkOverdue.forEach((item) => {
+        item.isOverdue = true;
+      });
+    }
+
     // Categorize items
     const reminders: any[] = [];
     const overdue: any[] = [];
@@ -156,17 +186,19 @@ export async function GET(request: NextRequest) {
         continue;
       }
 
-      // Overdue: active + date < target date + not completed
+      // Phase 3.10: Overdue - use persistent isOverdue flag
+      // Items with isOverdue=true appear in overdue section
+      // BUT also appear in their scheduled time (don't continue - let them fall through)
+      if (item.isOverdue && !isCompleted) {
+        overdue.push(item);
+        // Don't continue - let overdue items also appear in scheduled sections
+      }
+
+      // Scheduled: active + has date
       if (item.state === "active" && item.dueDate && !isCompleted) {
         const itemDate = new Date(item.dueDate);
         itemDate.setHours(0, 0, 0, 0);
         const itemDateStr = formatDate(itemDate);
-
-        // Only overdue if date is BEFORE the date being viewed (not equal to it)
-        if (itemDateStr < targetDateStr) {
-          overdue.push(item);
-          continue;
-        }
 
         // Scheduled for the target date being viewed
         if (itemDateStr === targetDateStr) {

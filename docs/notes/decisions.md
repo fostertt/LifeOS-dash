@@ -214,6 +214,39 @@ Should we replace "smart lists" concept with:
 3. Consider context-aware vs. universal approach
 4. Implement in Phase 2.6 or 2.7
 
+### ADR-013: Persistent Overdue Flag (2026-02-03)
+
+**Context:**
+- Users reported that overdue items automatically leave the "Overdue" section when rescheduled
+- This made it easy to lose track of tasks that had fallen behind
+- Current behavior: overdue calculated as `state='active' AND dueDate < today`
+- Desired: items stay marked as overdue until explicitly cleared or completed
+
+**Decision:**
+Add persistent `isOverdue` boolean field to track overdue status independently of the due date.
+
+**Implementation:**
+- Database: Added `isOverdue` field (default false) to `items` table
+- Auto-set: Tasks automatically marked `isOverdue=true` when date passes and task is active + not completed
+- Persistence: Flag remains true even after rescheduling
+- Auto-clear: Flag cleared when:
+  - Task is completed
+  - Task is moved to backlog
+  - User explicitly clicks "Clear" button
+- UI: TaskForm shows red warning banner with "Clear" button for overdue tasks
+
+**Alternatives Considered:**
+- **Option A: Keep dynamic calculation** → Rejected: loses track of overdue tasks when rescheduled
+- **Option B: Separate "Overdue History" log** → Rejected: too complex, doesn't solve the UI issue
+- **Option C: Persistent flag (chosen)** → Simple, preserves intent, gives user control
+
+**Consequences:**
+- ✅ Users can see which tasks fell behind, even after rescheduling
+- ✅ Explicit clear action prevents accidental dismissal
+- ✅ Auto-clear on completion keeps system clean
+- ⚠️ Requires user action to clear flag (by design)
+- ⚠️ Tasks marked overdue before this change need manual update (migration handles new items only)
+
 ### ADR-011: Effort vs Focus Field Consolidation (PENDING)
 
 **Context:**

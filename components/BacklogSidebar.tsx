@@ -64,7 +64,7 @@ export default function BacklogSidebar({ items, onEditItem }: BacklogSidebarProp
           </div>
         ) : (
           items.map((item) => (
-            <DraggableTaskCard key={item.id} id={item.id} data={item}>
+            <DraggableTaskCard key={item.id} id={item.id} data={item} context="backlog">
               <div 
                 onClick={() => onEditItem(item)}
                 className="bg-white p-3 rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition-shadow cursor-grab active:cursor-grabbing"

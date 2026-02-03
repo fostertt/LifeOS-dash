@@ -1,9 +1,37 @@
 # Next Session - Start Here
 
-**Last Updated:** February 2, 2026 (Evening)
-**Current Status:** Phase 3.8 COMPLETE - Starting Phase 3.9
-**Branch:** `feature/phase-3.8-drag-drop` (will merge to master)
+**Last Updated:** February 3, 2026
+**Current Status:** Phase 3.10 COMPLETE - Overdue Persistence with Drag Bug Fix
+**Branch:** master
 **Production:** https://lifeos-dev.foster-home.net (PM2 on port 3002)
+
+---
+
+## ✅ PHASE 3.10 COMPLETE (Feb 3, 2026)
+
+### Overdue Persistence Feature - FULLY WORKING
+
+**Implemented:**
+- ✅ Added `isOverdue` boolean field to database schema (migration applied)
+- ✅ Auto-set logic: tasks become `isOverdue=true` when date passes
+- ✅ Persistent: flag remains true even after rescheduling
+- ✅ Auto-clear: cleared when task completed or moved to backlog
+- ✅ UI: Red warning banner in TaskForm with "Clear" button
+- ✅ API: PATCH endpoint handles explicit isOverdue flag updates
+- ✅ Categorization: Calendar items endpoint uses isOverdue field instead of date calculation
+- ✅ Build successful, TypeScript compilation passed
+- ✅ **DRAG BUG FIXED:** Tasks can now be dragged multiple times through any cycle
+
+**Bug Fix - Duplicate Draggable IDs:**
+- **Issue:** Tasks appearing in both Overdue and Timeline sections had duplicate draggable IDs, breaking drag after overdue→timeline→overdue cycle
+- **Solution:** Added context prop to DraggableTaskCard (e.g., `task-timeline-overdue-{id}`, `task-backlog-{id}`) ensuring unique IDs
+- **Files Modified:** DraggableTaskCard.tsx, app/page.tsx, BacklogSidebar.tsx
+- **Also Fixed:** Removed debug logging, corrected misleading toast message
+
+**Documentation:**
+- ✅ ADR-013 added to decisions.md
+- ✅ Migration: 20260203140618_add_is_overdue_field
+- ✅ Complete feature documentation in docs/notes/overdue_feature.md
 
 ---
 
@@ -15,7 +43,8 @@ Phase 3.8 drag-and-drop is complete on desktop. Phase 3.9 focuses on:
 1. **Mobile D&D Testing** - Verify touch interactions work correctly
 2. **UI Polish** - Fix any visual/UX issues that emerged
 3. **Bug Fixes** - Address small bugs and edge cases
-4. **Quick Add Simplification** (ADR-010) - Default to Title + Date, "Show more" for other fields
+4. **Overdue Persistence Testing** - Verify Phase 3.10 works as expected
+5. **Quick Add Simplification** (ADR-010) - Default to Title + Date, "Show more" for other fields
 
 ### Known Items to Check
 - [ ] Test drag-and-drop on mobile/touch devices (phone + tablet)
@@ -27,7 +56,7 @@ Phase 3.8 drag-and-drop is complete on desktop. Phase 3.9 focuses on:
 - [ ] Performance check (optimize queries if needed)
 
 ### Future Phase Work (not in 3.9)
-- Overdue persistence feature → **Tracked in Phase 3.10** (see implementation plan for details)
+- Calendar Views Enhancement (Phase 3.5) - Multiple view types (Week, Month, Next X Days)
 
 ---
 

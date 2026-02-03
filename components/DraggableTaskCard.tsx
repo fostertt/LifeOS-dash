@@ -7,11 +7,15 @@ interface DraggableTaskCardProps {
   id: number;
   children: React.ReactNode;
   data?: any;
+  context?: string; // Phase 3.10: Context to ensure unique IDs when item appears in multiple sections
 }
 
-export default function DraggableTaskCard({ id, children, data }: DraggableTaskCardProps) {
+export default function DraggableTaskCard({ id, children, data, context }: DraggableTaskCardProps) {
+  // Phase 3.10: Include context in ID to prevent duplicate IDs when item appears in both overdue and timeline
+  const draggableId = context ? `task-${context}-${id}` : `task-${id}`;
+
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
-    id: `task-${id}`,
+    id: draggableId,
     data: data,
   });
 

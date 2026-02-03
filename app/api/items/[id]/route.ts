@@ -128,28 +128,38 @@ export async function PATCH(
       : undefined;
 
     // Phase 3.1: Auto-update state when date changes
-    let updateData: any = {
-      name: body.name,
-      description: body.description,
-      scheduleType: body.scheduleType,
-      scheduleDays: body.scheduleDays,
-      scheduledTime: body.scheduledTime,
-      dueDate: parseLocalDate(body.dueDate), // Use local date parsing to avoid timezone issues
-      dueTime: body.dueTime,
-      priority: body.priority || null,
-      recurrenceType: body.recurrenceType,
-      recurrenceInterval: body.recurrenceInterval,
-      recurrenceUnit: body.recurrenceUnit,
-      recurrenceAnchor: body.recurrenceAnchor,
-      reminderDatetime: body.reminderDatetime ? new Date(body.reminderDatetime) : null,
-      reminderRecurrence: body.reminderRecurrence,
-      reminderDays: body.reminderDays,
-      complexity: body.complexity || null,
-      duration: body.duration || null,
-      durationMinutes, // Phase 3.4: Calculated minutes for timeline
-      energy: body.energy || null,
-      isParent: hasSubItems,
-    };
+    // Build updateData object with only provided fields to avoid clearing existing values
+    let updateData: any = {};
+
+    // Only include fields that are present in the request body
+    if (body.name !== undefined) updateData.name = body.name;
+    if (body.description !== undefined) updateData.description = body.description;
+    if (body.scheduleType !== undefined) updateData.scheduleType = body.scheduleType;
+    if (body.scheduleDays !== undefined) updateData.scheduleDays = body.scheduleDays;
+    if (body.scheduledTime !== undefined) updateData.scheduledTime = body.scheduledTime;
+    if (body.dueDate !== undefined) updateData.dueDate = parseLocalDate(body.dueDate);
+    if (body.dueTime !== undefined) updateData.dueTime = body.dueTime;
+    if (body.priority !== undefined) updateData.priority = body.priority || null;
+    if (body.recurrenceType !== undefined) updateData.recurrenceType = body.recurrenceType;
+    if (body.recurrenceInterval !== undefined) updateData.recurrenceInterval = body.recurrenceInterval;
+    if (body.recurrenceUnit !== undefined) updateData.recurrenceUnit = body.recurrenceUnit;
+    if (body.recurrenceAnchor !== undefined) updateData.recurrenceAnchor = body.recurrenceAnchor;
+    if (body.reminderDatetime !== undefined) updateData.reminderDatetime = body.reminderDatetime ? new Date(body.reminderDatetime) : null;
+    if (body.reminderRecurrence !== undefined) updateData.reminderRecurrence = body.reminderRecurrence;
+    if (body.reminderDays !== undefined) updateData.reminderDays = body.reminderDays;
+    if (body.complexity !== undefined) updateData.complexity = body.complexity || null;
+    if (body.duration !== undefined) {
+      updateData.duration = body.duration || null;
+      updateData.durationMinutes = convertDurationToMinutes(body.duration);
+    }
+    if (body.energy !== undefined) updateData.energy = body.energy || null;
+    if (hasSubItems) updateData.isParent = true;
+
+    // Phase 3.10: Handle isOverdue flag
+    // Allow explicit setting/clearing via API
+    if (body.isOverdue !== undefined) {
+      updateData.isOverdue = body.isOverdue;
+    }
 
     // Phase 3.4: Handle showOnCalendar if provided
     if (body.showOnCalendar !== undefined) {
@@ -166,6 +176,13 @@ export async function PATCH(
         updateData.dueDate = null;
         updateData.dueTime = null;
         updateData.showOnCalendar = false;
+        // Phase 3.10: Clear overdue flag when moved to backlog
+        updateData.isOverdue = false;
+      }
+
+      // Phase 3.10: Clear overdue flag when completed
+      if (body.state === "completed") {
+        updateData.isOverdue = false;
       }
     } else {
       // Auto-update state based on date changes (ADR-012)
@@ -178,6 +195,14 @@ export async function PATCH(
         // Removing date from active task → stays active (doesn't auto-move to backlog)
         // User must explicitly move to backlog if desired
       }
+    }
+
+    // Phase 3.10: Also clear isOverdue if isCompleted is being set to true
+    if (body.isCompleted === true) {
+      updateData.isCompleted = body.isCompleted;
+      updateData.isOverdue = false;
+    } else if (body.isCompleted !== undefined) {
+      updateData.isCompleted = body.isCompleted;
     }
 
     if (body.tags !== undefined) {

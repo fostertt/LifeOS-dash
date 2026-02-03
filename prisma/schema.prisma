@@ -163,6 +163,7 @@ model Item {
   completedAt        String?              @map("completed_at")
   isDismissed        Boolean?             @map("is_dismissed")
   dismissedAt        DateTime?            @map("dismissed_at")
+  isOverdue          Boolean?             @default(false) @map("is_overdue") // Phase 3.10: Persistent overdue flag
 
   // Task metadata (Phase 3.1: renamed from effort/focus to complexity/energy)
   priority           String?
