@@ -1,217 +1,335 @@
 # Next Session - Start Here
 
 **Last Updated:** February 3, 2026
-**Current Status:** Phase 3.10 COMPLETE - Overdue Persistence with Drag Bug Fix
-**Branch:** master
-**Production:** https://lifeos-dev.foster-home.net (PM2 on port 3002)
+**Current Status:** Planning Complete - Ready for Phase 3.5 (Home Dashboard)
+**Branch:** master (or create feature/phase-3.5-home-dashboard)
+**Production:** <https://lifeos-dev.foster-home.net> (PM2 on port 3002)
 
 ---
 
-## ✅ PHASE 3.10 COMPLETE (Feb 3, 2026)
+## 🎯 NEXT UP: Phase 3.5 - Home Dashboard & Navigation
 
-### Overdue Persistence Feature - FULLY WORKING
+### What Just Happened (Feb 3 Evening Session)
 
-**Implemented:**
-- ✅ Added `isOverdue` boolean field to database schema (migration applied)
-- ✅ Auto-set logic: tasks become `isOverdue=true` when date passes
-- ✅ Persistent: flag remains true even after rescheduling
-- ✅ Auto-clear: cleared when task completed or moved to backlog
-- ✅ UI: Red warning banner in TaskForm with "Clear" button
-- ✅ API: PATCH endpoint handles explicit isOverdue flag updates
-- ✅ Categorization: Calendar items endpoint uses isOverdue field instead of date calculation
-- ✅ Build successful, TypeScript compilation passed
-- ✅ **DRAG BUG FIXED:** Tasks can now be dragged multiple times through any cycle
+**Planning & Vision Cleanup:**
 
-**Bug Fix - Duplicate Draggable IDs:**
-- **Issue:** Tasks appearing in both Overdue and Timeline sections had duplicate draggable IDs, breaking drag after overdue→timeline→overdue cycle
-- **Solution:** Added context prop to DraggableTaskCard (e.g., `task-timeline-overdue-{id}`, `task-backlog-{id}`) ensuring unique IDs
-- **Files Modified:** DraggableTaskCard.tsx, app/page.tsx, BacklogSidebar.tsx
-- **Also Fixed:** Removed debug logging, corrected misleading toast message
+- ✅ Reviewed all planning documents vs. actual codebase
+- ✅ Identified disconnect: vision docs described much bigger system than what's built
+- ✅ Clarified actual product goals with Tyrrell
+- ✅ Created NEW simplified vision doc (v3.0)
+- ✅ Created NEW focused implementation plan (v3.0)
+- ✅ Archived old planning docs for reference
+- ✅ Fixed data models: Projects, Recipes, RecipeIngredients, RecipeInstructions
 
-**Documentation:**
-- ✅ ADR-013 added to decisions.md
-- ✅ Migration: 20260203140618_add_is_overdue_field
-- ✅ Complete feature documentation in docs/notes/overdue_feature.md
+**Key Decisions:**
 
----
+- ✅ LifeOS is NOT Notion (focused on todo + calendar + AI + meal planning)
+- ✅ Home dashboard with 5-6 navigation cards (not widgets)
+- ✅ Habits/Reminders stay in "All" view (no separate pages)
+- ✅ Focus/Deep mode is future enhancement (not core requirement)
+- ✅ Keep it simple - do a few things well
 
-## 🎯 NEXT: Phase 3.9 - Mobile Testing, UI Polish & Bug Fixes
+**Documents Updated:**
 
-### What We're Doing
-Phase 3.8 drag-and-drop is complete on desktop. Phase 3.9 focuses on:
-
-1. **Mobile D&D Testing** - Verify touch interactions work correctly
-2. **UI Polish** - Fix any visual/UX issues that emerged
-3. **Bug Fixes** - Address small bugs and edge cases
-4. **Overdue Persistence Testing** - Verify Phase 3.10 works as expected
-5. **Quick Add Simplification** (ADR-010) - Default to Title + Date, "Show more" for other fields
-
-### Known Items to Check
-- [ ] Test drag-and-drop on mobile/touch devices (phone + tablet)
-- [ ] Verify touch sensors work (250ms delay, 5px tolerance configured)
-- [ ] Check TaskForm styling consistency with other modals
-- [ ] Review text wrapping across all components
-- [ ] Test empty states, loading states, error handling
-- [ ] Full responsive check on new features
-- [ ] Performance check (optimize queries if needed)
-
-### Future Phase Work (not in 3.9)
-- Calendar Views Enhancement (Phase 3.5) - Multiple view types (Week, Month, Next X Days)
+- `docs/notes/lifeos-vision.md` (v3.0) - Simplified, focused vision
+- `docs/notes/lifeos-implementation-plan.md` (v3.0) - Actionable roadmap
+- Moved old plans to `docs/archive/`
 
 ---
 
-## ✅ PHASE 3.8 COMPLETE (Feb 2, 2026)
+## 🚀 What to Build Next: Phase 3.5
 
-### All Features Implemented and Tested on Desktop
+### Goal
 
-**1. State Model Mismatch** ✅
-- Fixed API endpoints to use correct 4-state model (`backlog`, `active`, `in_progress`, `completed`)
-- Removed references to old states (`unscheduled`, `scheduled`, `on_hold`)
-- ADR-012 rules fully enforced
+Replace single-page app with home dashboard navigation structure and add Month calendar view.
 
-**2. Date Timezone Bug** ✅
-- Fixed off-by-one day issue in both saving AND displaying
-- Created `parseLocalDate()` helper to parse dates at local midnight instead of UTC
-- Applied to POST, PATCH endpoints and All Tasks view
+### Sub-Phases
 
-**3. Backlog Sidebar** ✅
-- Now renders on desktop in flex layout
-- Shows all backlog tasks
-- Connected to edit modal
-- **NOW DROPPABLE** - can unschedule items by dropping here
+#### 3.5.1 Home Dashboard (1-2 days)
 
-**4. TaskForm Auto-State** ✅
-- Auto-promotes tasks from `backlog` to `active` when date is added
-- No more manual state selection needed
+**Create `/` as landing page with 6 navigation cards:**
 
-**5. Drag & Drop Implementation - FORWARD** ✅
-- **TESTED AND WORKING**
-- Drag from Backlog → Timeline (schedules with time)
-- Drag from Scheduled → Timeline (reschedules)
-- Drag from Overdue → Timeline (reschedules)
-- All items now draggable via `DraggableTaskCard` wrapper
-- Fixed ID parsing (`task-{id}` format)
-- DndContext wraps entire page with sensors for pointer and touch
-
-**6. Drag & Drop Implementation - REVERSE** ✅
-- **TESTED AND WORKING ON DESKTOP**
-- Drag from Timeline → Backlog Sidebar (unschedules - clears date/time, sets state to backlog)
-- Drag from Timeline → "Scheduled (No Time)" section (removes time, keeps date)
-- Drag within Timeline (reschedule to different time slot)
-- Visual feedback: Gray dashed border on Backlog, purple on Scheduled (No Time)
-- Backlog sidebar now uses `useDroppable` hook
-- Created `DroppableSection` component for generic drop zones
-- Updated `handleDragEnd` to handle all reverse operations per ADR-012 rules
-
----
-
-## 🎯 FUTURE ENHANCEMENTS
-
-### 1. Mobile Drag & Drop Testing
-**Status:** Not yet tested on mobile/touch devices
-- Timeline drag on mobile needs verification
-- Touch sensors are configured (250ms delay, 5px tolerance)
-- May need adjustments for mobile UX
-
-### 2. Overdue Persistence (Optional Enhancement)
-**User Request:** "Overdue items stay red at the top even after getting a new date/time. They don't leave overdue status until explicitly unmarked or completed."
-
-**Current behavior:** Overdue is calculated as `state='active' AND date < today`, so rescheduling automatically removes them from overdue section.
-
-**Implementation options:**
-1. Add `isOverdue` boolean flag to schema (persistent marker)
-2. Add "Clear Overdue" action to explicitly mark items as no longer overdue
-3. Change overdue logic to check the flag instead of just date comparison
-
-**Considerations:**
-- Requires schema migration to add `isOverdue` field
-- Need UI button to "Clear Overdue" status
-- Logic: Item becomes overdue when date passes AND not completed
-- Logic: Item stays overdue even after rescheduling until explicitly cleared or completed
-
----
-
-## 📋 FILES MODIFIED TODAY
-
-### Morning Session (Core Features)
-1. **`app/api/items/route.ts`** - POST endpoint date/state fixes, parseLocalDate helper
-2. **`app/api/items/[id]/route.ts`** - PATCH endpoint date/state fixes, ADR-012 enforcement
-3. **`app/page.tsx`** - Added BacklogSidebar, DndContext, drag handlers, DraggableTaskCard wrapping
-4. **`components/BacklogSidebar.tsx`** - Fixed TypeScript interface
-5. **`components/TaskForm.tsx`** - Auto-promote backlog→active when date added
-6. **`app/tasks/page.tsx`** - Fixed date display timezone issue
-
-### Afternoon Session (Reverse Drag Operations)
-7. **`components/BacklogSidebar.tsx`** - Added `useDroppable` hook, visual feedback for drag-over
-8. **`components/DroppableSection.tsx`** - NEW: Generic droppable section wrapper component
-9. **`app/page.tsx`** - Multiple updates:
-   - Imported `DroppableSection` component
-   - Updated `handleDragEnd` to handle `backlog-drop-zone` drop target
-   - Wrapped "Scheduled (No Time)" sections with `DroppableSection`
-   - Fixed timeline item positioning - moved absolute positioning to outer wrapper
-   - Wrapped timeline items in `DraggableTaskCard` to make them draggable
-
----
-
-## 🏆 PHASE 3.8 STATUS
-
-### ✅ ALL FEATURES COMPLETE
-- [x] New 4-state model implemented and working
-- [x] TaskForm has correct fields
-- [x] Date timezone bug fixed (saving & display)
-- [x] Backlog Sidebar visible and working
-- [x] State transition logic correct (backlog ↔ active)
-- [x] **Forward drag & drop** - Tested and confirmed
-  - [x] Drag from backlog to timeline
-  - [x] Drag from scheduled to timeline
-  - [x] Drag from overdue to timeline
-  - [x] Items properly schedule with date & time
-- [x] **Reverse drag operations** - Tested and confirmed on desktop
-  - [x] Drag from timeline to backlog sidebar (unschedules)
-  - [x] Drag from timeline to scheduled-no-time (removes time)
-  - [x] Drag within timeline (reschedule)
-  - [x] Visual feedback on all drop zones
-
-### Optional Future Work
-- [ ] Mobile D&D testing and optimization (not blocking merge)
-- [ ] Overdue persistence feature (optional enhancement)
-
----
-
-## 💡 TECHNICAL NOTES
-
-### Drag & Drop Implementation Details
-
-**ID Format:** DraggableTaskCard uses `task-{id}` format, so drag handlers parse with:
-```typescript
-const taskIdStr = (active.id as string).replace("task-", "");
-const taskId = parseInt(taskIdStr);
+```
+┌─────────────────────────────────┐
+│         LifeOS Home             │
+├─────────────────────────────────┤
+│  ┌──────────┐  ┌──────────┐    │
+│  │ Projects │  │   All    │    │
+│  └──────────┘  └──────────┘    │
+│  ┌──────────┐  ┌──────────┐    │
+│  │ Calendar │  │  Vault   │    │
+│  └──────────┘  └──────────┘    │
+│  ┌──────────┐  ┌──────────┐    │
+│  │ Recipes  │  │   Docs   │    │
+│  └──────────┘  └──────────┘    │
+│      (soon)      (future)       │
+│                                 │
+│  [Quick Action Button]          │
+└─────────────────────────────────┘
 ```
 
-**Drag Sources:** All items wrapped in `<DraggableTaskCard>` via `renderItemCard()` function
+**Tasks:**
 
-**Drop Targets:**
-- Currently: Timeline slots (`time-slot-{hour}`)
-- Planned: Backlog sidebar, Scheduled-no-time section
+- [ ] Create new `/` route with card grid component
+- [ ] Card component: icon, title, optional badge (e.g., "5 active tasks")
+- [ ] Grid layout: 2 cols mobile, 3 cols desktop
+- [ ] Recipes card shows "Coming Soon" state
+- [ ] Docs card shows "Future" or grayed out state
+- [ ] Quick Action FAB works from home page
+- [ ] Home button/logo always accessible
 
-**Sensors:** Pointer (8px drag threshold) and Touch (250ms delay, 5px tolerance)
+**Technical Notes:**
 
-**State Updates:** Backend handles state promotion (backlog→active) automatically when date is set
+- Don't build widgets/previews yet - just navigation cards
+- Cards can show counts later (Phase 8 polish)
+- Keep it simple for now
 
 ---
 
-## 🚀 READY FOR MERGE
+#### 3.5.2 Update Navigation & Routing (1 day)
 
-**Branch:** `feature/phase-3.8-drag-drop`
-**Status:** All features complete and tested on desktop
-**Next Step:** Merge to master when ready
+**Reorganize URL structure:**
 
-### Summary of Changes
-Phase 3.8 implements a complete bidirectional drag-and-drop system following ADR-012 state model:
-- ✅ Tasks can be dragged FROM backlog/scheduled/overdue TO timeline (schedules with time)
-- ✅ Tasks can be dragged FROM timeline TO backlog (unschedules completely)
-- ✅ Tasks can be dragged FROM timeline TO scheduled-no-time (removes time, keeps date)
-- ✅ Tasks can be dragged within timeline (reschedule to different time)
-- ✅ All state transitions follow ADR-012 rules (backlog clears date, auto-promotion to active)
-- ✅ Visual feedback on all drop zones
-- ✅ Desktop functionality fully tested and working
+**Old Routes:**
+
+- `/` → Today view
+- `/week` → Week view
+- `/tasks` → All tasks
+- `/lists` → Notes & Lists
+- `/settings/calendars` → Calendar settings
+
+**New Routes:**
+
+- `/` → **Home Dashboard** ⭐ NEW
+- `/calendar` → Calendar views (Day/Week/Month) - move Today here
+- `/all` → All tasks/habits/reminders (rename from /tasks)
+- `/projects` → Projects page ⭐ NEW (placeholder for Phase 5)
+- `/vault` → Notes & Lists (rename from /lists)
+- `/recipes` → Recipes ⭐ NEW (placeholder/"Coming Soon" for Phase 4)
+- `/settings/calendars` → Keep as-is
+
+**Tasks:**
+
+- [ ] Create `/calendar` route, move Today view code there
+- [ ] Rename `/tasks` → `/all`
+- [ ] Rename `/lists` → `/vault`
+- [ ] Create placeholder `/projects` page (simple "Projects - Coming in Phase 5" message)
+- [ ] Create placeholder `/recipes` page (simple "Recipes - Coming in Phase 4" message)
+- [ ] Update Header component navigation links
+- [ ] Update Sidebar component menu items
+- [ ] Test all deep links still work
+- [ ] Update any hardcoded navigation URLs in components
+
+**Header/Sidebar Menu Items (Desktop & Mobile):**
+
+```
+Home → Projects → All → Calendar → Vault → Recipes → Calendars
+```
+
+---
+
+#### 3.5.3 Calendar Enhancements (2-3 days)
+
+**Add Month view and improve calendar navigation**
+
+**Month View:**
+
+- [ ] Calendar grid component (7 columns × 4-6 rows)
+- [ ] Show items as dots or mini-cards on dates
+- [ ] Click date → navigate to Day view for that date
+- [ ] Visual distinction for different item types
+- [ ] Overdue items marked clearly (red indicator)
+- [ ] Responsive grid layout (mobile vs desktop)
+
+**Calendar Navigation:**
+
+- [ ] View switcher: Day | Week | Month (tabs or dropdown)
+- [ ] Date picker for quick navigation
+- [ ] "Today" button to return to current date
+- [ ] URL state for selected date and view type (e.g., `/calendar?view=month&date=2026-02-15`)
+- [ ] Preserve view preference in localStorage (optional)
+
+**Calendar Route Structure:**
+
+- `/calendar` → Default to Day view, today's date
+- `/calendar?view=day&date=2026-02-03` → Day view for specific date
+- `/calendar?view=week&date=2026-02-03` → Week view starting that date
+- `/calendar?view=month&date=2026-02-03` → Month view for that month
+
+**Technical:**
+
+- Shared data fetching for all calendar views
+- Month view needs to fetch entire month's items
+- Optimize queries (don't fetch too much at once)
+- Consider caching frequently accessed dates
+
+---
+
+### Phase 3.5 Success Criteria
+
+**When to consider Phase 3.5 complete:**
+
+- ✅ Home dashboard is the landing page
+- ✅ All 6 main areas are accessible from home
+- ✅ Navigation feels intuitive (< 2 clicks to any area)
+- ✅ URL structure is logical and shareable
+- ✅ Month view displays items correctly
+- ✅ Calendar view switcher works smoothly
+- ✅ Mobile and desktop both work well
+- ✅ No confusion about where to find things
+
+**Total Effort:** 4-6 days
+
+---
+
+## Current Codebase State
+
+### What's Working (Phase 3 Complete ✅)
+
+- Task management (Items: tasks/habits/reminders in one table)
+- States: backlog, active, in_progress, completed
+- Calendar views: Day (timeline), Week
+- Drag-and-drop scheduling
+- Overdue persistence (Phase 3.10)
+- Parent/child tasks
+- Project association (projectId field)
+- Notes & Lists
+- ResearchClips (URL bookmarks)
+- Google Calendar sync
+- Multi-user auth + families
+- PWA, mobile-responsive
+
+### Database Models Exist (UI Not Built)
+
+- **Projects** - Need to add: start_date, priority, color fields via migration
+- **Notes** - Working, accessible via /lists (will become /vault)
+- **Lists/ListItems** - Working, accessible via /lists (will become /vault)
+
+### Not in Database Yet
+
+- Recipes (Phase 4)
+- RecipeIngredients (Phase 4)
+- RecipeInstructions (Phase 4)
+- MealPlans (Phase 4)
+- Documents (Phase 7)
+
+---
+
+## Data Model Reference
+
+### Projects (Needs Migration Before Phase 5)
+
+**Current fields:**
+
+- id, userId, name, description, status, blockedBy, targetDate, tags
+
+**Need to add:**
+
+- start_date (DateTime, nullable)
+- priority (String, nullable)
+- color (String, nullable)
+
+### Recipes (Phase 4 - Full Schema)
+
+See `lifeos-implementation-plan.md` Phase 4.1 for complete Prisma schema including:
+
+- Recipe (with notes field)
+- RecipeIngredient (with notes field)
+- RecipeInstruction (separate table for numbered steps)
+- MealPlan (with userId, recipeId, mealNameOverride)
+
+---
+
+## Important Files to Know
+
+### Navigation Components
+
+- `components/Header.tsx` - Desktop nav bar, mobile compact header
+- `components/Sidebar.tsx` - Mobile hamburger menu
+- `app/layout.tsx` - Root layout wrapper
+
+### Current Routes
+
+- `app/page.tsx` - Today view (will become home dashboard)
+- `app/week/page.tsx` - Week view (will move to /calendar)
+- `app/tasks/page.tsx` - All tasks (will become /all)
+- `app/lists/page.tsx` - Notes & Lists (will become /vault)
+- `app/lists/[id]/page.tsx` - Individual list view
+
+### Components
+
+- `components/FAB.tsx` - Quick Action floating button
+- `components/TaskForm.tsx` - Task creation/edit modal
+- `components/DraggableTaskCard.tsx` - Drag-and-drop task cards
+- `components/BacklogSidebar.tsx` - Backlog drop zone
+
+---
+
+## Tips for Next Session
+
+### Starting Phase 3.5.1 (Home Dashboard)
+
+1. **Create branch:**
+
+   ```bash
+   git checkout -b feature/phase-3.5-home-dashboard
+   ```
+
+2. **Read current home page:**
+   - `app/page.tsx` is currently the Today view
+   - We'll move this to `app/calendar/page.tsx`
+   - Replace `app/page.tsx` with new home dashboard
+
+3. **Build home dashboard component:**
+   - Keep it simple: just cards with icons and titles
+   - No counts/widgets for now (Phase 8)
+   - Use Tailwind grid layout
+   - Reuse existing navigation patterns
+
+4. **Test on mobile early:**
+   - 2-column grid on mobile
+   - Large tap targets
+   - PWA still works
+
+### Quick Wins
+
+- Copy existing card patterns from UI
+- Icons can be emoji for now (🎯 📅 📋 🍽️ 📖)
+- Don't overthink it - get navigation working first
+- Polish later in Phase 8
+
+---
+
+## Architecture Decisions to Remember
+
+**From decisions.md:**
+
+- ADR-012: 4-state model (backlog, active, in_progress, completed)
+- ADR-013: Overdue persistence (isOverdue flag)
+- ADR-007: Mobile-first visual simplification
+
+**What LifeOS IS:**
+
+- Todo app + calendar + AI assistance + meal planning
+- Private, self-hosted
+- Simple over complex
+
+**What LifeOS is NOT:**
+
+- Not Notion (no wiki/collaboration)
+- Not endless customization
+- Not trying to replace every app
+
+---
+
+## Questions? Check These Docs
+
+- **Vision:** `docs/notes/lifeos-vision.md` (v3.0)
+- **Implementation Plan:** `docs/notes/lifeos-implementation-plan.md` (v3.0)
+- **Decisions:** `docs/notes/decisions.md`
+- **Key Facts:** `docs/notes/key_facts.md`
+- **Bugs:** `docs/notes/bugs.md`
+
+---
+
+**Ready to build?** Start with Phase 3.5.1 - Home Dashboard!
