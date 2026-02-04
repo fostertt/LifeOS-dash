@@ -14,11 +14,13 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
   const pathname = usePathname();
 
   const menuItems = [
-    { href: "/", label: "Today", icon: "📅" },
-    { href: "/week", label: "Week", icon: "📅" },
-    { href: "/tasks", label: "All Tasks", icon: "✅" },
-    { href: "/lists", label: "Lists", icon: "📋" },
-    { href: "/settings/calendars", label: "Calendars", icon: "📅" },
+    { href: "/", label: "Home" },
+    { href: "/projects", label: "Projects" },
+    { href: "/tasks", label: "All" },
+    { href: "/calendar", label: "Calendar" },
+    { href: "/lists", label: "Vault" },
+    { href: "/recipes", label: "Recipes" },
+    { href: "/settings/calendars", label: "Calendars" },
   ];
 
   return (
@@ -67,7 +69,6 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
                       : "text-gray-700 hover:bg-gray-100"
                   }`}
                 >
-                  <span className="text-lg">{item.icon}</span>
                   <span className="text-sm font-medium">{item.label}</span>
                 </div>
               </Link>

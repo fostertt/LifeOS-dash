@@ -21,16 +21,18 @@ export default function Header({ onFilterClick }: HeaderProps) {
 
   // Get page title based on current path
   const getPageTitle = () => {
-    if (pathname === "/") return "Today";
-    if (pathname === "/week") return "Week";
-    if (pathname === "/tasks") return "All Tasks";
-    if (pathname?.startsWith("/lists")) return "Notes & Lists";
+    if (pathname === "/") return "Home";
+    if (pathname === "/calendar" || pathname === "/week") return "Calendar";
+    if (pathname === "/all" || pathname === "/tasks") return "All";
+    if (pathname === "/vault" || pathname?.startsWith("/lists")) return "Vault";
+    if (pathname === "/projects") return "Projects";
+    if (pathname === "/recipes") return "Recipes";
     if (pathname?.startsWith("/settings/calendars")) return "Calendars";
     return "Life OS";
   };
 
-  // Show filter button on Today, Week, and Lists pages
-  const showFilter = pathname === "/" || pathname === "/week" || pathname?.startsWith("/lists");
+  // Show filter button on Calendar, All, and Vault pages
+  const showFilter = pathname === "/calendar" || pathname === "/week" || pathname === "/all" || pathname === "/tasks" || pathname === "/vault" || pathname?.startsWith("/lists");
 
   return (
     <>
@@ -117,37 +119,57 @@ export default function Header({ onFilterClick }: HeaderProps) {
                 : "bg-gray-100 text-gray-700 hover:bg-gray-200"
             }`}
           >
-            Today
+            Home
           </Link>
           <Link
-            href="/week"
+            href="/projects"
             className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-              pathname === "/week"
+              pathname === "/projects"
                 ? "bg-purple-600 text-white"
                 : "bg-gray-100 text-gray-700 hover:bg-gray-200"
             }`}
           >
-            Week
+            Projects
           </Link>
           <Link
             href="/tasks"
             className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-              pathname === "/tasks"
+              pathname === "/tasks" || pathname === "/all"
                 ? "bg-purple-600 text-white"
                 : "bg-gray-100 text-gray-700 hover:bg-gray-200"
             }`}
           >
-            All Tasks
+            All
+          </Link>
+          <Link
+            href="/calendar"
+            className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+              pathname === "/calendar" || pathname === "/week"
+                ? "bg-purple-600 text-white"
+                : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+            }`}
+          >
+            Calendar
           </Link>
           <Link
             href="/lists"
             className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-              pathname?.startsWith("/lists")
+              pathname?.startsWith("/lists") || pathname === "/vault"
                 ? "bg-purple-600 text-white"
                 : "bg-gray-100 text-gray-700 hover:bg-gray-200"
             }`}
           >
-            Notes & Lists
+            Vault
+          </Link>
+          <Link
+            href="/recipes"
+            className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+              pathname === "/recipes"
+                ? "bg-purple-600 text-white"
+                : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+            }`}
+          >
+            Recipes
           </Link>
           <Link
             href="/settings/calendars"
