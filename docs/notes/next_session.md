@@ -1,15 +1,70 @@
 # Next Session - Start Here
 
 **Last Updated:** February 4, 2026
-**Current Status:** Phase 3.5.1 & 3.5.2 Complete - Ready for Phase 3.5.3 (Calendar Views)
-**Branch:** feature/phase-3.5-home-dashboard (committed, not pushed yet)
+**Current Status:** Phase 3.5 COMPLETE ✅ - Ready for Phase 4 or Polish
+**Branch:** feature/phase-3.5-home-dashboard (3 commits, not pushed yet)
 **Production:** <https://lifeos-dev.foster-home.net> (PM2 on port 3002)
 
 ---
 
-## 🎯 NEXT UP: Phase 3.5.3 - Calendar Enhancements (Month View & View Switcher)
+## 🎯 NEXT UP: Phase 4 (Recipes) or Polish Phase 3.5
 
-### What Just Happened (Feb 4 Session)
+**Options:**
+
+1. Continue with Phase 4 - Recipe Management (per implementation plan)
+2. Polish Phase 3.5 - UI tweaks, mobile refinements, testing
+3. Push Phase 3.5 to remote and deploy
+
+---
+
+## ✅ COMPLETED: Phase 3.5.3 - Calendar View Switcher (Feb 4, 2026)
+
+**Implemented unified calendar system with 5 views:**
+
+1. **Timeline** (existing) - Hourly grid for single day
+2. **Compact** (existing) - Single day, collapsed empty space
+3. **Schedule** (NEW) - 14-day vertical list with date circles
+4. **Week** (NEW) - 7-day grid (Mon-Sun), 6 AM-11 PM
+5. **Month** (NEW) - Calendar grid with pill badges
+
+**View Switcher:**
+
+- ✅ Hamburger menu (☰) replaces old Timeline/Compact toggle
+- ✅ Slide-in sidebar with radio-style view selection
+- ✅ Date picker and "Go to Today" button included
+- ✅ URL routing: `/calendar?view=month&date=2026-02-04`
+- ✅ localStorage persistence (last-used view)
+- ✅ Default: Timeline (desktop), Compact (mobile)
+
+**View Features:**
+
+- ✅ Schedule: 14 days forward, week dividers, colored cards with times
+- ✅ Week: Monday start, clickable day headers → navigate to day
+- ✅ Month: ISO week numbers (clickable → open week view), pill badges with times
+- ✅ All views maintain overdue (top) and scheduledNoTime (bottom) sections
+- ✅ Color-coded pills: Habits (purple), Tasks (orange), Reminders (yellow), Events (green)
+
+**Mobile Fixes:**
+
+- ✅ Removed `overflow-x-hidden` from main container
+- ✅ Added `overflow-x-auto` to Week and Month views
+- ✅ Horizontal scrolling works on mobile
+- ✅ Week numbers column in Month view (8 columns total)
+
+**Files Changed:**
+
+- `app/calendar/page.tsx` - Added 3 new views, hamburger button, helper functions
+- `components/ViewSwitcherSidebar.tsx` - New sidebar component
+
+**Git Status:**
+
+- Commit 1: Phase 3.5.1 (Home Dashboard)
+- Commit 2: Phase 3.5.2 (Route Renames)
+- Commit 3: Phase 3.5.3 (Calendar Views + Mobile Fixes)
+
+---
+
+### What Just Happened (Feb 4 Morning Session)
 
 **Phase 3.5.1 - Home Dashboard ✅ COMPLETE:**
 
