@@ -275,6 +275,19 @@ function HomeContent() {
     return days;
   };
 
+  // Phase 3.5.3: Get ISO week number
+  const getISOWeek = (date: Date) => {
+    const target = new Date(date.valueOf());
+    const dayNr = (date.getDay() + 6) % 7; // Monday = 0
+    target.setDate(target.getDate() - dayNr + 3); // Nearest Thursday
+    const firstThursday = target.valueOf();
+    target.setMonth(0, 1);
+    if (target.getDay() !== 4) {
+      target.setMonth(0, 1 + ((4 - target.getDay()) + 7) % 7);
+    }
+    return 1 + Math.ceil((firstThursday - target.valueOf()) / 604800000);
+  };
+
   // Phase 3.5.3: Get calendar month grid (Monday-Sunday, including overflow days)
   const getMonthCalendar = () => {
     const year = selectedDate.getFullYear();
@@ -296,6 +309,10 @@ function HomeContent() {
     const weeks = [];
     for (let week = 0; week < 6; week++) {
       const days = [];
+      const weekStartDate = new Date(startDate);
+      weekStartDate.setDate(startDate.getDate() + (week * 7));
+      const weekNumber = getISOWeek(weekStartDate);
+
       for (let day = 0; day < 7; day++) {
         const date = new Date(startDate);
         date.setDate(startDate.getDate() + (week * 7) + day);
@@ -305,7 +322,7 @@ function HomeContent() {
           isToday: date.toDateString() === new Date().toDateString(),
         });
       }
-      weeks.push(days);
+      weeks.push({ days, weekNumber, weekStartDate });
     }
 
     return weeks;
@@ -1401,7 +1418,7 @@ function HomeContent() {
         onDragStart={handleDragStart}
         onDragEnd={handleDragEnd}
       >
-      <div className="min-h-screen bg-gradient-to-br from-purple-50 to-blue-50 overflow-x-hidden">
+      <div className="min-h-screen bg-gradient-to-br from-purple-50 to-blue-50">
         <div className="max-w-5xl mx-auto px-4 py-4 md:p-8">
           {!insideSwipe && <Header onFilterClick={() => setShowFilterMenu(!showFilterMenu)} />}
 
@@ -1857,7 +1874,14 @@ function HomeContent() {
                       {getWeekDays().map((day) => {
                         const isToday = day.toDateString() === new Date().toDateString();
                         return (
-                          <div key={day.toDateString()} className={`bg-white dark:bg-gray-800 p-2 text-center ${isToday ? 'bg-blue-50 dark:bg-blue-900/30' : ''}`}>
+                          <div
+                            key={day.toDateString()}
+                            onClick={() => {
+                              navigateToDate(day);
+                              toggleViewMode('timeline');
+                            }}
+                            className={`bg-white dark:bg-gray-800 p-2 text-center cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors ${isToday ? 'bg-blue-50 dark:bg-blue-900/30' : ''}`}
+                          >
                             <div className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
                               {day.toLocaleDateString('en-US', { weekday: 'short' })}
                             </div>
@@ -1960,21 +1984,40 @@ function HomeContent() {
                 {/* Phase 3.5.3: Month View - Calendar grid */}
 
                 {/* Month calendar grid */}
-                <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm overflow-hidden">
-                  {/* Day name headers */}
-                  <div className="grid grid-cols-7 gap-px bg-gray-200 dark:bg-gray-700">
-                    {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((dayName) => (
-                      <div key={dayName} className="bg-gray-50 dark:bg-gray-800 p-2 text-center text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase">
-                        {dayName}
+                <div className="overflow-x-auto">
+                  <div className="min-w-[640px]">
+                    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm overflow-hidden">
+                      {/* Day name headers */}
+                      <div className="grid grid-cols-8 gap-px bg-gray-200 dark:bg-gray-700">
+                        <div className="bg-gray-50 dark:bg-gray-800 p-2 text-center text-xs font-semibold text-gray-600 dark:text-gray-400">
+                          Wk
+                        </div>
+                        {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((dayName) => (
+                          <div key={dayName} className="bg-gray-50 dark:bg-gray-800 p-2 text-center text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase">
+                            {dayName}
+                          </div>
+                        ))}
                       </div>
-                    ))}
-                  </div>
 
-                  {/* Calendar grid */}
-                  <div className="grid grid-cols-7 gap-px bg-gray-200 dark:bg-gray-700">
-                    {getMonthCalendar().map((week, weekIndex) => (
-                      <React.Fragment key={weekIndex}>
-                        {week.map((day) => {
+                      {/* Calendar grid */}
+                      <div className="grid grid-cols-8 gap-px bg-gray-200 dark:bg-gray-700">
+                        {getMonthCalendar().map((week, weekIndex) => (
+                          <React.Fragment key={weekIndex}>
+                            {/* Week number */}
+                            <div
+                              onClick={() => {
+                                navigateToDate(week.weekStartDate);
+                                toggleViewMode('week');
+                              }}
+                              className="bg-gray-100 dark:bg-gray-700 p-2 flex items-center justify-center cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+                            >
+                              <div className="text-xs font-semibold text-gray-600 dark:text-gray-400">
+                                {week.weekNumber}
+                              </div>
+                            </div>
+
+                            {/* Days */}
+                            {week.days.map((day) => {
                           const dayStr = `${day.date.getFullYear()}-${String(day.date.getMonth() + 1).padStart(2, '0')}-${String(day.date.getDate()).padStart(2, '0')}`;
 
                           // Get items for this day
@@ -2078,6 +2121,8 @@ function HomeContent() {
                         })}
                       </React.Fragment>
                     ))}
+                  </div>
+                </div>
                   </div>
                 </div>
 
