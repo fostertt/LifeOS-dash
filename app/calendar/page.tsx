@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, Suspense, useMemo, useContext } from "react";
+import React, { useEffect, useState, Suspense, useMemo, useContext } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import Header from "@/components/Header";
@@ -22,6 +22,7 @@ import BacklogSidebar from "@/components/BacklogSidebar";
 import DroppableTimeSlot from "@/components/DroppableTimeSlot";
 import DroppableSection from "@/components/DroppableSection";
 import DraggableTaskCard from "@/components/DraggableTaskCard";
+import ViewSwitcherSidebar from "@/components/ViewSwitcherSidebar";
 
 interface SubItem {
   id?: number;
@@ -80,8 +81,8 @@ interface CategorizedCalendarData {
 }
 
 type ItemType = "habit" | "task" | "reminder" | "event";
-type ViewMode = "timeline" | "compact";
-type CalendarViewType = "day" | "week" | "workweek" | "nextX" | "month";
+// Phase 3.5.3: Unified view system with 5 calendar views
+type ViewMode = "timeline" | "compact" | "schedule" | "week" | "month";
 
 function HomeContent() {
   const { insideSwipe } = useContext(SwipeContext);
@@ -118,16 +119,22 @@ function HomeContent() {
     new Set(["habit", "task", "reminder", "event"])
   );
   const [showFilterMenu, setShowFilterMenu] = useState(false);
+  const [showViewSwitcher, setShowViewSwitcher] = useState(false); // Phase 3.5.3: View switcher sidebar
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(
     null
   );
 
-  // Phase 3.4: View mode (timeline vs compact)
+  // Phase 3.5.3: View mode (timeline/compact/schedule/week/month)
   const [viewMode, setViewMode] = useState<ViewMode>(() => {
-    // Check localStorage first
     if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('calendarViewMode');
-      if (saved === 'timeline' || saved === 'compact') {
+      // Check URL param first
+      const urlView = searchParams.get('view');
+      if (urlView === 'timeline' || urlView === 'compact' || urlView === 'schedule' || urlView === 'week' || urlView === 'month') {
+        return urlView;
+      }
+      // Then check localStorage for last used view
+      const saved = localStorage.getItem('lastCalendarView');
+      if (saved === 'timeline' || saved === 'compact' || saved === 'schedule' || saved === 'week' || saved === 'month') {
         return saved;
       }
       // Default based on screen size: compact for mobile, timeline for desktop
@@ -145,16 +152,7 @@ function HomeContent() {
     return 80;
   });
 
-  // Phase 3.5: Calendar view type (day, week, month, etc.)
-  const [calendarViewType, setCalendarViewType] = useState<CalendarViewType>(() => {
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('calendarViewType');
-      if (saved === 'day' || saved === 'week' || saved === 'workweek' || saved === 'nextX' || saved === 'month') {
-        return saved;
-      }
-    }
-    return 'day'; // Default to single day view
-  });
+  // Phase 3.5.3: Removed old calendarViewType - now using unified ViewMode system
 
   // Phase 3.5: Configurable number of days for "Next X Days" view
   const [nextXDays, setNextXDays] = useState<number>(() => {
@@ -234,6 +232,83 @@ function HomeContent() {
   const isToday = () => {
     const today = new Date();
     return selectedDate.toDateString() === today.toDateString();
+  };
+
+  // Phase 3.5.3: Generate array of dates for Schedule view (14 days from selected date)
+  const getScheduleDays = () => {
+    const days = [];
+    for (let i = 0; i < 14; i++) {
+      const date = new Date(selectedDate);
+      date.setDate(selectedDate.getDate() + i);
+      days.push(date);
+    }
+    return days;
+  };
+
+  // Phase 3.5.3: Check if date is start of a new week (Monday)
+  const isWeekBoundary = (date: Date) => {
+    return date.getDay() === 1 && date.getDate() !== selectedDate.getDate(); // Monday and not the first day
+  };
+
+  // Phase 3.5.3: Format week range for divider (e.g., "Feb 8 – 14")
+  const formatWeekRange = (weekStart: Date) => {
+    const weekEnd = new Date(weekStart);
+    weekEnd.setDate(weekStart.getDate() + 6);
+    const monthStr = weekStart.toLocaleDateString("en-US", { month: "short" });
+    return `${monthStr} ${weekStart.getDate()} – ${weekEnd.getDate()}`;
+  };
+
+  // Phase 3.5.3: Get week dates (Monday-Sunday) for Week view
+  const getWeekDays = () => {
+    const days = [];
+    const dayOfWeek = selectedDate.getDay(); // 0 = Sunday
+    const monday = new Date(selectedDate);
+    // Calculate offset to Monday (1 = Monday)
+    const offset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+    monday.setDate(selectedDate.getDate() + offset);
+
+    for (let i = 0; i < 7; i++) {
+      const date = new Date(monday);
+      date.setDate(monday.getDate() + i);
+      days.push(date);
+    }
+    return days;
+  };
+
+  // Phase 3.5.3: Get calendar month grid (Monday-Sunday, including overflow days)
+  const getMonthCalendar = () => {
+    const year = selectedDate.getFullYear();
+    const month = selectedDate.getMonth();
+
+    // First day of the month
+    const firstDay = new Date(year, month, 1);
+    const firstDayOfWeek = firstDay.getDay(); // 0 = Sunday
+
+    // Calculate how many days to show from previous month
+    // For Monday start: if firstDay is Sunday (0), show 6 days before; if Monday (1), show 0 days before
+    const daysFromPrevMonth = firstDayOfWeek === 0 ? 6 : firstDayOfWeek - 1;
+
+    // Start date (might be in previous month)
+    const startDate = new Date(firstDay);
+    startDate.setDate(firstDay.getDate() - daysFromPrevMonth);
+
+    // Generate 6 weeks (42 days) to ensure consistent grid
+    const weeks = [];
+    for (let week = 0; week < 6; week++) {
+      const days = [];
+      for (let day = 0; day < 7; day++) {
+        const date = new Date(startDate);
+        date.setDate(startDate.getDate() + (week * 7) + day);
+        days.push({
+          date,
+          isCurrentMonth: date.getMonth() === month,
+          isToday: date.toDateString() === new Date().toDateString(),
+        });
+      }
+      weeks.push(days);
+    }
+
+    return weeks;
   };
 
   const formatSelectedDate = () => {
@@ -675,11 +750,17 @@ function HomeContent() {
     });
   };
 
-  // Phase 3.4: Toggle view mode and persist to localStorage
+  // Phase 3.5.3: Switch view mode, update URL, and persist to localStorage
   const toggleViewMode = (mode: ViewMode) => {
     setViewMode(mode);
+
+    // Update URL with view parameter
+    const dateStr = `${selectedDate.getFullYear()}-${String(selectedDate.getMonth() + 1).padStart(2, '0')}-${String(selectedDate.getDate()).padStart(2, '0')}`;
+    router.push(`/calendar?view=${mode}&date=${dateStr}`, { scroll: false });
+
+    // Save last used view to localStorage
     if (typeof window !== 'undefined') {
-      localStorage.setItem('calendarViewMode', mode);
+      localStorage.setItem('lastCalendarView', mode);
     }
   };
 
@@ -696,13 +777,7 @@ function HomeContent() {
     });
   };
 
-  // Phase 3.5: Change calendar view type and persist to localStorage
-  const changeCalendarViewType = (viewType: CalendarViewType) => {
-    setCalendarViewType(viewType);
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('calendarViewType', viewType);
-    }
-  };
+  // Phase 3.5.3: Removed changeCalendarViewType - using toggleViewMode instead
 
   // Phase 3.5: Update "Next X Days" count and persist to localStorage
   const updateNextXDays = (days: number) => {
@@ -1512,29 +1587,17 @@ function HomeContent() {
                 {completedToday.size} completed
               </span>
 
-              {/* Phase 3.4: View mode toggle */}
-              <div className="ml-auto flex items-center gap-1 bg-gray-100 rounded-lg p-1">
-                <button
-                  onClick={() => toggleViewMode('timeline')}
-                  className={`px-3 py-1 rounded-md text-sm font-medium transition-colors ${
-                    viewMode === 'timeline'
-                      ? 'bg-white text-purple-700 shadow-sm'
-                      : 'text-gray-600 hover:text-gray-900'
-                  }`}
-                >
-                  Timeline
-                </button>
-                <button
-                  onClick={() => toggleViewMode('compact')}
-                  className={`px-3 py-1 rounded-md text-sm font-medium transition-colors ${
-                    viewMode === 'compact'
-                      ? 'bg-white text-purple-700 shadow-sm'
-                      : 'text-gray-600 hover:text-gray-900'
-                  }`}
-                >
-                  Compact
-                </button>
-              </div>
+              {/* Phase 3.5.3: View switcher button */}
+              <button
+                onClick={() => setShowViewSwitcher(true)}
+                className="ml-auto p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                aria-label="Switch calendar view"
+                title="Switch view"
+              >
+                <svg className="w-6 h-6 text-gray-700 dark:text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                </svg>
+              </button>
             </div>
 
             {/* Mobile: Completed count and view toggle */}
@@ -1543,29 +1606,16 @@ function HomeContent() {
                 {completedToday.size} completed
               </span>
 
-              {/* Phase 3.4: Mobile view mode toggle */}
-              <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-1">
-                <button
-                  onClick={() => toggleViewMode('timeline')}
-                  className={`px-2 py-1 rounded-md text-xs font-medium transition-colors ${
-                    viewMode === 'timeline'
-                      ? 'bg-white text-purple-700 shadow-sm'
-                      : 'text-gray-600 hover:text-gray-900'
-                  }`}
-                >
-                  Timeline
-                </button>
-                <button
-                  onClick={() => toggleViewMode('compact')}
-                  className={`px-2 py-1 rounded-md text-xs font-medium transition-colors ${
-                    viewMode === 'compact'
-                      ? 'bg-white text-purple-700 shadow-sm'
-                      : 'text-gray-600 hover:text-gray-900'
-                  }`}
-                >
-                  Compact
-                </button>
-              </div>
+              {/* Phase 3.5.3: View switcher button */}
+              <button
+                onClick={() => setShowViewSwitcher(true)}
+                className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                aria-label="Switch calendar view"
+              >
+                <svg className="w-5 h-5 text-gray-700 dark:text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                </svg>
+              </button>
             </div>
 
             {/* Filter dropdown menu (triggered from header) */}
@@ -1647,6 +1697,399 @@ function HomeContent() {
                 <p className="text-gray-600 mb-6">
                   Start by adding a habit, task, event, or reminder.
                 </p>
+              </div>
+            ) : viewMode === 'schedule' ? (
+              <div className="space-y-0">
+                {/* Phase 3.5.3: Schedule View - Multi-day vertical list */}
+
+                {/* Overdue Section at top */}
+                {categorizedData && categorizedData.overdue.length > 0 && filterTypes.has("task") && (
+                  <div className="mb-4 p-4 bg-red-50 dark:bg-red-900/20 rounded-lg">
+                    <div className="flex items-center gap-2 text-red-600 dark:text-red-400 font-medium mb-3">
+                      <span className="text-lg">⚠️</span>
+                      <span>{categorizedData.overdue.length} pending task{categorizedData.overdue.length > 1 ? 's' : ''}</span>
+                    </div>
+                    <div className="space-y-2">
+                      {categorizedData.overdue.map((item) => (
+                        <div
+                          key={item.id}
+                          onClick={() => openEditModal(item)}
+                          className="bg-white dark:bg-gray-800 rounded-xl p-3 cursor-pointer hover:shadow-md transition-shadow"
+                        >
+                          <div className="font-medium text-gray-900 dark:text-white">{item.name}</div>
+                          {item.dueDate && (
+                            <div className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                              Due: {new Date(item.dueDate).toLocaleDateString()}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Multi-day list */}
+                {getScheduleDays().map((day, dayIndex) => {
+                  const dayStr = `${day.getFullYear()}-${String(day.getMonth() + 1).padStart(2, '0')}-${String(day.getDate()).padStart(2, '0')}`;
+                  const dayItems = items.filter(item => item.dueDate === dayStr || item.scheduledTime?.startsWith(dayStr));
+                  const dayEvents = events.filter(event => {
+                    if (!event.startTime) return false;
+                    const eventDate = new Date(event.startTime);
+                    return eventDate.toDateString() === day.toDateString();
+                  });
+
+                  const hasItems = dayItems.length > 0 || dayEvents.length > 0;
+                  const isCurrentDay = day.toDateString() === new Date().toDateString();
+
+                  return (
+                    <div key={dayStr}>
+                      {/* Week divider */}
+                      {isWeekBoundary(day) && (
+                        <div className="text-center text-gray-400 dark:text-gray-500 text-sm py-3 my-2">
+                          {formatWeekRange(day)}
+                        </div>
+                      )}
+
+                      {/* Day row */}
+                      <div className="flex items-start gap-3 mb-2 py-2">
+                        {/* Date circle */}
+                        <div className="flex flex-col items-center flex-shrink-0">
+                          <div className="text-xs text-gray-500 dark:text-gray-400 uppercase">
+                            {day.toLocaleDateString('en-US', { weekday: 'short' })}
+                          </div>
+                          <div className={`rounded-full w-12 h-12 flex items-center justify-center font-bold text-lg ${
+                            isCurrentDay
+                              ? 'bg-blue-400 text-white'
+                              : 'text-gray-700 dark:text-gray-300'
+                          }`}>
+                            {day.getDate()}
+                          </div>
+                        </div>
+
+                        {/* Items for this day */}
+                        <div className="flex-1 space-y-2 min-w-0">
+                          {hasItems ? (
+                            <>
+                              {/* Show events */}
+                              {dayEvents.map((event) => (
+                                <div
+                                  key={event.id}
+                                  onClick={() => setSelectedEvent(event)}
+                                  className="rounded-2xl p-3 cursor-pointer hover:shadow-md transition-shadow bg-green-400 dark:bg-green-600"
+                                >
+                                  <div className="font-medium text-white">{event.title}</div>
+                                  {!event.isAllDay && event.startTime && (
+                                    <div className="text-sm text-white/90 mt-1">
+                                      {new Date(event.startTime).toLocaleTimeString('en-US', {
+                                        hour: 'numeric',
+                                        minute: '2-digit',
+                                        hour12: true
+                                      })}
+                                    </div>
+                                  )}
+                                </div>
+                              ))}
+
+                              {/* Show items */}
+                              {dayItems.map((item) => {
+                                const itemColor = item.itemType === 'habit' ? 'bg-purple-400 dark:bg-purple-600' :
+                                                 item.itemType === 'reminder' ? 'bg-yellow-400 dark:bg-yellow-600' :
+                                                 item.priority === 'high' ? 'bg-red-400 dark:bg-red-600' :
+                                                 'bg-orange-400 dark:bg-orange-600';
+
+                                return (
+                                  <div
+                                    key={item.id}
+                                    onClick={() => openEditModal(item)}
+                                    className={`rounded-2xl p-3 cursor-pointer hover:shadow-md transition-shadow ${itemColor}`}
+                                  >
+                                    <div className="font-medium text-white">{item.name}</div>
+                                    {item.dueTime && (
+                                      <div className="text-sm text-white/90 mt-1">
+                                        {item.dueTime}
+                                      </div>
+                                    )}
+                                  </div>
+                                );
+                              })}
+                            </>
+                          ) : dayIndex === 0 ? (
+                            <div className="text-sm text-gray-400 dark:text-gray-500 italic py-2">
+                              No items scheduled
+                            </div>
+                          ) : null}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+
+                {/* Scheduled No Time section at bottom */}
+                {categorizedData && categorizedData.scheduledNoTime.length > 0 && filterTypes.has("task") && (
+                  <div className="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
+                    {renderSectionHeader("Scheduled (No Time)", "text-gray-600")}
+                    <div className="space-y-3">
+                      {categorizedData.scheduledNoTime.map((item) => renderItemCard(item, item.isOverdue || false, "schedule-notime"))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            ) : viewMode === 'week' ? (
+              <div className="space-y-4">
+                {/* Phase 3.5.3: Week View - 7-day grid */}
+
+                {/* Overdue Section at top */}
+                {categorizedData && categorizedData.overdue.length > 0 && filterTypes.has("task") && (
+                  <DroppableSection id="overdue-drop-zone">
+                    {renderSectionHeader("Overdue", "text-red-700", "⚠️")}
+                    <div className="space-y-3">
+                      {categorizedData.overdue.map((item) => renderItemCard(item, true, "week-overdue"))}
+                    </div>
+                  </DroppableSection>
+                )}
+
+                {/* Week grid */}
+                <div className="overflow-x-auto">
+                  <div className="min-w-[768px]">
+                    {/* Header row with day names and dates */}
+                    <div className="grid grid-cols-8 gap-px bg-gray-200 dark:bg-gray-700 rounded-t-lg overflow-hidden">
+                      <div className="bg-white dark:bg-gray-800 p-2"></div>
+                      {getWeekDays().map((day) => {
+                        const isToday = day.toDateString() === new Date().toDateString();
+                        return (
+                          <div key={day.toDateString()} className={`bg-white dark:bg-gray-800 p-2 text-center ${isToday ? 'bg-blue-50 dark:bg-blue-900/30' : ''}`}>
+                            <div className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
+                              {day.toLocaleDateString('en-US', { weekday: 'short' })}
+                            </div>
+                            <div className={`text-lg font-bold ${isToday ? 'text-blue-600 dark:text-blue-400' : 'text-gray-900 dark:text-white'}`}>
+                              {day.getDate()}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    {/* Time grid */}
+                    <div className="grid grid-cols-8 gap-px bg-gray-200 dark:bg-gray-700">
+                      {/* Time rows from 6 AM to 11 PM */}
+                      {Array.from({ length: 18 }, (_, i) => i + 6).map((hour) => {
+                        return (
+                          <React.Fragment key={hour}>
+                            {/* Time label */}
+                            <div className="bg-white dark:bg-gray-800 p-2 text-xs text-gray-500 dark:text-gray-400 font-medium">
+                              {new Date(0, 0, 0, hour).toLocaleTimeString('en-US', {
+                                hour: 'numeric',
+                                hour12: true
+                              })}
+                            </div>
+
+                            {/* Day columns */}
+                            {getWeekDays().map((day) => {
+                              const dayStr = `${day.getFullYear()}-${String(day.getMonth() + 1).padStart(2, '0')}-${String(day.getDate()).padStart(2, '0')}`;
+                              const hourItems = items.filter(item => {
+                                if (item.dueDate !== dayStr) return false;
+                                if (!item.dueTime) return false;
+                                const itemHour = parseInt(item.dueTime.split(':')[0]);
+                                return itemHour === hour;
+                              });
+                              const hourEvents = events.filter(event => {
+                                if (!event.startTime) return false;
+                                const eventDate = new Date(event.startTime);
+                                if (eventDate.toDateString() !== day.toDateString()) return false;
+                                return eventDate.getHours() === hour;
+                              });
+
+                              const isToday = day.toDateString() === new Date().toDateString();
+
+                              return (
+                                <div
+                                  key={`${dayStr}-${hour}`}
+                                  className={`bg-white dark:bg-gray-800 p-1 min-h-[60px] ${isToday ? 'bg-blue-50/50 dark:bg-blue-900/10' : ''}`}
+                                >
+                                  {/* Show events */}
+                                  {hourEvents.map((event) => (
+                                    <div
+                                      key={event.id}
+                                      onClick={() => setSelectedEvent(event)}
+                                      className="text-xs p-1 mb-1 rounded cursor-pointer bg-green-400 dark:bg-green-600 text-white truncate"
+                                      title={event.title}
+                                    >
+                                      {event.title}
+                                    </div>
+                                  ))}
+
+                                  {/* Show items */}
+                                  {hourItems.map((item) => {
+                                    const bgColor = item.itemType === 'habit' ? 'bg-purple-400 dark:bg-purple-600' :
+                                                   item.itemType === 'reminder' ? 'bg-yellow-400 dark:bg-yellow-600' :
+                                                   item.priority === 'high' ? 'bg-red-400 dark:bg-red-600' :
+                                                   'bg-orange-400 dark:bg-orange-600';
+                                    return (
+                                      <div
+                                        key={item.id}
+                                        onClick={() => openEditModal(item)}
+                                        className={`text-xs p-1 mb-1 rounded cursor-pointer ${bgColor} text-white truncate`}
+                                        title={item.name}
+                                      >
+                                        {item.name}
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              );
+                            })}
+                          </React.Fragment>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Scheduled No Time section at bottom */}
+                {categorizedData && categorizedData.scheduledNoTime.length > 0 && filterTypes.has("task") && (
+                  <DroppableSection id="scheduled-no-time">
+                    {renderSectionHeader("Scheduled (No Time)", "text-gray-600")}
+                    <div className="space-y-3">
+                      {categorizedData.scheduledNoTime.map((item) => renderItemCard(item, item.isOverdue || false, "week-notime"))}
+                    </div>
+                  </DroppableSection>
+                )}
+              </div>
+            ) : viewMode === 'month' ? (
+              <div className="space-y-4">
+                {/* Phase 3.5.3: Month View - Calendar grid */}
+
+                {/* Month calendar grid */}
+                <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm overflow-hidden">
+                  {/* Day name headers */}
+                  <div className="grid grid-cols-7 gap-px bg-gray-200 dark:bg-gray-700">
+                    {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((dayName) => (
+                      <div key={dayName} className="bg-gray-50 dark:bg-gray-800 p-2 text-center text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase">
+                        {dayName}
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Calendar grid */}
+                  <div className="grid grid-cols-7 gap-px bg-gray-200 dark:bg-gray-700">
+                    {getMonthCalendar().map((week, weekIndex) => (
+                      <React.Fragment key={weekIndex}>
+                        {week.map((day) => {
+                          const dayStr = `${day.date.getFullYear()}-${String(day.date.getMonth() + 1).padStart(2, '0')}-${String(day.date.getDate()).padStart(2, '0')}`;
+
+                          // Get items for this day
+                          const dayItems = items.filter(item => item.dueDate === dayStr);
+                          const dayEvents = events.filter(event => {
+                            if (!event.startTime) return false;
+                            const eventDate = new Date(event.startTime);
+                            return eventDate.toDateString() === day.date.toDateString();
+                          });
+
+                          // Get overdue count for current day
+                          const overdueCount = day.isToday && categorizedData ? categorizedData.overdue.length : 0;
+
+                          return (
+                            <div
+                              key={day.date.toDateString()}
+                              onClick={() => {
+                                if (day.isCurrentMonth) {
+                                  navigateToDate(day.date);
+                                  toggleViewMode('timeline'); // Switch to timeline view when clicking a date
+                                }
+                              }}
+                              className={`bg-white dark:bg-gray-800 p-2 min-h-[100px] cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors ${
+                                !day.isCurrentMonth ? 'opacity-40' : ''
+                              } ${day.isToday ? 'ring-2 ring-blue-400 dark:ring-blue-600' : ''}`}
+                            >
+                              {/* Date number */}
+                              <div className={`text-sm font-semibold mb-1 ${
+                                day.isToday ? 'text-blue-600 dark:text-blue-400' : day.isCurrentMonth ? 'text-gray-900 dark:text-white' : 'text-gray-400 dark:text-gray-600'
+                              }`}>
+                                {day.date.getDate()}
+                              </div>
+
+                              {/* Overdue indicator */}
+                              {overdueCount > 0 && (
+                                <div className="flex items-center gap-1 text-xs text-red-600 dark:text-red-400 mb-1 font-medium">
+                                  <span>⚠️</span>
+                                  <span>{overdueCount} pending</span>
+                                </div>
+                              )}
+
+                              {/* Item pills */}
+                              <div className="space-y-1">
+                                {/* Show events */}
+                                {dayEvents.slice(0, 3).map((event) => (
+                                  <div
+                                    key={event.id}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setSelectedEvent(event);
+                                    }}
+                                    className="text-xs px-2 py-1 rounded bg-green-500 dark:bg-green-600 text-white truncate"
+                                    title={event.title}
+                                  >
+                                    {!event.isAllDay && event.startTime && (
+                                      <span className="font-medium">
+                                        {new Date(event.startTime).toLocaleTimeString('en-US', {
+                                          hour: 'numeric',
+                                          minute: '2-digit',
+                                          hour12: true
+                                        })}{' '}
+                                      </span>
+                                    )}
+                                    <span className="truncate">{event.title}</span>
+                                  </div>
+                                ))}
+
+                                {/* Show items */}
+                                {dayItems.slice(0, 3 - dayEvents.length).map((item) => {
+                                  const bgColor = item.itemType === 'habit' ? 'bg-purple-500 dark:bg-purple-600' :
+                                                 item.itemType === 'reminder' ? 'bg-yellow-500 dark:bg-yellow-600' :
+                                                 item.priority === 'high' ? 'bg-red-500 dark:bg-red-600' :
+                                                 'bg-orange-500 dark:bg-orange-600';
+                                  return (
+                                    <div
+                                      key={item.id}
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        openEditModal(item);
+                                      }}
+                                      className={`text-xs px-2 py-1 rounded ${bgColor} text-white truncate`}
+                                      title={item.name}
+                                    >
+                                      {item.dueTime && (
+                                        <span className="font-medium">{item.dueTime} </span>
+                                      )}
+                                      <span className="truncate">{item.name}</span>
+                                    </div>
+                                  );
+                                })}
+
+                                {/* Show overflow indicator */}
+                                {(dayItems.length + dayEvents.length > 3) && (
+                                  <div className="text-xs text-gray-500 dark:text-gray-400 font-medium">
+                                    +{dayItems.length + dayEvents.length - 3} more
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </React.Fragment>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Scheduled No Time section at bottom */}
+                {categorizedData && categorizedData.scheduledNoTime.length > 0 && filterTypes.has("task") && (
+                  <div className="mt-6">
+                    {renderSectionHeader("Scheduled (No Time)", "text-gray-600")}
+                    <div className="space-y-3">
+                      {categorizedData.scheduledNoTime.map((item) => renderItemCard(item, item.isOverdue || false, "month-notime"))}
+                    </div>
+                  </div>
+                )}
               </div>
             ) : viewMode === 'compact' ? (
               <div className="space-y-4">
@@ -2395,6 +2838,15 @@ function HomeContent() {
             onClose={() => setSelectedEvent(null)}
           />
         )}
+
+        {/* Phase 3.5.3: View Switcher Sidebar */}
+        <ViewSwitcherSidebar
+          currentView={viewMode}
+          selectedDate={selectedDate}
+          onViewChange={toggleViewMode}
+          isOpen={showViewSwitcher}
+          onClose={() => setShowViewSwitcher(false)}
+        />
       </div>
       </DndContext>
     </ProtectedRoute>
