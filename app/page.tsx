@@ -75,20 +75,20 @@ function HomeContent() {
     <div className="min-h-screen bg-gray-50">
       <ProtectedRoute>
         <div className="max-w-7xl mx-auto px-4 py-8">
-          <Header />
+          {/* Desktop nav bar only - hidden on mobile */}
+          <div className="hidden md:block">
+            <Header />
+          </div>
 
-          {/* Welcome section */}
-          <div className="mb-12 text-center">
-            <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-2">
-              Welcome to LifeOS
+          {/* Simple page title */}
+          <div className="mb-6">
+            <h1 className="text-2xl md:text-3xl font-bold text-gray-900">
+              LifeOS
             </h1>
-            <p className="text-lg text-gray-600">
-              Your personal productivity and planning system
-            </p>
           </div>
 
           {/* Navigation cards grid */}
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-6 max-w-4xl mx-auto">
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-3 max-w-4xl mx-auto">
             {navigationCards.map((card) => (
               <button
                 key={card.title}
@@ -127,13 +127,6 @@ function HomeContent() {
                 </p>
               </button>
             ))}
-          </div>
-
-          {/* Quick actions section */}
-          <div className="mt-12 text-center">
-            <p className="text-sm text-gray-500">
-              Use the <strong className="text-purple-600">+ button</strong> to quickly add tasks, habits, or reminders
-            </p>
           </div>
         </div>
       </ProtectedRoute>
