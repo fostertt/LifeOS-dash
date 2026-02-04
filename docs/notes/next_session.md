@@ -1,13 +1,55 @@
 # Next Session - Start Here
 
-**Last Updated:** February 3, 2026
-**Current Status:** Planning Complete - Ready for Phase 3.5 (Home Dashboard)
-**Branch:** master (or create feature/phase-3.5-home-dashboard)
+**Last Updated:** February 4, 2026
+**Current Status:** Phase 3.5.1 & 3.5.2 Complete - Ready for Phase 3.5.3 (Calendar Views)
+**Branch:** feature/phase-3.5-home-dashboard (committed, not pushed yet)
 **Production:** <https://lifeos-dev.foster-home.net> (PM2 on port 3002)
 
 ---
 
-## 🎯 NEXT UP: Phase 3.5 - Home Dashboard & Navigation
+## 🎯 NEXT UP: Phase 3.5.3 - Calendar Enhancements (Month View & View Switcher)
+
+### What Just Happened (Feb 4 Session)
+
+**Phase 3.5.1 - Home Dashboard ✅ COMPLETE:**
+
+- ✅ Created new home dashboard at `/` with 6 navigation cards
+- ✅ Moved Today view from `app/page.tsx` to `app/calendar/page.tsx`
+- ✅ Added placeholder pages for Projects and Recipes with "Coming Soon" badges
+- ✅ Updated Header and Sidebar with new navigation structure
+- ✅ Text-based navigation (no emoji icons per user request)
+- ✅ Responsive grid layout: 2 cols mobile, 3 cols desktop
+- ✅ Updated calendar routing from `/?date=` to `/calendar?date=`
+- ✅ Fixed PM2 port configuration issue (was on 3001, now on 3002)
+
+**Phase 3.5.2 - URL Route Renames ✅ COMPLETE:**
+
+- ✅ Renamed `app/tasks/` → `app/all/`
+- ✅ Renamed `app/lists/` → `app/vault/`
+- ✅ Updated all navigation links (Header, Sidebar, Home dashboard)
+- ✅ Updated ClientRootLayout swipe routes
+- ✅ Updated router.push calls in vault pages
+- ✅ Maintained backward compatibility in route detection
+- ✅ Build and deployment successful
+
+**Current State:**
+
+- Home dashboard is live and working
+- All routes renamed and functional
+- Navigation structure complete
+- Both phases committed to feature branch (not pushed to remote yet)
+
+**Git Status:**
+
+```
+Branch: feature/phase-3.5-home-dashboard
+Commits: 2 (Phase 3.5.1 and 3.5.2)
+Status: Ready to push (authentication needed)
+```
+
+---
+
+## 🚀 What to Build Next: Phase 3.5.3
 
 ### What Just Happened (Feb 3 Evening Session)
 
