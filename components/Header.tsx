@@ -24,7 +24,7 @@ export default function Header({ onFilterClick }: HeaderProps) {
     if (pathname === "/") return "Home";
     if (pathname === "/calendar" || pathname === "/week") return "Calendar";
     if (pathname === "/all" || pathname === "/tasks") return "All";
-    if (pathname === "/vault" || pathname?.startsWith("/lists")) return "Vault";
+    if (pathname?.startsWith("/vault") || pathname?.startsWith("/lists")) return "Vault";
     if (pathname === "/projects") return "Projects";
     if (pathname === "/recipes") return "Recipes";
     if (pathname?.startsWith("/settings/calendars")) return "Calendars";
@@ -32,7 +32,7 @@ export default function Header({ onFilterClick }: HeaderProps) {
   };
 
   // Show filter button on Calendar, All, and Vault pages
-  const showFilter = pathname === "/calendar" || pathname === "/week" || pathname === "/all" || pathname === "/tasks" || pathname === "/vault" || pathname?.startsWith("/lists");
+  const showFilter = pathname === "/calendar" || pathname === "/week" || pathname === "/all" || pathname === "/tasks" || pathname?.startsWith("/vault") || pathname?.startsWith("/lists");
 
   return (
     <>
@@ -132,9 +132,9 @@ export default function Header({ onFilterClick }: HeaderProps) {
             Projects
           </Link>
           <Link
-            href="/tasks"
+            href="/all"
             className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-              pathname === "/tasks" || pathname === "/all"
+              pathname === "/all" || pathname === "/tasks"
                 ? "bg-purple-600 text-white"
                 : "bg-gray-100 text-gray-700 hover:bg-gray-200"
             }`}
@@ -152,9 +152,9 @@ export default function Header({ onFilterClick }: HeaderProps) {
             Calendar
           </Link>
           <Link
-            href="/lists"
+            href="/vault"
             className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-              pathname?.startsWith("/lists") || pathname === "/vault"
+              pathname?.startsWith("/vault") || pathname?.startsWith("/lists")
                 ? "bg-purple-600 text-white"
                 : "bg-gray-100 text-gray-700 hover:bg-gray-200"
             }`}

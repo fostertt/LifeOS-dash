@@ -25,7 +25,7 @@ const navigationCards: NavCard[] = [
   },
   {
     title: "All",
-    href: "/tasks",
+    href: "/all",
     description: "View all tasks, habits, and reminders",
     status: "active"
   },
@@ -37,7 +37,7 @@ const navigationCards: NavCard[] = [
   },
   {
     title: "Vault",
-    href: "/lists",
+    href: "/vault",
     description: "Notes, lists, and research clips",
     status: "active"
   },

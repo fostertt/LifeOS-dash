@@ -16,9 +16,9 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
   const menuItems = [
     { href: "/", label: "Home" },
     { href: "/projects", label: "Projects" },
-    { href: "/tasks", label: "All" },
+    { href: "/all", label: "All" },
     { href: "/calendar", label: "Calendar" },
-    { href: "/lists", label: "Vault" },
+    { href: "/vault", label: "Vault" },
     { href: "/recipes", label: "Recipes" },
     { href: "/settings/calendars", label: "Calendars" },
   ];

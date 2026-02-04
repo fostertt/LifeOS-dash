@@ -8,8 +8,8 @@ import { ReactNode } from 'react';
 
 // Import the three main page components
 import HomePage from '@/app/page';
-import AllTasksPage from '@/app/tasks/page';
-import NotesAndListsPage from '@/app/lists/page';
+import AllTasksPage from '@/app/all/page';
+import NotesAndListsPage from '@/app/vault/page';
 
 /**
  * ClientRootLayout - Phase 3.6
@@ -18,14 +18,14 @@ import NotesAndListsPage from '@/app/lists/page';
  * to regular rendering for other pages.
  *
  * Swipe pages:
- * - / (Calendar) - center slide, default
- * - /tasks (All Tasks) - left slide
- * - /lists (Notes & Lists) - right slide
+ * - / (Home) - center slide, default
+ * - /all (All Tasks) - left slide
+ * - /vault (Vault) - right slide
  *
- * Other pages (/habits, /reminders, /settings, etc.) render normally without swipe.
+ * Other pages (/calendar, /projects, /recipes, /settings, etc.) render normally without swipe.
  */
 
-const SWIPE_ROUTES = ['/', '/tasks', '/lists'];
+const SWIPE_ROUTES = ['/', '/all', '/vault'];
 
 interface ClientRootLayoutProps {
   children: ReactNode;
@@ -47,17 +47,17 @@ export default function ClientRootLayout({ children }: ClientRootLayoutProps) {
   // Render SwipeContainer with all 3 main pages pre-rendered
   const slides = [
     {
-      path: '/tasks',
+      path: '/all',
       label: 'All',
       content: <AllTasksPage />,
     },
     {
       path: '/',
-      label: 'Calendar',
+      label: 'Home',
       content: <HomePage />,
     },
     {
-      path: '/lists',
+      path: '/vault',
       label: 'Vault',
       content: <NotesAndListsPage />,
     },

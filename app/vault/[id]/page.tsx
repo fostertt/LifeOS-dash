@@ -164,7 +164,7 @@ export default function ListDetailPage() {
     try {
       const res = await fetch(`/api/lists/${listId}`, { method: "DELETE" });
       if (!res.ok) throw new Error("Failed to delete list");
-      router.push("/lists");
+      router.push("/vault");
       showToast("List deleted", "success");
     } catch (error) {
       console.error("Error deleting list:", error);
@@ -223,7 +223,7 @@ export default function ListDetailPage() {
             <div className="bg-white rounded-2xl shadow-lg p-8 text-center">
               <h2 className="text-xl font-semibold text-gray-900">List not found</h2>
               <button
-                onClick={() => router.push("/lists")}
+                onClick={() => router.push("/vault")}
                 className="mt-4 px-4 py-2 bg-purple-600 text-white rounded-lg"
               >
                 Back to Lists
@@ -246,7 +246,7 @@ export default function ListDetailPage() {
             <div className="flex items-center justify-between mb-6">
               <div className="flex items-center gap-3">
                 <button
-                  onClick={() => router.push("/lists")}
+                  onClick={() => router.push("/vault")}
                   className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
                 >
                   <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">

@@ -462,7 +462,7 @@ export default function NotesAndListsPage() {
                           key={`list-${list.id}`}
                           {...list}
                           stats={getListStats(list)}
-                          onClick={() => router.push(`/lists/${list.id}`)}
+                          onClick={() => router.push(`/vault/${list.id}`)}
                           onPin={() => toggleListPin(list)}
                         />
                       ))}
@@ -498,7 +498,7 @@ export default function NotesAndListsPage() {
                           key={list.id}
                           {...list}
                           stats={getListStats(list)}
-                          onClick={() => router.push(`/lists/${list.id}`)}
+                          onClick={() => router.push(`/vault/${list.id}`)}
                           onPin={() => toggleListPin(list)}
                         />
                       ))}
