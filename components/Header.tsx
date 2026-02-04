@@ -19,18 +19,6 @@ export default function Header({ onFilterClick }: HeaderProps) {
     return null;
   }
 
-  // Get page title based on current path
-  const getPageTitle = () => {
-    if (pathname === "/") return "Home";
-    if (pathname === "/calendar" || pathname === "/week") return "Calendar";
-    if (pathname === "/all" || pathname === "/tasks") return "All";
-    if (pathname?.startsWith("/vault") || pathname?.startsWith("/lists")) return "Vault";
-    if (pathname === "/projects") return "Projects";
-    if (pathname === "/recipes") return "Recipes";
-    if (pathname?.startsWith("/settings/calendars")) return "Calendars";
-    return "Life OS";
-  };
-
   // Show filter button on Calendar, All, and Vault pages
   const showFilter = pathname === "/calendar" || pathname === "/week" || pathname === "/all" || pathname === "/tasks" || pathname?.startsWith("/vault") || pathname?.startsWith("/lists");
 
@@ -39,38 +27,20 @@ export default function Header({ onFilterClick }: HeaderProps) {
       {/* Sidebar component */}
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
-      {/* Mobile header - compact with hamburger */}
-      <div className="md:hidden sticky top-0 bg-white z-30 border-b border-gray-200 px-4 py-3 mb-4">
+      {/* Mobile header - LifeOS centered, hamburger on right */}
+      <div className="md:hidden sticky top-0 bg-white z-30 border-b border-gray-200 px-4 py-3 mb-2">
         <div className="flex items-center justify-between">
-          {/* Hamburger menu button */}
-          <button
-            onClick={() => setSidebarOpen(true)}
-            className="p-2 -ml-2 hover:bg-gray-100 rounded-lg transition-colors"
-            aria-label="Open menu"
-          >
-            <svg
-              className="w-6 h-6 text-gray-700"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M4 6h16M4 12h16M4 18h16"
-              />
-            </svg>
-          </button>
+          {/* Left spacer for balance */}
+          <div className="w-10"></div>
 
-          {/* Page title */}
-          <h1 className="text-lg font-semibold text-gray-900">
-            {getPageTitle()}
+          {/* LifeOS title centered */}
+          <h1 className="text-lg font-semibold text-gray-900 absolute left-1/2 transform -translate-x-1/2">
+            LifeOS
           </h1>
 
-          {/* Right side icons */}
+          {/* Right side icons: filter + hamburger */}
           <div className="flex items-center gap-2">
-            {/* Filter button (only on Today/Week pages) */}
+            {/* Filter button (only on certain pages) */}
             {showFilter && onFilterClick && (
               <button
                 onClick={onFilterClick}
@@ -93,10 +63,26 @@ export default function Header({ onFilterClick }: HeaderProps) {
               </button>
             )}
 
-            {/* User profile icon */}
-            <div className="w-8 h-8 rounded-full bg-purple-600 flex items-center justify-center text-white text-xs font-semibold">
-              {session.user.name?.charAt(0).toUpperCase() || "U"}
-            </div>
+            {/* Hamburger menu button - on right for right-handed use */}
+            <button
+              onClick={() => setSidebarOpen(true)}
+              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              aria-label="Open menu"
+            >
+              <svg
+                className="w-6 h-6 text-gray-700"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M4 6h16M4 12h16M4 18h16"
+                />
+              </svg>
+            </button>
           </div>
         </div>
       </div>

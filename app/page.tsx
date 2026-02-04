@@ -74,18 +74,8 @@ function HomeContent() {
   return (
     <div className="min-h-screen bg-gray-50">
       <ProtectedRoute>
-        <div className="max-w-7xl mx-auto px-4 py-8">
-          {/* Desktop nav bar only - hidden on mobile */}
-          <div className="hidden md:block">
-            <Header />
-          </div>
-
-          {/* Simple page title */}
-          <div className="mb-6">
-            <h1 className="text-2xl md:text-3xl font-bold text-gray-900">
-              LifeOS
-            </h1>
-          </div>
+        <div className="max-w-7xl mx-auto px-4 py-4">
+          <Header />
 
           {/* Navigation cards grid */}
           <div className="grid grid-cols-2 md:grid-cols-3 gap-3 max-w-4xl mx-auto">
