@@ -1,23 +1,69 @@
 # Next Session - Start Here
 
-**Last Updated:** February 4, 2026
-**Current Status:** Phase 3.5 COMPLETE ✅ - Ready for Phase 4 or Polish
-**Branch:** feature/phase-3.5-home-dashboard (3 commits, not pushed yet)
+**Last Updated:** February 4, 2026 (Evening)
+**Current Status:** UI Polish Phase 1-2 COMPLETE ✅ - Continue with Phase 3+
+**Branch:** master (10 commits ahead of origin, not pushed)
 **Production:** <https://lifeos-dev.foster-home.net> (PM2 on port 3002)
 
 ---
 
-## 🎯 NEXT UP: Phase 4 (Recipes) or Polish Phase 3.5
+## 🎯 NEXT UP: Continue UI Polish (Phases 3-8)
 
-**Options:**
+**What's Done:**
+- ✅ Phase 3.5: Home dashboard + 5 calendar views (merged to master)
+- ✅ UI Polish Phase 1: Disabled swipe navigation
+- ✅ UI Polish Phase 2: Clean mobile header with centered "LifeOS", hamburger on right
 
-1. Continue with Phase 4 - Recipe Management (per implementation plan)
-2. Polish Phase 3.5 - UI tweaks, mobile refinements, testing
-3. Push Phase 3.5 to remote and deploy
+**What's Next:**
+Continue with UI Polish phases 3-8 per [ui-polish-plan.md](ui-polish-plan.md):
+- Phase 3: Update navigation (reduce spacing across all pages)
+- Phase 4: Redesign All page (compact cards, inline dates, checkboxes, filter UI) - COMPLEX
+- Phase 5: Calendar month view improvements (compact, fix navigation, scrolling) - COMPLEX
+- Phase 6: Calendar week view improvements (compact, fix navigation, scrolling) - COMPLEX
+- Phase 7: Vault improvements (compact design, fix data refresh, optional content)
+- Phase 8: FAB redesign (sleek and professional)
+
+**Branch Strategy:**
+- Master has all Phase 3.5 + UI Polish Phase 1-2 changes
+- Create new branch for each phase or group of phases
+- Test, commit, merge to master incrementally
 
 ---
 
-## ✅ COMPLETED: Phase 3.5.3 - Calendar View Switcher (Feb 4, 2026)
+---
+
+## ✅ COMPLETED: UI Polish Phases 1-2 (Feb 4, 2026 Evening)
+
+**Phase 1 - Disable Swipe Navigation:**
+- ✅ Simplified ClientRootLayout to always render children directly
+- ✅ Removed SwipeContainer conditional rendering
+- ✅ Removed page indicators (automatic with swipe removal)
+- ✅ Cleaner navigation UX - no more horizontal swipe between pages
+- ✅ GlobalCreateManager (FAB) still available
+
+**Phase 2 - Mobile Header Cleanup:**
+- ✅ "LifeOS" centered in mobile header (not page names)
+- ✅ Hamburger menu moved to right side for right-handed ergonomics
+- ✅ Filter button stays on right when applicable
+- ✅ Removed unused getPageTitle function
+- ✅ Tighter spacing: mb-4 → mb-2
+
+**Files Changed:**
+- `components/ClientRootLayout.tsx` - Removed swipe logic
+- `components/Header.tsx` - Redesigned mobile header
+- `app/page.tsx` - Restored header, reduced spacing
+
+**Git Commits:**
+- `df9c81f` Phase 1: Disable swipe navigation
+- `59b3449` Phase 2: Clean up home page
+- `0ea12f0` Phase 2 adjustment: Center LifeOS with hamburger on right
+
+**Merged to master:** Yes ✅
+**Tested:** Yes ✅ (https://lifeos-dev.foster-home.net)
+
+---
+
+## ✅ COMPLETED: Phase 3.5.3 - Calendar View Switcher (Feb 4, 2026 Morning)
 
 **Implemented unified calendar system with 5 views:**
 
