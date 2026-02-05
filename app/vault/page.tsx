@@ -355,7 +355,7 @@ export default function NotesAndListsPage() {
   return (
     <ProtectedRoute>
       <div className="min-h-screen bg-gradient-to-br from-purple-50 to-blue-50">
-        <div className="max-w-5xl mx-auto p-8">
+        <div className="max-w-5xl mx-auto p-4">
           {!insideSwipe && <Header onFilterClick={() => setShowFilterMenu(!showFilterMenu)} />}
 
           {/* Filter and Sort dropdown menu */}

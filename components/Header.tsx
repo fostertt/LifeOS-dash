@@ -88,7 +88,7 @@ export default function Header({ onFilterClick }: HeaderProps) {
       </div>
 
       {/* Desktop header - keep existing layout */}
-      <div className="hidden md:flex md:items-center md:justify-between gap-4 mb-8">
+      <div className="hidden md:flex md:items-center md:justify-between gap-4 mb-4">
         <div>
           <h1 className="text-4xl font-bold text-gray-900 mb-1">Life OS</h1>
           <p className="text-base text-gray-600">

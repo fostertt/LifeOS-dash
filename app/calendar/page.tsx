@@ -1419,7 +1419,7 @@ function HomeContent() {
         onDragEnd={handleDragEnd}
       >
       <div className="min-h-screen bg-gradient-to-br from-purple-50 to-blue-50">
-        <div className="max-w-5xl mx-auto px-4 py-4 md:p-8">
+        <div className="max-w-5xl mx-auto px-4 py-4 md:px-8 md:py-4">
           {!insideSwipe && <Header onFilterClick={() => setShowFilterMenu(!showFilterMenu)} />}
 
           {error && (
@@ -1869,46 +1869,54 @@ function HomeContent() {
                 <div className="overflow-x-auto">
                   <div className="min-w-[768px]">
                     {/* Header row with day names and dates */}
-                    <div className="grid grid-cols-8 gap-px bg-gray-200 dark:bg-gray-700 rounded-t-lg overflow-hidden">
-                      <div className="bg-white dark:bg-gray-800 p-2"></div>
-                      {getWeekDays().map((day) => {
-                        const isToday = day.toDateString() === new Date().toDateString();
-                        return (
-                          <div
-                            key={day.toDateString()}
-                            onClick={() => {
-                              navigateToDate(day);
-                              toggleViewMode('timeline');
-                            }}
-                            className={`bg-white dark:bg-gray-800 p-2 text-center cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors ${isToday ? 'bg-blue-50 dark:bg-blue-900/30' : ''}`}
-                          >
-                            <div className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
-                              {day.toLocaleDateString('en-US', { weekday: 'short' })}
+                    <div className="flex">
+                      {/* Empty space for time column */}
+                      <div className="w-14 flex-shrink-0"></div>
+                      {/* Day headers */}
+                      <div className="flex-1 grid grid-cols-7 gap-px bg-gray-200 dark:bg-gray-700 rounded-t-lg overflow-hidden">
+                        {getWeekDays().map((day) => {
+                          const isToday = day.toDateString() === new Date().toDateString();
+                          return (
+                            <div
+                              key={day.toDateString()}
+                              onClick={() => {
+                                navigateToDate(day);
+                                toggleViewMode('timeline');
+                              }}
+                              className={`bg-white dark:bg-gray-800 p-2 text-center cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors ${isToday ? 'bg-blue-50 dark:bg-blue-900/30' : ''}`}
+                            >
+                              <div className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
+                                {day.toLocaleDateString('en-US', { weekday: 'short' })}
+                              </div>
+                              <div className={`text-lg font-bold ${isToday ? 'text-blue-600 dark:text-blue-400' : 'text-gray-900 dark:text-white'}`}>
+                                {day.getDate()}
+                              </div>
                             </div>
-                            <div className={`text-lg font-bold ${isToday ? 'text-blue-600 dark:text-blue-400' : 'text-gray-900 dark:text-white'}`}>
-                              {day.getDate()}
-                            </div>
-                          </div>
-                        );
-                      })}
+                          );
+                        })}
+                      </div>
                     </div>
 
                     {/* Time grid */}
-                    <div className="grid grid-cols-8 gap-px bg-gray-200 dark:bg-gray-700">
-                      {/* Time rows from 6 AM to 11 PM */}
-                      {Array.from({ length: 18 }, (_, i) => i + 6).map((hour) => {
-                        return (
-                          <React.Fragment key={hour}>
-                            {/* Time label */}
-                            <div className="bg-white dark:bg-gray-800 p-2 text-xs text-gray-500 dark:text-gray-400 font-medium">
+                    <div className="flex">
+                      {/* Time column */}
+                      <div className="w-14 flex-shrink-0">
+                        {Array.from({ length: 18 }, (_, i) => i + 6).map((hour) => (
+                          <div key={hour} className="h-[60px] flex items-start pt-1">
+                            <span className="text-xs text-gray-500 dark:text-gray-400 font-medium text-right w-full pr-2">
                               {new Date(0, 0, 0, hour).toLocaleTimeString('en-US', {
                                 hour: 'numeric',
                                 hour12: true
                               })}
-                            </div>
-
-                            {/* Day columns */}
-                            {getWeekDays().map((day) => {
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                      {/* Day grid */}
+                      <div className="flex-1 grid grid-cols-7 gap-px bg-gray-200 dark:bg-gray-700">
+                        {/* Time rows from 6 AM to 11 PM */}
+                        {Array.from({ length: 18 }, (_, i) => i + 6).map((hour) => {
+                          return getWeekDays().map((day) => {
                               const dayStr = `${day.getFullYear()}-${String(day.getMonth() + 1).padStart(2, '0')}-${String(day.getDate()).padStart(2, '0')}`;
                               const hourItems = items.filter(item => {
                                 if (item.dueDate !== dayStr) return false;
@@ -1961,10 +1969,9 @@ function HomeContent() {
                                   })}
                                 </div>
                               );
-                            })}
-                          </React.Fragment>
-                        );
-                      })}
+                          });
+                        })}
+                      </div>
                     </div>
                   </div>
                 </div>

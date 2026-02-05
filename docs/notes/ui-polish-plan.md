@@ -294,6 +294,18 @@ Comprehensive UI redesign to make LifeOS more compact, clean, and professional a
 - Ensure calendar table has `min-w-fit` or fixed width
 - Test on mobile: swipe should scroll calendar, not change pages
 
+#### 5.7 Make Overdue Section Collapsible
+**File:** `/app/calendar/page.tsx`
+
+**New Feature:** Add collapsible overdue section
+
+**Implementation:**
+- Add toggle button to overdue section header
+- Store collapsed state in localStorage (persist across sessions)
+- When collapsed: Show "⚠️ 5 Overdue Items" with expand arrow
+- When expanded: Show full list of overdue items
+- Apply to all calendar views (Timeline, Compact, Schedule, Week, Month)
+
 ---
 
 ## Phase 6: Calendar Week View Improvements
@@ -328,16 +340,18 @@ Comprehensive UI redesign to make LifeOS more compact, clean, and professional a
 - Reduce vertical spacing between hours
 - Consider showing fewer hours (only 7 AM - 9 PM if typical)
 
-#### 6.3 Make Overdue Section Smaller
+#### 6.3 Make Overdue Section Smaller & Collapsible
 **File:** `/app/calendar/page.tsx`
 
 **Current:** Large overdue section with big cards
-**New:** Compact overdue indicator
+**New:** Compact, collapsible overdue section
 
 - Reduce card size in overdue section
 - Make section header smaller: `text-lg` → `text-sm`
 - Reduce padding: `p-4` → `p-2`
-- Consider showing overdue count instead of full cards
+- **Add collapse/expand toggle** (same as 5.7)
+- Show overdue count in header
+- Use localStorage to persist collapsed state
 
 #### 6.4 Fix Week Header Navigation
 **File:** `/app/calendar/page.tsx`

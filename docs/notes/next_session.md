@@ -1,25 +1,25 @@
 # Next Session - Start Here
 
-**Last Updated:** February 4, 2026 (Evening)
-**Current Status:** UI Polish Phase 1-2 COMPLETE ✅ - Continue with Phase 3+
-**Branch:** master (10 commits ahead of origin, not pushed)
+**Last Updated:** February 5, 2026 (Morning)
+**Current Status:** UI Polish Phase 1-3 COMPLETE ✅ - Continue with Phase 4+
+**Branch:** master (11+ commits ahead of origin, not pushed)
 **Production:** <https://lifeos-dev.foster-home.net> (PM2 on port 3002)
 
 ---
 
-## 🎯 NEXT UP: Continue UI Polish (Phases 3-8)
+## 🎯 NEXT UP: Continue UI Polish (Phases 4-8)
 
 **What's Done:**
 - ✅ Phase 3.5: Home dashboard + 5 calendar views (merged to master)
 - ✅ UI Polish Phase 1: Disabled swipe navigation
 - ✅ UI Polish Phase 2: Clean mobile header with centered "LifeOS", hamburger on right
+- ✅ UI Polish Phase 3: Reduced spacing across all pages + compact week view time column
 
 **What's Next:**
-Continue with UI Polish phases 3-8 per [ui-polish-plan.md](ui-polish-plan.md):
-- Phase 3: Update navigation (reduce spacing across all pages)
+Continue with UI Polish phases 4-8 per [ui-polish-plan.md](ui-polish-plan.md):
 - Phase 4: Redesign All page (compact cards, inline dates, checkboxes, filter UI) - COMPLEX
-- Phase 5: Calendar month view improvements (compact, fix navigation, scrolling) - COMPLEX
-- Phase 6: Calendar week view improvements (compact, fix navigation, scrolling) - COMPLEX
+- Phase 5: Calendar month view improvements (compact, fix navigation, scrolling, collapsible overdue) - COMPLEX
+- Phase 6: Calendar week view improvements (compact, fix navigation, scrolling, collapsible overdue) - COMPLEX
 - Phase 7: Vault improvements (compact design, fix data refresh, optional content)
 - Phase 8: FAB redesign (sleek and professional)
 
@@ -29,6 +29,30 @@ Continue with UI Polish phases 3-8 per [ui-polish-plan.md](ui-polish-plan.md):
 - Test, commit, merge to master incrementally
 
 ---
+
+---
+
+## ✅ COMPLETED: UI Polish Phase 3 (Feb 5, 2026 Morning)
+
+**Phase 3 - Navigation Spacing & Week View Time Column:**
+- ✅ Reduced desktop header spacing: mb-8 → mb-4 (32px → 16px)
+- ✅ Reduced All page container padding: py-8 → py-4
+- ✅ Reduced Calendar page container padding: md:p-8 → md:px-8 md:py-4
+- ✅ Reduced Vault page container padding: p-8 → p-4
+- ✅ **Bonus:** Refactored week view time column to be compact like timeline view
+  - Changed from grid-cols-8 (1/8 screen width) to fixed w-14 column
+  - Time labels now right-aligned with smaller text
+  - More screen space for calendar content
+
+**Files Changed:**
+- `components/Header.tsx` - Desktop header spacing
+- `app/all/page.tsx` - Container padding
+- `app/calendar/page.tsx` - Container padding + week view time column structure
+- `app/vault/page.tsx` - Container padding
+
+**Git Commit:** Pending
+
+**Tested:** Yes ✅ (https://lifeos-dev.foster-home.net)
 
 ---
 
