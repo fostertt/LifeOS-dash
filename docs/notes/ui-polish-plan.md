@@ -1,7 +1,8 @@
 # LifeOS UI Polish & Cleanup Plan
 
 **Created:** February 4, 2026
-**Status:** Ready for Review
+**Last Updated:** February 11, 2026
+**Status:** Phases 1-4 COMPLETE — Phase 5 next
 **Estimated Effort:** 11-14 hours (2-3 sessions)
 
 ---
@@ -20,8 +21,9 @@ Comprehensive UI redesign to make LifeOS more compact, clean, and professional a
 
 ---
 
-## Phase 1: Disable Swipe Navigation (Foundation)
+## Phase 1: Disable Swipe Navigation (Foundation) ✅ COMPLETE
 
+**Completed:** Feb 4, 2026 | **Commits:** `df9c81f`
 **Goal:** Remove swipe navigation system to simplify mobile UX and prepare for other changes.
 
 **Addresses:**
@@ -46,8 +48,9 @@ Comprehensive UI redesign to make LifeOS more compact, clean, and professional a
 
 ---
 
-## Phase 2: Home Page Cleanup
+## Phase 2: Home Page Cleanup ✅ COMPLETE
 
+**Completed:** Feb 4, 2026 | **Commits:** `59b3449`, `0ea12f0`
 **Goal:** Simplify home page to remove redundant navigation elements and reduce vertical spacing.
 
 **Addresses:**
@@ -84,8 +87,9 @@ Comprehensive UI redesign to make LifeOS more compact, clean, and professional a
 
 ---
 
-## Phase 3: Navigation Updates
+## Phase 3: Navigation Updates ✅ COMPLETE
 
+**Completed:** Feb 5, 2026 | **Commit:** `f73e2c7`
 **Goal:** Add missing pages to navigation and reduce gaps.
 
 **Addresses:**
@@ -116,9 +120,11 @@ Comprehensive UI redesign to make LifeOS more compact, clean, and professional a
 
 ---
 
-## Phase 4: All Page Redesign (COMPLEX)
+## Phase 4: All Page Redesign (COMPLEX) ✅ COMPLETE
 
+**Completed:** Feb 11, 2026 | **Commit:** `3fdcfd8`
 **Goal:** Redesign task cards to be compact, clean, with inline date/time and checkboxes.
+**Also completed:** Collapsible sections on All page AND all Calendar views, chronological sorting, mobile width fix (`overflow-x: hidden` on body).
 
 **Addresses:**
 - Item 2.a: Fix mobile width issue
@@ -212,9 +218,10 @@ Comprehensive UI redesign to make LifeOS more compact, clean, and professional a
 
 ---
 
-## Phase 5: Calendar Month View Improvements
+## Phase 5: Calendar Month View Improvements ⏳ NEXT
 
 **Goal:** Make month view more compact and fix navigation behaviors.
+**Note:** Section 5.7 (collapsible overdue) was completed in Phase 4.
 
 **Addresses:**
 - Item 3.a: Make more compact (reference month.jpg)
@@ -294,17 +301,9 @@ Comprehensive UI redesign to make LifeOS more compact, clean, and professional a
 - Ensure calendar table has `min-w-fit` or fixed width
 - Test on mobile: swipe should scroll calendar, not change pages
 
-#### 5.7 Make Overdue Section Collapsible
-**File:** `/app/calendar/page.tsx`
+#### 5.7 Make Overdue Section Collapsible ✅ DONE (Phase 4)
 
-**New Feature:** Add collapsible overdue section
-
-**Implementation:**
-- Add toggle button to overdue section header
-- Store collapsed state in localStorage (persist across sessions)
-- When collapsed: Show "⚠️ 5 Overdue Items" with expand arrow
-- When expanded: Show full list of overdue items
-- Apply to all calendar views (Timeline, Compact, Schedule, Week, Month)
+Completed in Phase 4 — all sections across all calendar views are now collapsible with chevron toggles.
 
 ---
 
@@ -340,18 +339,12 @@ Comprehensive UI redesign to make LifeOS more compact, clean, and professional a
 - Reduce vertical spacing between hours
 - Consider showing fewer hours (only 7 AM - 9 PM if typical)
 
-#### 6.3 Make Overdue Section Smaller & Collapsible
-**File:** `/app/calendar/page.tsx`
+#### 6.3 Make Overdue Section Smaller & Collapsible (PARTIALLY DONE)
 
-**Current:** Large overdue section with big cards
-**New:** Compact, collapsible overdue section
-
-- Reduce card size in overdue section
-- Make section header smaller: `text-lg` → `text-sm`
-- Reduce padding: `p-4` → `p-2`
-- **Add collapse/expand toggle** (same as 5.7)
-- Show overdue count in header
-- Use localStorage to persist collapsed state
+- ✅ Collapse/expand toggle — Done in Phase 4
+- ⏳ Reduce card size in overdue section
+- ⏳ Make section header smaller: `text-lg` → `text-sm`
+- ⏳ Reduce padding: `p-4` → `p-2`
 
 #### 6.4 Fix Week Header Navigation
 **File:** `/app/calendar/page.tsx`
@@ -474,18 +467,18 @@ className="flex items-center gap-3 px-4 py-3 bg-white hover:bg-gray-50
 
 ## Implementation Order
 
-**Recommended Sequence:**
+**Sequence:**
 
-1. **Phase 1** (Disable Swipe) - 30 min - Foundation, affects all other pages
-2. **Phase 2** (Home Page) - 30 min - Quick wins, visible improvement
-3. **Phase 3** (Navigation) - 1 hour - Affects all pages, good to do early
-4. **Phase 8** (FAB) - 1 hour - Quick win, independent of other work
-5. **Phase 7** (Vault) - 1-2 hours - Medium complexity, independent
-6. **Phase 4** (All Page) - 3-4 hours - Complex, can take time
-7. **Phase 5** (Month View) - 2-3 hours - Complex, calendar-specific
-8. **Phase 6** (Week View) - 2 hours - Complex, calendar-specific
+1. ~~**Phase 1** (Disable Swipe)~~ ✅ DONE
+2. ~~**Phase 2** (Home Page)~~ ✅ DONE
+3. ~~**Phase 3** (Navigation)~~ ✅ DONE
+4. ~~**Phase 4** (All Page + Collapsible Sections)~~ ✅ DONE
+5. **Phase 5** (Month View) - 2-3 hours - Complex, calendar-specific ⏳ NEXT
+6. **Phase 6** (Week View) - 2 hours - Complex, calendar-specific
+7. **Phase 7** (Vault) - 1-2 hours - Medium complexity, independent
+8. **Phase 8** (FAB) - 1 hour - Quick win, independent
 
-**Total:** 11-14 hours
+**Remaining:** ~6-8 hours
 
 ---
 
