@@ -124,6 +124,9 @@ function HomeContent() {
     null
   );
 
+  // Collapsible sections state
+  const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set());
+
   // Phase 3.5.3: View mode (timeline/compact/schedule/week/month)
   const [viewMode, setViewMode] = useState<ViewMode>(() => {
     if (typeof window !== 'undefined') {
@@ -980,14 +983,40 @@ function HomeContent() {
   };
 
   // Phase 3.4: Helper to render section headers
+  /** Toggle a section's collapsed state */
+  const toggleSection = (sectionKey: string) => {
+    setCollapsedSections((prev) => {
+      const next = new Set(prev);
+      if (next.has(sectionKey)) {
+        next.delete(sectionKey);
+      } else {
+        next.add(sectionKey);
+      }
+      return next;
+    });
+  };
+
+  /** Check if a section is collapsed */
+  const isSectionCollapsed = (sectionKey: string) => collapsedSections.has(sectionKey);
+
+  /** Render a collapsible section header with chevron */
   const renderSectionHeader = (title: string, color: string = "text-gray-700", icon?: string) => (
-    <div className="flex items-center gap-2 mb-3 mt-6 first:mt-0">
+    <button
+      onClick={() => toggleSection(title)}
+      className="flex items-center gap-2 mb-3 mt-6 first:mt-0 w-full text-left"
+    >
+      <svg
+        className={`w-3.5 h-3.5 ${color} transition-transform ${isSectionCollapsed(title) ? "" : "rotate-90"}`}
+        fill="none" viewBox="0 0 24 24" stroke="currentColor"
+      >
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+      </svg>
       {icon && <span className="text-lg">{icon}</span>}
       <h3 className={`text-sm font-semibold uppercase tracking-wide ${color}`}>
         {title}
       </h3>
       <div className="flex-1 border-t border-gray-200"></div>
-    </div>
+    </button>
   );
 
   // Phase 3.4: Helper to render item cards
@@ -1721,12 +1750,10 @@ function HomeContent() {
 
                 {/* Overdue Section at top */}
                 {categorizedData && categorizedData.overdue.length > 0 && filterTypes.has("task") && (
-                  <div className="mb-4 p-4 bg-red-50 dark:bg-red-900/20 rounded-lg">
-                    <div className="flex items-center gap-2 text-red-600 dark:text-red-400 font-medium mb-3">
-                      <span className="text-lg">⚠️</span>
-                      <span>{categorizedData.overdue.length} pending task{categorizedData.overdue.length > 1 ? 's' : ''}</span>
-                    </div>
-                    <div className="space-y-2">
+                  <div className="mb-4">
+                    {renderSectionHeader("Overdue", "text-red-700", "⚠️")}
+                    {!isSectionCollapsed("Overdue") && (
+                    <div className="space-y-2 p-4 bg-red-50 dark:bg-red-900/20 rounded-lg">
                       {categorizedData.overdue.map((item) => (
                         <div
                           key={item.id}
@@ -1742,6 +1769,7 @@ function HomeContent() {
                         </div>
                       ))}
                     </div>
+                    )}
                   </div>
                 )}
 
@@ -1845,9 +1873,11 @@ function HomeContent() {
                 {categorizedData && categorizedData.scheduledNoTime.length > 0 && filterTypes.has("task") && (
                   <div className="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
                     {renderSectionHeader("Scheduled (No Time)", "text-gray-600")}
+                    {!isSectionCollapsed("Scheduled (No Time)") && (
                     <div className="space-y-3">
                       {categorizedData.scheduledNoTime.map((item) => renderItemCard(item, item.isOverdue || false, "schedule-notime"))}
                     </div>
+                    )}
                   </div>
                 )}
               </div>
@@ -1859,9 +1889,11 @@ function HomeContent() {
                 {categorizedData && categorizedData.overdue.length > 0 && filterTypes.has("task") && (
                   <DroppableSection id="overdue-drop-zone">
                     {renderSectionHeader("Overdue", "text-red-700", "⚠️")}
+                    {!isSectionCollapsed("Overdue") && (
                     <div className="space-y-3">
                       {categorizedData.overdue.map((item) => renderItemCard(item, true, "week-overdue"))}
                     </div>
+                    )}
                   </DroppableSection>
                 )}
 
@@ -1980,9 +2012,11 @@ function HomeContent() {
                 {categorizedData && categorizedData.scheduledNoTime.length > 0 && filterTypes.has("task") && (
                   <DroppableSection id="scheduled-no-time">
                     {renderSectionHeader("Scheduled (No Time)", "text-gray-600")}
+                    {!isSectionCollapsed("Scheduled (No Time)") && (
                     <div className="space-y-3">
                       {categorizedData.scheduledNoTime.map((item) => renderItemCard(item, item.isOverdue || false, "week-notime"))}
                     </div>
+                    )}
                   </DroppableSection>
                 )}
               </div>
@@ -2137,9 +2171,11 @@ function HomeContent() {
                 {categorizedData && categorizedData.scheduledNoTime.length > 0 && filterTypes.has("task") && (
                   <div className="mt-6">
                     {renderSectionHeader("Scheduled (No Time)", "text-gray-600")}
+                    {!isSectionCollapsed("Scheduled (No Time)") && (
                     <div className="space-y-3">
                       {categorizedData.scheduledNoTime.map((item) => renderItemCard(item, item.isOverdue || false, "month-notime"))}
                     </div>
+                    )}
                   </div>
                 )}
               </div>
@@ -2151,9 +2187,11 @@ function HomeContent() {
                 {categorizedData && categorizedData.reminders.length > 0 && filterTypes.has("reminder") && (
                   <>
                     {renderSectionHeader("Reminders", "text-yellow-700", "🔔")}
+                    {!isSectionCollapsed("Reminders") && (
                     <div className="space-y-3">
                       {categorizedData.reminders.map((item) => renderItemCard(item, false, "compact-reminders"))}
                     </div>
+                    )}
                   </>
                 )}
 
@@ -2161,9 +2199,11 @@ function HomeContent() {
                 {categorizedData && categorizedData.overdue.length > 0 && filterTypes.has("task") && (
                   <DroppableSection id="overdue-drop-zone">
                     {renderSectionHeader("Overdue", "text-red-700", "⚠️")}
+                    {!isSectionCollapsed("Overdue") && (
                     <div className="space-y-3">
                       {categorizedData.overdue.map((item) => renderItemCard(item, true, "compact-overdue"))}
                     </div>
+                    )}
                   </DroppableSection>
                 )}
 
@@ -2171,9 +2211,11 @@ function HomeContent() {
                 {categorizedData && categorizedData.inProgress.length > 0 && filterTypes.has("task") && (
                   <>
                     {renderSectionHeader("In Progress", "text-blue-700", "🔵")}
+                    {!isSectionCollapsed("In Progress") && (
                     <div className="space-y-3">
                       {categorizedData.inProgress.map((item) => renderItemCard(item, false, "compact-inprogress"))}
                     </div>
+                    )}
                   </>
                 )}
 
@@ -2181,6 +2223,7 @@ function HomeContent() {
                 {filteredEvents.length > 0 && (
                   <>
                     {renderSectionHeader("Events", "text-green-700", "📅")}
+                    {!isSectionCollapsed("Events") && (
                     <div className="space-y-3">
                       {filteredEvents.map((event) => (
                         <div
@@ -2279,6 +2322,7 @@ function HomeContent() {
                         </div>
                       ))}
                     </div>
+                    )}
                   </>
                 )}
 
@@ -2286,9 +2330,11 @@ function HomeContent() {
                 {categorizedData && categorizedData.scheduled.length > 0 && filterTypes.has("task") && (
                   <>
                     {renderSectionHeader("Scheduled", "text-purple-700", "📋")}
+                    {!isSectionCollapsed("Scheduled") && (
                     <div className="space-y-3">
                       {categorizedData.scheduled.map((item) => renderItemCard(item, item.isOverdue || false, "compact-scheduled"))}
                     </div>
+                    )}
                   </>
                 )}
 
@@ -2296,9 +2342,11 @@ function HomeContent() {
                 {categorizedData && categorizedData.scheduledNoTime.length > 0 && filterTypes.has("task") && (
                   <DroppableSection id="scheduled-no-time">
                     {renderSectionHeader("Scheduled (No Time)", "text-gray-600")}
+                    {!isSectionCollapsed("Scheduled (No Time)") && (
                     <div className="space-y-3">
                       {categorizedData.scheduledNoTime.map((item) => renderItemCard(item, item.isOverdue || false, "compact-notime"))}
                     </div>
+                    )}
                   </DroppableSection>
                 )}
 
@@ -2306,9 +2354,11 @@ function HomeContent() {
                 {categorizedData && categorizedData.pinned.length > 0 && filterTypes.has("task") && (
                   <>
                     {renderSectionHeader("Quick Captures", "text-gray-500", "📌")}
+                    {!isSectionCollapsed("Quick Captures") && (
                     <div className="space-y-3">
                       {categorizedData.pinned.map((item) => renderItemCard(item, false, "compact-pinned"))}
                     </div>
+                    )}
                   </>
                 )}
               </div>
@@ -2320,9 +2370,11 @@ function HomeContent() {
                 {categorizedData && categorizedData.reminders.length > 0 && filterTypes.has("reminder") && (
                   <>
                     {renderSectionHeader("Reminders", "text-yellow-700", "🔔")}
+                    {!isSectionCollapsed("Reminders") && (
                     <div className="space-y-3">
                       {categorizedData.reminders.map((item) => renderItemCard(item, false, "timeline-reminders"))}
                     </div>
+                    )}
                   </>
                 )}
 
@@ -2330,9 +2382,11 @@ function HomeContent() {
                 {categorizedData && categorizedData.overdue.length > 0 && filterTypes.has("task") && (
                   <DroppableSection id="overdue-drop-zone">
                     {renderSectionHeader("Overdue", "text-red-700", "⚠️")}
+                    {!isSectionCollapsed("Overdue") && (
                     <div className="space-y-3">
                       {categorizedData.overdue.map((item) => renderItemCard(item, true, "timeline-overdue"))}
                     </div>
+                    )}
                   </DroppableSection>
                 )}
 
@@ -2340,9 +2394,11 @@ function HomeContent() {
                 {categorizedData && categorizedData.inProgress.length > 0 && filterTypes.has("task") && (
                   <>
                     {renderSectionHeader("In Progress", "text-blue-700", "🔵")}
+                    {!isSectionCollapsed("In Progress") && (
                     <div className="space-y-3">
                       {categorizedData.inProgress.map((item) => renderItemCard(item, false, "timeline-inprogress"))}
                     </div>
+                    )}
                   </>
                 )}
 
@@ -2350,7 +2406,7 @@ function HomeContent() {
                 {(categorizedData && (categorizedData.scheduled.length > 0 || filteredEvents.length > 0)) && (
                   <>
                     {renderSectionHeader("Timeline", "text-purple-700", "📅")}
-                    {renderTimelineView()}
+                    {!isSectionCollapsed("Timeline") && renderTimelineView()}
                   </>
                 )}
 
@@ -2358,9 +2414,11 @@ function HomeContent() {
                 {categorizedData && categorizedData.scheduledNoTime.length > 0 && filterTypes.has("task") && (
                   <DroppableSection id="scheduled-no-time">
                     {renderSectionHeader("Scheduled (No Time)", "text-gray-600")}
+                    {!isSectionCollapsed("Scheduled (No Time)") && (
                     <div className="space-y-3">
                       {categorizedData.scheduledNoTime.map((item) => renderItemCard(item, item.isOverdue || false, "timeline-notime"))}
                     </div>
+                    )}
                   </DroppableSection>
                 )}
 
@@ -2368,9 +2426,11 @@ function HomeContent() {
                 {categorizedData && categorizedData.pinned.length > 0 && filterTypes.has("task") && (
                   <>
                     {renderSectionHeader("Quick Captures", "text-gray-500", "📌")}
+                    {!isSectionCollapsed("Quick Captures") && (
                     <div className="space-y-3">
                       {categorizedData.pinned.map((item) => renderItemCard(item, false, "timeline-pinned"))}
                     </div>
+                    )}
                   </>
                 )}
               </div>

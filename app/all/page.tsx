@@ -44,6 +44,9 @@ const STATE_LABELS = {
   completed: "Completed",
 };
 
+// Preferred section order
+const STATE_ORDER = ["In Progress", "Active", "Backlog", "Completed"];
+
 function AllTasksContent() {
   const { insideSwipe } = useContext(SwipeContext);
   const router = useRouter();
@@ -60,13 +63,15 @@ function AllTasksContent() {
     "backlog",
     "active",
     "in_progress",
-  ]); // Don't show completed by default
+    "completed",
+  ]); // Show all states by default
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [selectedPriority, setSelectedPriority] = useState<string>("");
   const [selectedComplexity, setSelectedComplexity] = useState<string>("");
   const [selectedEnergy, setSelectedEnergy] = useState<string>("");
   const [groupBy, setGroupBy] = useState<GroupBy>("state");
   const [showFilters, setShowFilters] = useState(false);
+  const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set());
 
   // Load all tasks
   const loadData = async () => {
@@ -194,6 +199,28 @@ function AllTasksContent() {
     }
   };
 
+  // Toggle completion
+  const toggleCompletion = async (item: Item, e: React.MouseEvent) => {
+    e.stopPropagation();
+
+    try {
+      const res = await fetch(`/api/items/${item.id}/toggle`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          date: item.dueDate || new Date().toISOString().split("T")[0],
+        }),
+      });
+
+      if (!res.ok) throw new Error("Failed to toggle completion");
+
+      // Reload tasks
+      await loadData();
+    } catch (error) {
+      console.error("Error toggling completion:", error);
+    }
+  };
+
   // Toggle state filter
   const toggleStateFilter = (state: string) => {
     setSelectedStates((prev) =>
@@ -217,59 +244,72 @@ function AllTasksContent() {
     setSelectedEnergy("");
   };
 
+  /** Toggle a section's collapsed state */
+  const toggleSection = (groupName: string) => {
+    setCollapsedSections((prev) => {
+      const next = new Set(prev);
+      if (next.has(groupName)) {
+        next.delete(groupName);
+      } else {
+        next.add(groupName);
+      }
+      return next;
+    });
+  };
+
+  /** Sort items chronologically by dueDate (earliest first, no-date items last) */
+  const sortChronologically = (a: Item, b: Item): number => {
+    if (!a.dueDate && !b.dueDate) return 0;
+    if (!a.dueDate) return 1;
+    if (!b.dueDate) return -1;
+    return a.dueDate.localeCompare(b.dueDate);
+  };
+
   const hasActiveFilters =
     selectedTags.length > 0 || selectedPriority || selectedComplexity || selectedEnergy;
 
   return (
     <ProtectedRoute>
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-gray-50 overflow-x-hidden">
         {!insideSwipe && <Header />}
 
-        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+        <main className="max-w-7xl mx-auto px-6 sm:px-6 lg:px-8 py-4">
           {/* Filter and Group Controls */}
-          <div className="bg-white rounded-lg shadow p-4 mb-6">
-            <div className="flex items-center justify-between">
+          <div className="bg-white rounded-lg shadow p-3 mb-4">
+            <div className="flex items-center justify-between gap-2">
               <button
                 onClick={() => setShowFilters(!showFilters)}
                 className="text-sm font-medium text-gray-700 hover:text-gray-900"
               >
-                {showFilters ? "Hide Filters" : "More Filters"}
+                Filters
                 {hasActiveFilters && (
-                  <span className="ml-2 text-blue-600">
-                    (
-                    {selectedTags.length +
-                      (selectedPriority ? 1 : 0) +
-                      (selectedComplexity ? 1 : 0) +
-                      (selectedEnergy ? 1 : 0)}{" "}
-                    active)
+                  <span className="ml-1 text-blue-600 text-xs">
+                    ({selectedTags.length + (selectedPriority ? 1 : 0) + (selectedComplexity ? 1 : 0) + (selectedEnergy ? 1 : 0)})
                   </span>
                 )}
               </button>
 
-              <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2">
                 {hasActiveFilters && (
                   <button
                     onClick={clearFilters}
-                    className="text-sm text-gray-600 hover:text-gray-900"
+                    className="text-xs text-gray-500 hover:text-gray-700"
                   >
-                    Clear filters
+                    Clear
                   </button>
                 )}
-                <label className="text-sm text-gray-700">
-                  Group by:
-                  <select
-                    value={groupBy}
-                    onChange={(e) => setGroupBy(e.target.value as GroupBy)}
-                    className="ml-2 border rounded px-2 py-1 text-sm"
-                  >
-                    <option value="none">None</option>
-                    <option value="state">State</option>
-                    <option value="tag">Tag</option>
-                    <option value="complexity">Complexity</option>
-                    <option value="energy">Energy</option>
-                    <option value="priority">Priority</option>
-                  </select>
-                </label>
+                <select
+                  value={groupBy}
+                  onChange={(e) => setGroupBy(e.target.value as GroupBy)}
+                  className="border rounded px-2 py-1 text-xs"
+                >
+                  <option value="none">No grouping</option>
+                  <option value="state">By State</option>
+                  <option value="tag">By Tag</option>
+                  <option value="complexity">By Complexity</option>
+                  <option value="energy">By Energy</option>
+                  <option value="priority">By Priority</option>
+                </select>
               </div>
             </div>
 
@@ -386,12 +426,34 @@ function AllTasksContent() {
           {/* Task Groups */}
           {!loading && !error && (
             <div className="space-y-6">
-              {Object.entries(groupedItems).map(([groupName, groupItems]) => (
+              {Object.entries(groupedItems)
+                .sort(([groupNameA], [groupNameB]) => {
+                  // Sort by state order when grouping by state
+                  if (groupBy === "state") {
+                    const indexA = STATE_ORDER.indexOf(groupNameA);
+                    const indexB = STATE_ORDER.indexOf(groupNameB);
+                    return indexA - indexB;
+                  }
+                  return 0; // Keep original order for other groupings
+                })
+                .map(([groupName, groupItems]) => {
+                  const isCollapsed = collapsedSections.has(groupName);
+                  const sortedItems = [...groupItems].sort(sortChronologically);
+                  return (
                 <div key={groupName}>
                   {groupBy !== "none" && (
-                    <h2 className="text-lg font-semibold text-gray-900 mb-3 capitalize">
+                    <button
+                      onClick={() => toggleSection(groupName)}
+                      className="flex items-center gap-2 text-lg font-semibold text-gray-900 mb-3 capitalize w-full text-left"
+                    >
+                      <svg
+                        className={`w-4 h-4 text-gray-500 transition-transform ${isCollapsed ? "" : "rotate-90"}`}
+                        fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                      >
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                      </svg>
                       {groupName} ({groupItems.length})
-                    </h2>
+                    </button>
                   )}
 
                   {groupItems.length === 0 && groupBy === "none" && (
@@ -401,75 +463,47 @@ function AllTasksContent() {
                     </div>
                   )}
 
-                  <div className="space-y-3">
-                    {groupItems.map((item) => (
+                  {!isCollapsed && (
+                  <div className="space-y-2">
+                    {sortedItems.map((item) => (
                       <div
                         key={item.id}
                         onClick={() => handleTaskClick(item)}
-                        className="bg-white rounded-lg shadow p-4 hover:shadow-md transition-shadow cursor-pointer"
+                        className="bg-white rounded-lg border border-gray-200 p-2 sm:p-3 hover:border-gray-300 hover:bg-gray-50 transition-colors cursor-pointer"
                       >
-                        <div className="flex items-start justify-between">
-                          <div className="flex-1">
-                            <div className="flex items-center gap-2 mb-1">
-                              <h3 className="font-semibold text-gray-900">{item.name}</h3>
-                              {/* State badge */}
-                              <span
-                                className={`text-xs px-2 py-0.5 rounded-full ${
-                                  STATE_COLORS[item.state as keyof typeof STATE_COLORS] ||
-                                  STATE_COLORS.active
-                                }`}
-                              >
-                                {STATE_LABELS[item.state as keyof typeof STATE_LABELS] ||
-                                  "Active"}
-                              </span>
+                        <div className="flex items-start justify-between gap-1 sm:gap-2">
+                          <div className="flex-1 min-w-0">
+                            {/* Task name with inline date/time */}
+                            <div className="flex items-baseline gap-2 flex-wrap">
+                              <h3 className="font-medium text-gray-900 wrap-break-word">
+                                {item.name}
+                              </h3>
+                              {item.dueDate && (
+                                <span className="text-sm text-gray-500">
+                                  ·{" "}
+                                  {(() => {
+                                    // Parse date as local to avoid timezone shift
+                                    const dateStr = item.dueDate.split('T')[0];
+                                    const [year, month, day] = dateStr.split('-').map(Number);
+                                    const localDate = new Date(year, month - 1, day);
+                                    return localDate.toLocaleDateString("en-US", {
+                                      weekday: "short",
+                                      month: "short",
+                                      day: "numeric",
+                                    });
+                                  })()}
+                                  {item.dueTime && `, ${item.dueTime}`}
+                                </span>
+                              )}
                             </div>
-
-                            {/* Date if scheduled */}
-                            {item.dueDate && (
-                              <p className="text-sm text-gray-600">
-                                {(() => {
-                                  // Parse date as local to avoid timezone shift
-                                  const dateStr = item.dueDate.split('T')[0]; // Get YYYY-MM-DD part
-                                  const [year, month, day] = dateStr.split('-').map(Number);
-                                  const localDate = new Date(year, month - 1, day);
-                                  return localDate.toLocaleDateString("en-US", {
-                                    weekday: "short",
-                                    month: "short",
-                                    day: "numeric",
-                                  });
-                                })()}
-                                {item.dueTime && ` at ${item.dueTime}`}
-                              </p>
-                            )}
-
-                            {/* Metadata */}
-                            {(item.complexity || item.energy || item.duration) && (
-                              <div className="flex flex-wrap gap-2 mt-2">
-                                {item.complexity && (
-                                  <span className="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded">
-                                    {item.complexity}
-                                  </span>
-                                )}
-                                {item.energy && (
-                                  <span className="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded">
-                                    {item.energy} energy
-                                  </span>
-                                )}
-                                {item.duration && (
-                                  <span className="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded">
-                                    {item.duration}
-                                  </span>
-                                )}
-                              </div>
-                            )}
 
                             {/* Tags */}
                             {item.tags && item.tags.length > 0 && (
-                              <div className="flex flex-wrap gap-2 mt-2">
+                              <div className="flex flex-wrap gap-1.5 mt-1.5">
                                 {item.tags.map((tag) => (
                                   <span
                                     key={tag}
-                                    className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full"
+                                    className="text-xs bg-blue-50 text-blue-700 px-2 py-0.5 rounded"
                                   >
                                     {tag}
                                   </span>
@@ -478,19 +512,31 @@ function AllTasksContent() {
                             )}
                           </div>
 
-                          {/* Priority indicator */}
-                          {item.priority === "high" && (
-                            <span className="text-red-500 text-xl ml-2">!</span>
-                          )}
-                          {item.priority === "low" && (
-                            <span className="text-gray-400 text-xl ml-2">-</span>
-                          )}
+                          {/* Right side: Priority indicator and checkbox */}
+                          <div className="flex items-center gap-2 shrink-0">
+                            {item.priority === "high" && (
+                              <span className="text-red-500 text-lg">!</span>
+                            )}
+                            {/* Checkbox */}
+                            <button
+                              onClick={(e) => toggleCompletion(item, e)}
+                              className="w-5 h-5 rounded border-2 border-gray-300 hover:border-gray-400 flex items-center justify-center shrink-0"
+                            >
+                              {item.isCompleted && (
+                                <svg className="w-4 h-4 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                </svg>
+                              )}
+                            </button>
+                          </div>
                         </div>
                       </div>
                     ))}
                   </div>
+                  )}
                 </div>
-              ))}
+                  );
+                })}
             </div>
           )}
 

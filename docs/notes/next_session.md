@@ -1,34 +1,120 @@
 # Next Session - Start Here
 
-**Last Updated:** February 5, 2026 (Morning)
-**Current Status:** UI Polish Phase 1-3 COMPLETE ✅ - Continue with Phase 4+
-**Branch:** master (11+ commits ahead of origin, not pushed)
+**Last Updated:** February 5, 2026 (Evening)
+**Current Status:** UI Polish Phase 4 IN PROGRESS ⚠️ - Width bug blocking completion
+**Branch:** master (not committed yet)
 **Production:** <https://lifeos-dev.foster-home.net> (PM2 on port 3002)
 
 ---
 
-## 🎯 NEXT UP: Continue UI Polish (Phases 4-8)
+## 🐛 CRITICAL BUG: Mobile Width Issue on All Page
 
-**What's Done:**
-- ✅ Phase 3.5: Home dashboard + 5 calendar views (merged to master)
-- ✅ UI Polish Phase 1: Disabled swipe navigation
-- ✅ UI Polish Phase 2: Clean mobile header with centered "LifeOS", hamburger on right
-- ✅ UI Polish Phase 3: Reduced spacing across all pages + compact week view time column
+**Problem:**
+The All page has persistent horizontal scrolling on mobile. The page content extends beyond the viewport width, causing the entire page to be scrollable horizontally. Checkboxes on task cards are being cut off at the right edge of the screen.
 
-**What's Next:**
-Continue with UI Polish phases 4-8 per [ui-polish-plan.md](ui-polish-plan.md):
-- Phase 4: Redesign All page (compact cards, inline dates, checkboxes, filter UI) - COMPLEX
+**What We've Tried:**
+1. ✅ Added `overflow-x-hidden` to main container
+2. ✅ Increased container padding: `px-4` → `px-6`
+3. ✅ Reduced card padding on mobile: `p-3` → `p-2`
+4. ✅ Reduced gap between content and checkbox: `gap-2` → `gap-1`
+5. ✅ Made filter panel more compact (removed labels, smaller text)
+6. ❌ None of these fixed the horizontal scroll issue
+
+**Screenshots:**
+- `docs/screenshots/all_width.jpg` - Initial state showing checkboxes cut off
+- `docs/screenshots/all_width2.jpg` - After first round of fixes
+- `docs/screenshots/all_width3.jpg` - After filter panel compacting
+
+**Next Steps to Try:**
+1. Inspect with browser dev tools to find the exact element causing overflow
+2. Check if the filter panel dropdown (`<select>`) has a fixed width that's too large
+3. Check if task card content (long task names or tags) is forcing width
+4. Consider using `max-w-full` on all child elements
+5. May need to use `truncate` on task names instead of `wrap-break-word`
+
+**File:** `app/all/page.tsx` (lines 228, 230, 419, 421)
+
+---
+
+## 🎯 NEXT UP: Complete Phase 4 + Continue with Phases 5-8
+
+**Phase 4 Progress (IN PROGRESS):**
+- ✅ Redesigned task cards with checkbox on RIGHT (for right-handed use)
+- ✅ Inline date/time with task name (e.g., "Task · Mon, Feb 3, 15:30")
+- ✅ Removed state badges and metadata badges
+- ✅ Simpler card styling (border instead of shadow, reduced padding)
+- ✅ Reordered sections: In Progress → Active → Backlog → Completed
+- ✅ Fixed checkbox toggle API (was missing `date` parameter)
+- ✅ Checkboxes now functional (toggle completion state)
+- ✅ Made completed items visible by default
+- ✅ Compacted filter panel
+- ❌ **BLOCKED:** Mobile width issue causing horizontal scroll
+- ⏳ **TODO:** Add collapsible/expandable sections (user request)
+- ⏳ **TODO:** Add chronological sorting within sections
+- ⏳ **TODO:** Further filter/group UI improvements
+- ⏳ **TODO:** Test on mobile and desktop
+- ⏳ **TODO:** Commit Phase 4 changes
+
+**What's Next After Phase 4:**
+Continue with UI Polish phases 5-8 per [ui-polish-plan.md](ui-polish-plan.md):
 - Phase 5: Calendar month view improvements (compact, fix navigation, scrolling, collapsible overdue) - COMPLEX
 - Phase 6: Calendar week view improvements (compact, fix navigation, scrolling, collapsible overdue) - COMPLEX
 - Phase 7: Vault improvements (compact design, fix data refresh, optional content)
 - Phase 8: FAB redesign (sleek and professional)
 
 **Branch Strategy:**
-- Master has all Phase 3.5 + UI Polish Phase 1-2 changes
-- Create new branch for each phase or group of phases
+- Currently working directly on master (not committed yet)
+- Should commit Phase 4 progress once width bug is resolved
 - Test, commit, merge to master incrementally
 
 ---
+
+## ⚙️ IN PROGRESS: UI Polish Phase 4 (Feb 5, 2026 Evening)
+
+**Phase 4 - All Page Redesign:**
+
+**Completed Changes:**
+1. ✅ **Task Card Redesign:**
+   - Checkbox moved to RIGHT side (for right-handed use per user request)
+   - Date/time now inline with task name: "Task Name · Mon, Feb 3, 15:30"
+   - Removed state badges (Active, Backlog, etc.)
+   - Removed metadata badges (complexity, energy, duration)
+   - Tags kept but made more subtle (smaller, lighter colors)
+   - Simpler styling: `border border-gray-200` instead of shadows
+   - Reduced padding: `p-3` → `p-2` (mobile)
+
+2. ✅ **Section Reordering:**
+   - New order: In Progress → Active → Backlog → Completed
+   - Added STATE_ORDER constant for explicit ordering
+   - Sort function applied to grouped items display
+
+3. ✅ **Checkbox Functionality Fixed:**
+   - API was failing because `/api/items/[id]/toggle` requires `date` in request body
+   - Now sending: `{ date: item.dueDate || today's date }`
+   - Checkboxes now properly toggle completion state
+   - Items reload after toggle to show updated state
+
+4. ✅ **Filter Panel Compacting:**
+   - "More Filters" → "Filters" (shorter)
+   - Removed "Group by:" label (just dropdown)
+   - Dropdown options more descriptive: "By State", "No grouping"
+   - Reduced padding and spacing throughout
+   - Made text smaller where appropriate
+
+5. ✅ **Visibility Settings:**
+   - Changed default state filter to show ALL states including completed
+   - Users can now see checkboxes actually working (items don't disappear when checked)
+
+**Known Issues:**
+- ❌ **Mobile width bug:** Page still has horizontal scroll on mobile
+  - Checkboxes getting cut off at right edge
+  - Filter panel may be contributing to width issue
+  - See "CRITICAL BUG" section above for details
+
+**Files Changed:**
+- `app/all/page.tsx` - Major redesign of card layout, filters, and state management
+
+**Not Committed Yet** - Waiting to resolve width bug first
 
 ---
 
