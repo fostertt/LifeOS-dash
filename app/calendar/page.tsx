@@ -273,23 +273,42 @@ function HomeContent() {
     setSelectedDate(nextMonth);
   };
 
-  /** View-aware navigation: month view navigates by month, others by day */
-  const goToPrevious = () => viewMode === 'month' ? goToPreviousMonth() : goToPreviousDay();
-  const goToNext = () => viewMode === 'month' ? goToNextMonth() : goToNextDay();
+  /** Navigate by week: jump 7 days forward/backward */
+  const goToPreviousWeek = () => {
+    const prev = new Date(selectedDate);
+    prev.setDate(prev.getDate() - 7);
+    navigateToDate(prev);
+  };
+  const goToNextWeek = () => {
+    const next = new Date(selectedDate);
+    next.setDate(next.getDate() + 7);
+    navigateToDate(next);
+  };
 
-  /** View-aware header label: month view shows "February 2026", others show full date */
+  /** View-aware navigation: month by month, week by week, others by day */
+  const goToPrevious = () => viewMode === 'month' ? goToPreviousMonth() : viewMode === 'week' ? goToPreviousWeek() : goToPreviousDay();
+  const goToNext = () => viewMode === 'month' ? goToNextMonth() : viewMode === 'week' ? goToNextWeek() : goToNextDay();
+
+  /** View-aware header label: month shows "February 2026", week shows "February FW6", others show full date */
   const formatHeaderDate = () => {
     if (viewMode === 'month') {
       return selectedDate.toLocaleDateString("en-US", { month: "long", year: "numeric" });
+    }
+    if (viewMode === 'week') {
+      const weekDays = getWeekDays();
+      const monday = weekDays[0];
+      const weekNum = getISOWeek(monday);
+      const monthName = monday.toLocaleDateString("en-US", { month: "long" });
+      return `${monthName} FW${weekNum}`;
     }
     return formatSelectedDate();
   };
 
   /** View-aware aria labels for nav buttons */
-  const getPrevLabel = () => viewMode === 'month' ? 'Previous month' : 'Previous day';
-  const getNextLabel = () => viewMode === 'month' ? 'Next month' : 'Next day';
-  const getPrevText = () => viewMode === 'month' ? 'Previous Month' : 'Previous Day';
-  const getNextText = () => viewMode === 'month' ? 'Next Month' : 'Next Day';
+  const getPrevLabel = () => viewMode === 'month' ? 'Previous month' : viewMode === 'week' ? 'Previous week' : 'Previous day';
+  const getNextLabel = () => viewMode === 'month' ? 'Next month' : viewMode === 'week' ? 'Next week' : 'Next day';
+  const getPrevText = () => viewMode === 'month' ? 'Previous Month' : viewMode === 'week' ? 'Previous Week' : 'Previous Day';
+  const getNextText = () => viewMode === 'month' ? 'Next Month' : viewMode === 'week' ? 'Next Week' : 'Next Day';
 
   // Phase 3.5.3: Generate array of dates for Schedule view (14 days from selected date)
   const getScheduleDays = () => {
@@ -1059,17 +1078,17 @@ function HomeContent() {
       onClick={() => toggleSection(title)}
       className="flex items-center gap-2 mb-3 mt-6 first:mt-0 w-full text-left"
     >
-      <svg
-        className={`w-3.5 h-3.5 ${color} transition-transform ${isSectionCollapsed(title) ? "" : "rotate-90"}`}
-        fill="none" viewBox="0 0 24 24" stroke="currentColor"
-      >
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-      </svg>
       {icon && <span className="text-lg">{icon}</span>}
       <h3 className={`text-sm font-semibold uppercase tracking-wide ${color}`}>
         {title}
       </h3>
       <div className="flex-1 border-t border-gray-200"></div>
+      <svg
+        className={`w-4 h-4 ${color} transition-transform ${isSectionCollapsed(title) ? "" : "rotate-90"}`}
+        fill="none" viewBox="0 0 24 24" stroke="currentColor"
+      >
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+      </svg>
     </button>
   );
 
@@ -1581,6 +1600,98 @@ function HomeContent() {
     );
   };
 
+  /** Phase 6: Compact week view mobile header — same pattern as month */
+  const renderWeekMobileHeader = ({ onHamburgerClick, onFilterClick }: {
+    onHamburgerClick: () => void;
+    onFilterClick?: () => void;
+  }) => {
+    const weekDays = getWeekDays();
+    const monday = weekDays[0];
+    const weekNum = getISOWeek(monday);
+    const monthName = monday.toLocaleDateString("en-US", { month: "long" });
+    const weekLabel = `${monthName} FW${weekNum}`;
+    const isCurrentWeek = (() => {
+      const now = new Date();
+      const currentWeekDays = getWeekDays();
+      return currentWeekDays.some(d => d.toDateString() === now.toDateString());
+    })();
+
+    return (
+      <div className="flex items-center gap-1">
+        {/* Hamburger menu */}
+        <button
+          onClick={onHamburgerClick}
+          className="p-2 hover:bg-gray-100 rounded-lg transition-colors flex-shrink-0"
+          aria-label="Open menu"
+        >
+          <svg className="w-5 h-5 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+          </svg>
+        </button>
+
+        {/* Previous week */}
+        <button
+          onClick={goToPreviousWeek}
+          className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors flex-shrink-0"
+          aria-label="Previous week"
+        >
+          <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+          </svg>
+        </button>
+
+        {/* Week label — tap to go to today; purple text when not current week */}
+        <button
+          onClick={goToToday}
+          className={`text-sm font-semibold flex-shrink-0 ${
+            isCurrentWeek ? 'text-gray-900' : 'text-purple-600 hover:text-purple-700'
+          }`}
+          title="Go to today"
+        >
+          {weekLabel}
+        </button>
+
+        {/* Next week */}
+        <button
+          onClick={goToNextWeek}
+          className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors flex-shrink-0"
+          aria-label="Next week"
+        >
+          <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+          </svg>
+        </button>
+
+        {/* Spacer */}
+        <div className="flex-1" />
+
+        {/* View switcher — grid icon */}
+        <button
+          onClick={() => setShowViewSwitcher(true)}
+          className="p-2 hover:bg-gray-100 rounded-lg transition-colors flex-shrink-0"
+          aria-label="Switch view"
+        >
+          <svg className="w-5 h-5 text-gray-700" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M4 5a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H5a1 1 0 01-1-1V5zm10 0a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1V5zM4 15a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H5a1 1 0 01-1-1v-4zm10 0a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4z" />
+          </svg>
+        </button>
+
+        {/* Filter button */}
+        {onFilterClick && (
+          <button
+            onClick={onFilterClick}
+            className="p-2 hover:bg-gray-100 rounded-lg transition-colors flex-shrink-0"
+            aria-label="Filter"
+          >
+            <svg className="w-5 h-5 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+            </svg>
+          </button>
+        )}
+      </div>
+    );
+  };
+
   return (
     <ProtectedRoute>
       <DndContext
@@ -1588,12 +1699,12 @@ function HomeContent() {
         onDragStart={handleDragStart}
         onDragEnd={handleDragEnd}
       >
-      <div className="min-h-screen bg-gradient-to-br from-purple-50 to-blue-50">
-        <div className={`max-w-5xl mx-auto py-4 md:px-8 md:py-4 ${viewMode === 'month' ? 'px-2' : 'px-4'}`}>
+      <div className={`bg-gradient-to-br from-purple-50 to-blue-50 ${viewMode === 'week' ? 'h-screen overflow-hidden flex flex-col' : 'min-h-screen'}`}>
+        <div className={`max-w-5xl mx-auto w-full md:px-8 ${viewMode === 'week' ? 'px-1 py-0 flex-1 flex flex-col min-h-0' : viewMode === 'month' ? 'px-2 py-4 md:py-4' : 'px-4 py-4 md:py-4'}`}>
           {!insideSwipe && (
             <Header
               onFilterClick={() => setShowFilterMenu(!showFilterMenu)}
-              customMobileContent={viewMode === 'month' ? renderMonthMobileHeader : undefined}
+              customMobileContent={viewMode === 'month' ? renderMonthMobileHeader : viewMode === 'week' ? renderWeekMobileHeader : undefined}
             />
           )}
 
@@ -1637,8 +1748,8 @@ function HomeContent() {
             </div>
           )}
 
-          {/* Date Navigation - Hidden on mobile in month view (controls are in compact header) */}
-          <div className={`bg-white rounded-2xl shadow-lg mb-4 md:mb-6 ${viewMode === 'month' ? 'hidden md:block p-2 md:p-4' : 'p-3 md:p-6'}`}>
+          {/* Date Navigation - Hidden on mobile in month/week view (controls are in compact header) */}
+          <div className={`bg-white rounded-2xl shadow-lg mb-4 md:mb-6 ${(viewMode === 'month' || viewMode === 'week') ? 'hidden md:block p-2 md:p-4' : 'p-3 md:p-6'}`}>
             {/* Mobile: Just arrows and date */}
             <div className="md:hidden flex items-center justify-between">
               <button
@@ -1755,7 +1866,7 @@ function HomeContent() {
           </div>
 
           {/* Main content area with sidebar (Phase 3.8: Drag & Drop) */}
-          <div className="flex gap-6 items-start">
+          <div className={`flex gap-6 ${viewMode === 'week' ? 'flex-1 min-h-0 items-stretch' : 'items-start'}`}>
             {/* Phase 3.8: Backlog Sidebar for drag source */}
             {categorizedData && (
               <BacklogSidebar
@@ -1765,7 +1876,7 @@ function HomeContent() {
             )}
 
             {/* Items Section */}
-            <div className={`flex-1 bg-white rounded-2xl shadow-lg mb-6 ${viewMode === 'month' ? 'p-2 md:p-4' : 'p-3 md:p-8'}`}>
+            <div className={`flex-1 w-full bg-white rounded-2xl shadow-lg ${viewMode === 'week' ? 'p-1 md:p-4 mb-0 flex flex-col min-h-0 overflow-hidden' : viewMode === 'month' ? 'p-2 md:p-4 mb-6' : 'p-3 md:p-8 mb-6'}`}>
               {/* Desktop: Show header with Today/Items title and count badges */}
             <div className={`hidden md:flex items-center gap-3 flex-wrap ${viewMode === 'month' ? 'mb-2' : 'mb-6'}`}>
               <span className="text-3xl">📋</span>
@@ -1792,9 +1903,9 @@ function HomeContent() {
               </button>
             </div>
 
-            {/* Mobile: Completed count and view toggle — hidden in month view (controls in compact header) */}
-            <div className={`md:hidden flex items-center justify-between gap-2 ${viewMode === 'month' ? 'hidden' : 'mb-3'}`}>
-              {viewMode !== 'month' && (
+            {/* Mobile: Completed count and view toggle — hidden in month/week view (controls in compact header) */}
+            <div className={`md:hidden flex items-center justify-between gap-2 ${(viewMode === 'month' || viewMode === 'week') ? 'hidden' : 'mb-3'}`}>
+              {viewMode !== 'month' && viewMode !== 'week' && (
                 <span className="text-xs text-green-700 font-medium">
                   {completedToday.size} completed
                 </span>
@@ -1924,7 +2035,7 @@ function HomeContent() {
                 {/* Multi-day list */}
                 {getScheduleDays().map((day, dayIndex) => {
                   const dayStr = `${day.getFullYear()}-${String(day.getMonth() + 1).padStart(2, '0')}-${String(day.getDate()).padStart(2, '0')}`;
-                  const dayItems = items.filter(item => item.dueDate === dayStr || item.scheduledTime?.startsWith(dayStr));
+                  const dayItems = items.filter(item => (item.dueDate && item.dueDate.substring(0, 10) === dayStr) || item.scheduledTime?.startsWith(dayStr));
                   const dayEvents = events.filter(event => {
                     if (!event.startTime) return false;
                     const eventDate = new Date(event.startTime);
@@ -2030,68 +2141,74 @@ function HomeContent() {
                 )}
               </div>
             ) : viewMode === 'week' ? (
-              <div className="space-y-4">
-                {/* Phase 3.5.3: Week View - 7-day grid */}
+              <div className="flex flex-col flex-1 min-h-0">
+                {/* Phase 6: Week View - compact 7-day grid, fixed viewport layout */}
 
-                {/* Overdue Section at top */}
+                {/* Overdue Section at top — compact pill-style cards (non-scrolling) */}
                 {categorizedData && categorizedData.overdue.length > 0 && filterTypes.has("task") && (
+                  <div className="flex-shrink-0 mb-1">
                   <DroppableSection id="overdue-drop-zone">
                     {renderSectionHeader("Overdue", "text-red-700", "⚠️")}
                     {!isSectionCollapsed("Overdue") && (
-                    <div className="space-y-3">
-                      {categorizedData.overdue.map((item) => renderItemCard(item, true, "week-overdue"))}
+                    <div className="flex flex-wrap gap-1.5">
+                      {categorizedData.overdue.map((item) => (
+                        <div
+                          key={`week-overdue-${item.id}`}
+                          onClick={() => openEditModal(item)}
+                          className="text-xs px-2 py-1 rounded-md bg-red-100 text-red-800 border border-red-200 cursor-pointer hover:bg-red-200 transition-colors truncate max-w-[180px]"
+                          title={item.name}
+                        >
+                          ⚠ {item.name}
+                        </div>
+                      ))}
                     </div>
                     )}
                   </DroppableSection>
+                  </div>
                 )}
 
-                {/* Week grid */}
-                <div className="overflow-x-auto">
-                  <div className="min-w-[768px]">
-                    {/* Header row with day names and dates */}
-                    <div className="flex">
-                      {/* Empty space for time column */}
-                      <div className="w-14 flex-shrink-0"></div>
-                      {/* Day headers */}
-                      <div className="flex-1 grid grid-cols-7 gap-px bg-gray-200 dark:bg-gray-700 rounded-t-lg overflow-hidden">
-                        {getWeekDays().map((day) => {
-                          const isToday = day.toDateString() === new Date().toDateString();
-                          return (
-                            <div
-                              key={day.toDateString()}
-                              onClick={() => {
-                                navigateToDate(day);
-                                toggleViewMode('timeline');
-                              }}
-                              className={`bg-white dark:bg-gray-800 p-2 text-center cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors ${isToday ? 'bg-blue-50 dark:bg-blue-900/30' : ''}`}
-                            >
-                              <div className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
-                                {day.toLocaleDateString('en-US', { weekday: 'short' })}
-                              </div>
-                              <div className={`text-lg font-bold ${isToday ? 'text-blue-600 dark:text-blue-400' : 'text-gray-900 dark:text-white'}`}>
-                                {day.getDate()}
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-
-                    {/* Time grid */}
-                    <div className="flex">
-                      {/* Time column */}
-                      <div className="w-14 flex-shrink-0">
-                        {Array.from({ length: 18 }, (_, i) => i + 6).map((hour) => (
-                          <div key={hour} className="h-[60px] flex items-start pt-1">
-                            <span className="text-xs text-gray-500 dark:text-gray-400 font-medium text-right w-full pr-2">
-                              {new Date(0, 0, 0, hour).toLocaleTimeString('en-US', {
-                                hour: 'numeric',
-                                hour12: true
-                              })}
-                            </span>
+                {/* Day headers — fixed, non-scrolling */}
+                <div className="flex flex-shrink-0">
+                  {/* Empty space for time column */}
+                  <div className="w-7 flex-shrink-0"></div>
+                  {/* Day headers — compact like Google Calendar */}
+                  <div className="flex-1 grid grid-cols-7 gap-px bg-gray-200 dark:bg-gray-700 rounded-t-lg overflow-hidden">
+                    {getWeekDays().map((day) => {
+                      const isToday = day.toDateString() === new Date().toDateString();
+                      return (
+                        <div
+                          key={day.toDateString()}
+                          onClick={() => {
+                            navigateToDate(day);
+                            toggleViewMode('timeline');
+                          }}
+                          className={`bg-white dark:bg-gray-800 py-1 px-0.5 text-center cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors ${isToday ? 'bg-blue-50 dark:bg-blue-900/30' : ''}`}
+                        >
+                          <div className="text-[10px] font-medium text-gray-500 dark:text-gray-400 uppercase">
+                            {day.toLocaleDateString('en-US', { weekday: 'short' })}
                           </div>
-                        ))}
-                      </div>
+                          <div className={`text-sm font-bold ${isToday ? 'bg-blue-600 text-white w-6 h-6 rounded-full flex items-center justify-center mx-auto text-xs' : 'text-gray-900 dark:text-white'}`}>
+                            {day.getDate()}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Time grid — scrollable, takes all remaining space */}
+                <div className="flex-1 overflow-y-auto min-h-0">
+                  <div className="flex">
+                    {/* Time column — tight */}
+                    <div className="w-7 flex-shrink-0">
+                      {Array.from({ length: 18 }, (_, i) => i + 6).map((hour) => (
+                        <div key={hour} className="h-12 flex items-start">
+                          <span className="text-[10px] text-gray-400 dark:text-gray-500 text-right w-full pr-0.5 -mt-1.5">
+                            {hour === 0 ? '12' : hour < 12 ? `${hour}` : hour === 12 ? '12' : `${hour - 12}`}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
                       {/* Day grid */}
                       <div className="flex-1 grid grid-cols-7 gap-px bg-gray-200 dark:bg-gray-700">
                         {/* Time rows from 6 AM to 11 PM */}
@@ -2099,7 +2216,9 @@ function HomeContent() {
                           return getWeekDays().map((day) => {
                               const dayStr = `${day.getFullYear()}-${String(day.getMonth() + 1).padStart(2, '0')}-${String(day.getDate()).padStart(2, '0')}`;
                               const hourItems = items.filter(item => {
-                                if (item.dueDate !== dayStr) return false;
+                                if (!item.dueDate) return false;
+                                const itemDate = item.dueDate.substring(0, 10);
+                                if (itemDate !== dayStr) return false;
                                 if (!item.dueTime) return false;
                                 const itemHour = parseInt(item.dueTime.split(':')[0]);
                                 return itemHour === hour;
@@ -2116,14 +2235,14 @@ function HomeContent() {
                               return (
                                 <div
                                   key={`${dayStr}-${hour}`}
-                                  className={`bg-white dark:bg-gray-800 p-1 min-h-[60px] ${isToday ? 'bg-blue-50/50 dark:bg-blue-900/10' : ''}`}
+                                  className={`bg-white dark:bg-gray-800 px-0.5 py-0.5 h-12 overflow-hidden ${isToday ? 'bg-blue-50/50 dark:bg-blue-900/10' : ''}`}
                                 >
                                   {/* Show events */}
                                   {hourEvents.map((event) => (
                                     <div
                                       key={event.id}
                                       onClick={() => setSelectedEvent(event)}
-                                      className="text-xs p-1 mb-1 rounded cursor-pointer bg-green-400 dark:bg-green-600 text-white truncate"
+                                      className="text-[10px] leading-tight px-1 py-0.5 mb-0.5 rounded cursor-pointer bg-green-400 dark:bg-green-600 text-white truncate"
                                       title={event.title}
                                     >
                                       {event.title}
@@ -2140,7 +2259,7 @@ function HomeContent() {
                                       <div
                                         key={item.id}
                                         onClick={() => openEditModal(item)}
-                                        className={`text-xs p-1 mb-1 rounded cursor-pointer ${bgColor} text-white truncate`}
+                                        className={`text-[10px] leading-tight px-1 py-0.5 mb-0.5 rounded cursor-pointer ${bgColor} text-white truncate`}
                                         title={item.name}
                                       >
                                         {item.name}
@@ -2154,19 +2273,40 @@ function HomeContent() {
                       </div>
                     </div>
                   </div>
-                </div>
 
-                {/* Scheduled No Time section at bottom */}
-                {categorizedData && categorizedData.scheduledNoTime.length > 0 && filterTypes.has("task") && (
-                  <DroppableSection id="scheduled-no-time">
-                    {renderSectionHeader("Scheduled (No Time)", "text-gray-600")}
-                    {!isSectionCollapsed("Scheduled (No Time)") && (
-                    <div className="space-y-3">
-                      {categorizedData.scheduledNoTime.map((item) => renderItemCard(item, item.isOverdue || false, "week-notime"))}
+                {/* Scheduled No Time section — items in this week with date but no time */}
+                {(() => {
+                  const weekDays = getWeekDays();
+                  const weekDateStrs = weekDays.map(d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`);
+                  const noTimeItems = items.filter(item =>
+                    item.dueDate &&
+                    weekDateStrs.includes(item.dueDate.substring(0, 10)) &&
+                    !item.dueTime &&
+                    !item.isCompleted &&
+                    filterTypes.has(item.itemType)
+                  );
+                  return noTimeItems.length > 0 ? (
+                    <div className="flex-shrink-0 mt-1">
+                    <DroppableSection id="scheduled-no-time">
+                      {renderSectionHeader("Scheduled (No Time)", "text-gray-600")}
+                      {!isSectionCollapsed("Scheduled (No Time)") && (
+                      <div className="flex flex-wrap gap-1.5">
+                        {noTimeItems.map((item) => (
+                          <div
+                            key={`week-notime-${item.id}`}
+                            onClick={() => openEditModal(item)}
+                            className="text-xs px-2 py-1 rounded-md bg-gray-100 text-gray-700 border border-gray-200 cursor-pointer hover:bg-gray-200 transition-colors truncate max-w-[180px]"
+                            title={item.name}
+                          >
+                            {item.name}
+                          </div>
+                        ))}
+                      </div>
+                      )}
+                    </DroppableSection>
                     </div>
-                    )}
-                  </DroppableSection>
-                )}
+                  ) : null;
+                })()}
               </div>
             ) : viewMode === 'month' ? (
               <div className="space-y-4">
@@ -2191,7 +2331,7 @@ function HomeContent() {
                         const isMonday = dayIndex === 0;
 
                         // Get items for this day
-                        const dayItems = items.filter(item => item.dueDate === dayStr);
+                        const dayItems = items.filter(item => item.dueDate && item.dueDate.substring(0, 10) === dayStr);
                         const dayEvents = events.filter(event => {
                           if (!event.startTime) return false;
                           const eventDate = new Date(event.startTime);

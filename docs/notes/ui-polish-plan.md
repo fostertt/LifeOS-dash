@@ -2,7 +2,7 @@
 
 **Created:** February 4, 2026
 **Last Updated:** February 11, 2026
-**Status:** Phases 1-5 COMPLETE — Phase 6 next
+**Status:** Phases 1-6 COMPLETE — Phase 7 next
 **Estimated Effort:** 11-14 hours (2-3 sessions)
 
 ---
@@ -259,8 +259,9 @@ Comprehensive UI redesign to make LifeOS more compact, clean, and professional a
 
 ---
 
-## Phase 6: Calendar Week View Improvements ⏳ NEXT
+## Phase 6: Calendar Week View Improvements ✅ COMPLETE
 
+**Completed:** February 11, 2026
 **Goal:** Make week view more compact and fix scrolling/navigation.
 
 **Addresses:**
@@ -269,46 +270,22 @@ Comprehensive UI redesign to make LifeOS more compact, clean, and professional a
 - Item 4.c: Make Overdue section smaller
 - Item 4.d: Show "Month FW#" in header
 
-### Changes
+### What was done:
+- ✅ **6.1 Compact mobile header** — Single sticky row: `[☰] [←] February FW7 [→] [⊞ view] [▽ filter]` (same pattern as month view)
+- ✅ **6.2 Tighten time column** — `w-14` → `w-7` (28px), 10px font, hour numbers only (no AM/PM), 48px row height (was 60px)
+- ✅ **6.3 Overdue as compact pills** — Replaced full-size cards with small wrapping pill-style tags (`⚠ Task name`), "Scheduled No Time" also uses pills
+- ✅ **6.4 Week header navigation** — Shows "February FW7", arrows navigate by week (7 days), tap label to go to today, purple when not current week
+- ✅ **6.5 Fixed viewport scroll** — Page uses `h-screen overflow-hidden flex flex-col` in week view; only time grid scrolls, overdue + day headers stay pinned
+- ✅ **6.6 Reduced padding** — Outer container `px-1`, card wrapper `p-1` on mobile for edge-to-edge layout
+- ✅ **6.7 Date nav + view switcher hidden on mobile** — Same as month view, controls moved to compact header
+- ✅ **6.8 Section header arrows moved to right** — All collapsible sections (calendar + All page) now have chevron on far right for easier right-handed use
+- ✅ **6.9 Fixed dueDate comparison bug** — All calendar views (week, schedule, month) were comparing ISO dates (`2026-02-11T00:00:00.000Z`) against `YYYY-MM-DD` strings; now uses `.substring(0, 10)` normalization
+- ✅ **6.10 Week-aware "Scheduled No Time"** — Filters from full items array for the whole week, not just the selected day
 
-#### 6.1 Fix Horizontal Scrolling
-**File:** `/app/calendar/page.tsx` (lines 1854-1981)
-
-- Same approach as month view
-- Week grid should scroll, not whole page
-- Apply `overflow-x-auto` to week grid container only
-
-#### 6.2 Tighten Time Column
-**File:** `/app/calendar/page.tsx`
-
-**Reference:** week.jpg - compact time labels
-
-**Current:** Large time labels with spacing
-**New:** Smaller, tighter
-
-- Reduce time label size: `text-sm` → `text-xs`
-- Reduce time cell width
-- Reduce vertical spacing between hours
-- Consider showing fewer hours (only 7 AM - 9 PM if typical)
-
-#### 6.3 Make Overdue Section Smaller & Collapsible (PARTIALLY DONE)
-
-- ✅ Collapse/expand toggle — Done in Phase 4
-- ⏳ Reduce card size in overdue section
-- ⏳ Make section header smaller: `text-lg` → `text-sm`
-- ⏳ Reduce padding: `p-4` → `p-2`
-
-#### 6.4 Fix Week Header Navigation
-**File:** `/app/calendar/page.tsx`
-
-**Current:** Shows "Wednesday, February 4, 2026"
-**New:** Show "Month FW#" when in week view (e.g., "February FW5")
-
-**Implementation:**
-- Calculate fiscal week number from selected date
-- Format: "MMMM FW#"
-- Arrows navigate to previous/next week
-- Update click handler to move by 7 days
+### Remaining / future polish:
+- ⏳ Additional UI tweaks may be needed on calendar views (spacing, visual refinements)
+- ⏳ Day headers could show events/items count badges
+- ⏳ Consider compact mobile header for other views (timeline, compact, schedule)
 
 ---
 
@@ -426,11 +403,11 @@ className="flex items-center gap-3 px-4 py-3 bg-white hover:bg-gray-50
 3. ~~**Phase 3** (Navigation)~~ ✅ DONE
 4. ~~**Phase 4** (All Page + Collapsible Sections)~~ ✅ DONE
 5. ~~**Phase 5** (Month View)~~ ✅ DONE
-6. **Phase 6** (Week View) - 2 hours - Complex, calendar-specific ⏳ NEXT
-7. **Phase 7** (Vault) - 1-2 hours - Medium complexity, independent
+6. ~~**Phase 6** (Week View)~~ ✅ DONE
+7. **Phase 7** (Vault) - 1-2 hours - Medium complexity, independent ⏳ NEXT
 8. **Phase 8** (FAB) - 1 hour - Quick win, independent
 
-**Remaining:** ~4-5 hours
+**Remaining:** ~2-3 hours
 
 ---
 

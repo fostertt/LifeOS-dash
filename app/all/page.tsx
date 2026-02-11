@@ -446,13 +446,14 @@ function AllTasksContent() {
                       onClick={() => toggleSection(groupName)}
                       className="flex items-center gap-2 text-lg font-semibold text-gray-900 mb-3 capitalize w-full text-left"
                     >
+                      {groupName} ({groupItems.length})
+                      <div className="flex-1" />
                       <svg
                         className={`w-4 h-4 text-gray-500 transition-transform ${isCollapsed ? "" : "rotate-90"}`}
                         fill="none" viewBox="0 0 24 24" stroke="currentColor"
                       >
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                       </svg>
-                      {groupName} ({groupItems.length})
                     </button>
                   )}
 

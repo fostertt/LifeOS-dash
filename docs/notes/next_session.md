@@ -1,25 +1,52 @@
 # Next Session - Start Here
 
 **Last Updated:** February 11, 2026
-**Current Status:** UI Polish Phase 5 COMPLETE ✅ — Ready for Phase 6
+**Current Status:** UI Polish Phase 6 COMPLETE ✅ — Ready for Phase 7
 **Branch:** master (committed & pushed)
 **Production:** <https://lifeos-dev.foster-home.net> (PM2 on port 3002)
 
 ---
 
-## 🎯 NEXT UP: Phase 6 — Calendar Week View Improvements (COMPLEX)
+## 🎯 NEXT UP: Phase 7 — Vault Improvements (MEDIUM)
 
-**Goal:** Make week view more compact and fix navigation behaviors.
+**Goal:** Make vault more compact like Google Keep and fix data refresh bug.
 
 **What needs to happen:**
-1. **Fix horizontal scrolling** — Week grid should scroll, not whole page
-2. **Tighten time column** — Smaller labels, less width, reference `week.jpg`
-3. **Reduce overdue section size** — Smaller cards/headers (collapse already works from Phase 4)
-4. **Fix week header navigation** — Show "February FW5" instead of full date; arrows navigate by week
+1. **Compact layout** — Reduce padding, tighter grid, minimal card borders (reference `keep1.jpg`)
+2. **Fix new notes not showing** — GlobalCreateManager creates note but Vault doesn't refresh
+3. **Make Content field optional** — Allow saving note with just a title
+4. **Verify click behavior** — Ensure direct click opens modal after Phase 1 swipe removal
 
-**Key file:** `app/calendar/page.tsx` (large file ~3000 lines, week view rendering around line 1950+)
+**Key files:** `app/vault/page.tsx`, `components/NoteForm.tsx`, `components/GlobalCreateManager.tsx`
 
-**See:** `docs/notes/ui-polish-plan.md` Phase 6 for detailed implementation notes.
+**See:** `docs/notes/ui-polish-plan.md` Phase 7 for detailed implementation notes.
+
+---
+
+## ⏳ Additional Calendar Polish (post-Phase 6)
+
+Some calendar views may need further UI tweaks:
+- Compact mobile headers for timeline/compact/schedule views (currently only month + week have them)
+- Day header event count badges in week view
+- General spacing/visual refinements
+
+---
+
+## ✅ COMPLETED: UI Polish Phase 6 (Feb 11, 2026)
+
+**Phase 6 — Calendar Week View Improvements:**
+
+1. ✅ **Compact mobile header** — `[☰] [←] February FW7 [→] [⊞ view] [▽ filter]` (same pattern as month)
+2. ✅ **Tight time column** — w-7 (28px), 10px font, hour numbers only, 48px rows
+3. ✅ **Overdue as compact pills** — Small wrapping `⚠ Task name` tags instead of full cards
+4. ✅ **Week header navigation** — "February FW7" format, arrows navigate by week, tap to go to today
+5. ✅ **Fixed viewport scroll** — `h-screen overflow-hidden` layout; only time grid scrolls, headers stay pinned
+6. ✅ **Edge-to-edge layout** — Reduced padding (`px-1`, `p-1`) for maximum screen usage
+7. ✅ **Section arrows moved right** — All collapsible sections (calendar + All page) have chevron on far right
+8. ✅ **Fixed dueDate comparison bug** — ISO date vs YYYY-MM-DD mismatch fixed across week, schedule, and month views
+9. ✅ **Week-aware "Scheduled No Time"** — Shows items for full week, not just selected day
+
+**Files Changed:** `app/calendar/page.tsx`, `app/all/page.tsx`
 
 ---
 
@@ -34,7 +61,7 @@
 4. ✅ Week number clicking navigates to THAT week's view
 5. ✅ Week numbers as small badges inside Monday cells
 
-### Phase 5b (this session):
+### Phase 5b:
 1. ✅ **Compact mobile header** — Single sticky row: `[☰] [←] February 2026 [→] [⊞ view] [▽ filter]`
 2. ✅ **Header.tsx `customMobileContent` prop** — Render prop for page-specific mobile headers (zero impact on other pages)
 3. ✅ **Redundant rows hidden** — Date nav card + mobile view switcher hidden on mobile in month view
@@ -51,52 +78,7 @@
 
 ---
 
-## ✅ COMPLETED: UI Polish Phase 4 (Feb 11, 2026)
-
-**Phase 4 — All Page Redesign + Collapsible Sections:**
-
-1. ✅ **Mobile width bug FIXED** — Added `overflow-x: hidden` to `body` in `globals.css` (covers all pages)
-2. ✅ **Task card redesign** — Checkbox on RIGHT side, inline date/time with task name, removed state/metadata badges, simpler styling
-3. ✅ **Section reordering** — In Progress → Active → Backlog → Completed
-4. ✅ **Checkbox functionality** — Fixed toggle API (was missing `date` parameter), checkboxes now work
-5. ✅ **Chronological sorting** — Items sorted by due date within each section (earliest first, no-date last)
-6. ✅ **Collapsible sections on All page** — Tap group headers to collapse/expand with chevron indicator
-7. ✅ **Collapsible sections on ALL Calendar views** — All 17 sections across compact, timeline, schedule, week, and month views are collapsible (Overdue, In Progress, Reminders, Events, Scheduled, Scheduled No Time, Quick Captures, Timeline)
-8. ✅ **Filter panel compacting** — Shorter labels, removed redundant text, smaller controls
-9. ✅ **Completed items visible by default** — All states shown including completed
-
-**Git Commit:** `3fdcfd8` — UI Polish Phase 4: All page redesign + collapsible sections
-**Files Changed:** `app/all/page.tsx`, `app/calendar/page.tsx`, `app/globals.css`
-**Tested:** Yes ✅
-
----
-
-## ✅ COMPLETED: UI Polish Phase 3 (Feb 5, 2026 Morning)
-
-**Phase 3 — Navigation Spacing & Week View Time Column:**
-- ✅ Reduced desktop header spacing: mb-8 → mb-4
-- ✅ Reduced All/Calendar/Vault page container padding
-- ✅ Refactored week view time column to be compact (fixed w-14, right-aligned)
-
-**Git Commit:** `f73e2c7`
-
----
-
-## ✅ COMPLETED: UI Polish Phases 1-2 (Feb 4, 2026 Evening)
-
-**Phase 1 — Disable Swipe Navigation:**
-- ✅ Simplified ClientRootLayout, removed SwipeContainer
-
-**Phase 2 — Mobile Header Cleanup:**
-- ✅ "LifeOS" centered in mobile header, hamburger on right
-
-**Git Commits:** `df9c81f`, `59b3449`, `0ea12f0`
-
----
-
-## ✅ COMPLETED: Phase 3.5.3 - Calendar View Switcher (Feb 4, 2026 Morning)
-
-5 calendar views (Timeline, Compact, Schedule, Week, Month) with hamburger sidebar, URL routing, localStorage persistence.
+## ✅ Earlier Phases (1-4, 3.5.3) — See ui-polish-plan.md for details
 
 ---
 
@@ -104,8 +86,7 @@
 
 | Phase | Description | Status | Complexity |
 |-------|------------|--------|------------|
-| 6 | Calendar Week View | **NEXT** | Complex |
-| 7 | Vault Improvements | Pending | Medium |
+| 7 | Vault Improvements | **NEXT** | Medium |
 | 8 | FAB Redesign | Pending | Easy |
 
 ---
@@ -122,7 +103,7 @@ The default `npm start` (without `-p 3002`) starts on port 3001 which causes 502
 
 ## Important Files to Know
 
-- `app/calendar/page.tsx` — All calendar views (~3000 lines, main target for Phase 6)
+- `app/calendar/page.tsx` — All calendar views (~3200 lines, Phase 6 complete)
 - `app/all/page.tsx` — All tasks page (Phase 4 complete)
 - `app/vault/page.tsx` — Vault page (Phase 7 target)
 - `components/FAB.tsx` — Plus button (Phase 8 target)
