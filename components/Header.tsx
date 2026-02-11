@@ -8,9 +8,14 @@ import Sidebar from "./Sidebar";
 
 interface HeaderProps {
   onFilterClick?: () => void;
+  /** Render prop to replace the default mobile header with custom content */
+  customMobileContent?: (props: {
+    onHamburgerClick: () => void;
+    onFilterClick?: () => void;
+  }) => React.ReactNode;
 }
 
-export default function Header({ onFilterClick }: HeaderProps) {
+export default function Header({ onFilterClick, customMobileContent }: HeaderProps) {
   const { data: session } = useSession();
   const pathname = usePathname();
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -27,28 +32,58 @@ export default function Header({ onFilterClick }: HeaderProps) {
       {/* Sidebar component */}
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
-      {/* Mobile header - LifeOS centered, hamburger on right */}
-      <div className="md:hidden sticky top-0 bg-white z-30 border-b border-gray-200 px-4 py-3 mb-2">
-        <div className="flex items-center justify-between">
-          {/* Left spacer for balance */}
-          <div className="w-10"></div>
+      {/* Mobile header - custom or default */}
+      {customMobileContent ? (
+        <div className="md:hidden sticky top-0 bg-white z-30 border-b border-gray-200 px-3 py-2 mb-2">
+          {customMobileContent({
+            onHamburgerClick: () => setSidebarOpen(true),
+            onFilterClick,
+          })}
+        </div>
+      ) : (
+        <div className="md:hidden sticky top-0 bg-white z-30 border-b border-gray-200 px-4 py-3 mb-2">
+          <div className="flex items-center justify-between">
+            {/* Left spacer for balance */}
+            <div className="w-10"></div>
 
-          {/* LifeOS title centered */}
-          <h1 className="text-lg font-semibold text-gray-900 absolute left-1/2 transform -translate-x-1/2">
-            LifeOS
-          </h1>
+            {/* LifeOS title centered */}
+            <h1 className="text-lg font-semibold text-gray-900 absolute left-1/2 transform -translate-x-1/2">
+              LifeOS
+            </h1>
 
-          {/* Right side icons: filter + hamburger */}
-          <div className="flex items-center gap-2">
-            {/* Filter button (only on certain pages) */}
-            {showFilter && onFilterClick && (
+            {/* Right side icons: filter + hamburger */}
+            <div className="flex items-center gap-2">
+              {/* Filter button (only on certain pages) */}
+              {showFilter && onFilterClick && (
+                <button
+                  onClick={onFilterClick}
+                  className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                  aria-label="Filter"
+                >
+                  <svg
+                    className="w-5 h-5 text-gray-700"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"
+                    />
+                  </svg>
+                </button>
+              )}
+
+              {/* Hamburger menu button - on right for right-handed use */}
               <button
-                onClick={onFilterClick}
+                onClick={() => setSidebarOpen(true)}
                 className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-                aria-label="Filter"
+                aria-label="Open menu"
               >
                 <svg
-                  className="w-5 h-5 text-gray-700"
+                  className="w-6 h-6 text-gray-700"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -57,35 +92,14 @@ export default function Header({ onFilterClick }: HeaderProps) {
                     strokeLinecap="round"
                     strokeLinejoin="round"
                     strokeWidth={2}
-                    d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"
+                    d="M4 6h16M4 12h16M4 18h16"
                   />
                 </svg>
               </button>
-            )}
-
-            {/* Hamburger menu button - on right for right-handed use */}
-            <button
-              onClick={() => setSidebarOpen(true)}
-              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-              aria-label="Open menu"
-            >
-              <svg
-                className="w-6 h-6 text-gray-700"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M4 6h16M4 12h16M4 18h16"
-                />
-              </svg>
-            </button>
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       {/* Desktop header - keep existing layout */}
       <div className="hidden md:flex md:items-center md:justify-between gap-4 mb-4">

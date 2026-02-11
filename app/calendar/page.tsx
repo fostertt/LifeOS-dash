@@ -206,12 +206,30 @@ function HomeContent() {
     })
   );
 
-  // Date navigation functions
-  const navigateToDate = (date: Date) => {
-    const dateStr = `${date.getFullYear()}-${String(
-      date.getMonth() + 1
-    ).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
-    router.push(`/calendar?date=${dateStr}`);
+  /** Sync state from URL when browser back/forward changes searchParams */
+  useEffect(() => {
+    const urlView = searchParams.get('view');
+    if (urlView === 'timeline' || urlView === 'compact' || urlView === 'schedule' || urlView === 'week' || urlView === 'month') {
+      setViewMode(urlView);
+    }
+    const dateParam = searchParams.get('date');
+    if (dateParam) {
+      const [year, month, day] = dateParam.split('-').map(Number);
+      const urlDate = new Date(year, month - 1, day);
+      setSelectedDate(urlDate);
+    }
+  }, [searchParams]);
+
+  /** Format a Date to YYYY-MM-DD string for URL params */
+  const formatDateStr = (date: Date): string => {
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+  };
+
+  // Date navigation functions — always preserve current view in URL
+  const navigateToDate = (date: Date, replace = false) => {
+    const dateStr = formatDateStr(date);
+    const url = `/calendar?view=${viewMode}&date=${dateStr}`;
+    replace ? router.replace(url) : router.push(url);
     setSelectedDate(date);
   };
 
@@ -229,13 +247,49 @@ function HomeContent() {
 
   const goToToday = () => {
     const today = new Date();
-    navigateToDate(today);
+    navigateToDate(today, viewMode === 'month');
   };
 
   const isToday = () => {
     const today = new Date();
     return selectedDate.toDateString() === today.toDateString();
   };
+
+  /** Navigate to previous month (month view) — uses replace to avoid stacking history entries */
+  const goToPreviousMonth = () => {
+    const prevMonth = new Date(selectedDate);
+    prevMonth.setMonth(prevMonth.getMonth() - 1);
+    const dateStr = formatDateStr(prevMonth);
+    router.replace(`/calendar?view=${viewMode}&date=${dateStr}`);
+    setSelectedDate(prevMonth);
+  };
+
+  /** Navigate to next month (month view) — uses replace to avoid stacking history entries */
+  const goToNextMonth = () => {
+    const nextMonth = new Date(selectedDate);
+    nextMonth.setMonth(nextMonth.getMonth() + 1);
+    const dateStr = formatDateStr(nextMonth);
+    router.replace(`/calendar?view=${viewMode}&date=${dateStr}`);
+    setSelectedDate(nextMonth);
+  };
+
+  /** View-aware navigation: month view navigates by month, others by day */
+  const goToPrevious = () => viewMode === 'month' ? goToPreviousMonth() : goToPreviousDay();
+  const goToNext = () => viewMode === 'month' ? goToNextMonth() : goToNextDay();
+
+  /** View-aware header label: month view shows "February 2026", others show full date */
+  const formatHeaderDate = () => {
+    if (viewMode === 'month') {
+      return selectedDate.toLocaleDateString("en-US", { month: "long", year: "numeric" });
+    }
+    return formatSelectedDate();
+  };
+
+  /** View-aware aria labels for nav buttons */
+  const getPrevLabel = () => viewMode === 'month' ? 'Previous month' : 'Previous day';
+  const getNextLabel = () => viewMode === 'month' ? 'Next month' : 'Next day';
+  const getPrevText = () => viewMode === 'month' ? 'Previous Month' : 'Previous Day';
+  const getNextText = () => viewMode === 'month' ? 'Next Month' : 'Next Day';
 
   // Phase 3.5.3: Generate array of dates for Schedule view (14 days from selected date)
   const getScheduleDays = () => {
@@ -775,7 +829,7 @@ function HomeContent() {
     setViewMode(mode);
 
     // Update URL with view parameter
-    const dateStr = `${selectedDate.getFullYear()}-${String(selectedDate.getMonth() + 1).padStart(2, '0')}-${String(selectedDate.getDate()).padStart(2, '0')}`;
+    const dateStr = formatDateStr(selectedDate);
     router.push(`/calendar?view=${mode}&date=${dateStr}`, { scroll: false });
 
     // Save last used view to localStorage
@@ -1440,6 +1494,93 @@ function HomeContent() {
     );
   };
 
+  /** Phase 5b: Compact month view mobile header — single row with all controls */
+  const renderMonthMobileHeader = ({ onHamburgerClick, onFilterClick }: {
+    onHamburgerClick: () => void;
+    onFilterClick?: () => void;
+  }) => {
+    const monthLabel = selectedDate.toLocaleDateString("en-US", { month: "long", year: "numeric" });
+    const isCurrentMonth = (() => {
+      const now = new Date();
+      return selectedDate.getMonth() === now.getMonth() && selectedDate.getFullYear() === now.getFullYear();
+    })();
+
+    return (
+      <div className="flex items-center gap-1">
+        {/* Hamburger menu */}
+        <button
+          onClick={onHamburgerClick}
+          className="p-2 hover:bg-gray-100 rounded-lg transition-colors flex-shrink-0"
+          aria-label="Open menu"
+        >
+          <svg className="w-5 h-5 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+          </svg>
+        </button>
+
+        {/* Previous month */}
+        <button
+          onClick={goToPreviousMonth}
+          className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors flex-shrink-0"
+          aria-label="Previous month"
+        >
+          <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+          </svg>
+        </button>
+
+        {/* Month label — tap to go to today; purple text when not current month */}
+        <button
+          onClick={goToToday}
+          className={`text-sm font-semibold flex-shrink-0 ${
+            isCurrentMonth ? 'text-gray-900' : 'text-purple-600 hover:text-purple-700'
+          }`}
+          title="Go to today"
+        >
+          {monthLabel}
+        </button>
+
+        {/* Next month */}
+        <button
+          onClick={goToNextMonth}
+          className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors flex-shrink-0"
+          aria-label="Next month"
+        >
+          <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+          </svg>
+        </button>
+
+        {/* Spacer */}
+        <div className="flex-1" />
+
+        {/* View switcher — grid icon to distinguish from hamburger */}
+        <button
+          onClick={() => setShowViewSwitcher(true)}
+          className="p-2 hover:bg-gray-100 rounded-lg transition-colors flex-shrink-0"
+          aria-label="Switch view"
+        >
+          <svg className="w-5 h-5 text-gray-700" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M4 5a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H5a1 1 0 01-1-1V5zm10 0a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1V5zM4 15a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H5a1 1 0 01-1-1v-4zm10 0a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4z" />
+          </svg>
+        </button>
+
+        {/* Filter button */}
+        {onFilterClick && (
+          <button
+            onClick={onFilterClick}
+            className="p-2 hover:bg-gray-100 rounded-lg transition-colors flex-shrink-0"
+            aria-label="Filter"
+          >
+            <svg className="w-5 h-5 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+            </svg>
+          </button>
+        )}
+      </div>
+    );
+  };
+
   return (
     <ProtectedRoute>
       <DndContext
@@ -1448,8 +1589,13 @@ function HomeContent() {
         onDragEnd={handleDragEnd}
       >
       <div className="min-h-screen bg-gradient-to-br from-purple-50 to-blue-50">
-        <div className="max-w-5xl mx-auto px-4 py-4 md:px-8 md:py-4">
-          {!insideSwipe && <Header onFilterClick={() => setShowFilterMenu(!showFilterMenu)} />}
+        <div className={`max-w-5xl mx-auto py-4 md:px-8 md:py-4 ${viewMode === 'month' ? 'px-2' : 'px-4'}`}>
+          {!insideSwipe && (
+            <Header
+              onFilterClick={() => setShowFilterMenu(!showFilterMenu)}
+              customMobileContent={viewMode === 'month' ? renderMonthMobileHeader : undefined}
+            />
+          )}
 
           {error && (
             <div className="bg-red-50 border-2 border-red-200 rounded-xl p-4 mb-6 flex items-start gap-3">
@@ -1491,14 +1637,14 @@ function HomeContent() {
             </div>
           )}
 
-          {/* Date Navigation - Compact on mobile, full on desktop */}
-          <div className="bg-white rounded-2xl shadow-lg p-3 md:p-6 mb-4 md:mb-6">
+          {/* Date Navigation - Hidden on mobile in month view (controls are in compact header) */}
+          <div className={`bg-white rounded-2xl shadow-lg mb-4 md:mb-6 ${viewMode === 'month' ? 'hidden md:block p-2 md:p-4' : 'p-3 md:p-6'}`}>
             {/* Mobile: Just arrows and date */}
             <div className="md:hidden flex items-center justify-between">
               <button
-                onClick={goToPreviousDay}
+                onClick={goToPrevious}
                 className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-                aria-label="Previous day"
+                aria-label={getPrevLabel()}
               >
                 <svg
                   className="w-5 h-5 text-gray-700"
@@ -1517,7 +1663,7 @@ function HomeContent() {
 
               <div className="text-center flex-1">
                 <h2 className="text-sm font-semibold text-gray-900">
-                  {formatSelectedDate()}
+                  {formatHeaderDate()}
                 </h2>
                 {!isToday() && (
                   <button
@@ -1530,9 +1676,9 @@ function HomeContent() {
               </div>
 
               <button
-                onClick={goToNextDay}
+                onClick={goToNext}
                 className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-                aria-label="Next day"
+                aria-label={getNextLabel()}
               >
                 <svg
                   className="w-5 h-5 text-gray-700"
@@ -1553,7 +1699,7 @@ function HomeContent() {
             {/* Desktop: Full buttons with text */}
             <div className="hidden md:flex items-center justify-between">
               <button
-                onClick={goToPreviousDay}
+                onClick={goToPrevious}
                 className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors font-medium flex items-center gap-2"
               >
                 <svg
@@ -1569,12 +1715,12 @@ function HomeContent() {
                     d="M15 19l-7-7 7-7"
                   />
                 </svg>
-                Previous Day
+                {getPrevText()}
               </button>
 
               <div className="text-center">
                 <h2 className="text-base font-semibold text-gray-800">
-                  {formatSelectedDate()}
+                  {formatHeaderDate()}
                 </h2>
                 {!isToday() && (
                   <button
@@ -1587,10 +1733,10 @@ function HomeContent() {
               </div>
 
               <button
-                onClick={goToNextDay}
+                onClick={goToNext}
                 className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors font-medium flex items-center gap-2"
               >
-                Next Day
+                {getNextText()}
                 <svg
                   className="w-4 h-4"
                   fill="none"
@@ -1619,9 +1765,9 @@ function HomeContent() {
             )}
 
             {/* Items Section */}
-            <div className="flex-1 bg-white rounded-2xl shadow-lg p-3 md:p-8 mb-6">
+            <div className={`flex-1 bg-white rounded-2xl shadow-lg mb-6 ${viewMode === 'month' ? 'p-2 md:p-4' : 'p-3 md:p-8'}`}>
               {/* Desktop: Show header with Today/Items title and count badges */}
-            <div className="hidden md:flex items-center gap-3 mb-6 flex-wrap">
+            <div className={`hidden md:flex items-center gap-3 flex-wrap ${viewMode === 'month' ? 'mb-2' : 'mb-6'}`}>
               <span className="text-3xl">📋</span>
               <h2 className="text-lg font-semibold text-gray-800">
                 {isToday() ? "Today" : "Items"}
@@ -1646,16 +1792,18 @@ function HomeContent() {
               </button>
             </div>
 
-            {/* Mobile: Completed count and view toggle */}
-            <div className="md:hidden flex items-center justify-between mb-3 gap-2">
-              <span className="text-xs text-green-700 font-medium">
-                {completedToday.size} completed
-              </span>
+            {/* Mobile: Completed count and view toggle — hidden in month view (controls in compact header) */}
+            <div className={`md:hidden flex items-center justify-between gap-2 ${viewMode === 'month' ? 'hidden' : 'mb-3'}`}>
+              {viewMode !== 'month' && (
+                <span className="text-xs text-green-700 font-medium">
+                  {completedToday.size} completed
+                </span>
+              )}
 
               {/* Phase 3.5.3: View switcher button */}
               <button
                 onClick={() => setShowViewSwitcher(true)}
-                className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors ml-auto"
                 aria-label="Switch calendar view"
               >
                 <svg className="w-5 h-5 text-gray-700 dark:text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -2024,146 +2172,143 @@ function HomeContent() {
               <div className="space-y-4">
                 {/* Phase 3.5.3: Month View - Calendar grid */}
 
-                {/* Month calendar grid */}
-                <div className="overflow-x-auto">
-                  <div className="min-w-[640px]">
-                    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm overflow-hidden">
-                      {/* Day name headers */}
-                      <div className="grid grid-cols-8 gap-px bg-gray-200 dark:bg-gray-700">
-                        <div className="bg-gray-50 dark:bg-gray-800 p-2 text-center text-xs font-semibold text-gray-600 dark:text-gray-400">
-                          Wk
-                        </div>
-                        {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((dayName) => (
-                          <div key={dayName} className="bg-gray-50 dark:bg-gray-800 p-2 text-center text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase">
-                            {dayName}
-                          </div>
-                        ))}
+                {/* Month calendar grid — 7-col, week numbers inside Monday cells */}
+                <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm overflow-hidden -mx-2 md:-mx-4">
+                  {/* Day name headers */}
+                  <div className="grid grid-cols-7 gap-px bg-gray-200 dark:bg-gray-700">
+                    {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((dayName) => (
+                      <div key={dayName} className="bg-gray-50 dark:bg-gray-800 py-1 text-center text-[11px] font-semibold text-gray-500 dark:text-gray-400 uppercase">
+                        {dayName}
                       </div>
-
-                      {/* Calendar grid */}
-                      <div className="grid grid-cols-8 gap-px bg-gray-200 dark:bg-gray-700">
-                        {getMonthCalendar().map((week, weekIndex) => (
-                          <React.Fragment key={weekIndex}>
-                            {/* Week number */}
-                            <div
-                              onClick={() => {
-                                navigateToDate(week.weekStartDate);
-                                toggleViewMode('week');
-                              }}
-                              className="bg-gray-100 dark:bg-gray-700 p-2 flex items-center justify-center cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
-                            >
-                              <div className="text-xs font-semibold text-gray-600 dark:text-gray-400">
-                                {week.weekNumber}
-                              </div>
-                            </div>
-
-                            {/* Days */}
-                            {week.days.map((day) => {
-                          const dayStr = `${day.date.getFullYear()}-${String(day.date.getMonth() + 1).padStart(2, '0')}-${String(day.date.getDate()).padStart(2, '0')}`;
-
-                          // Get items for this day
-                          const dayItems = items.filter(item => item.dueDate === dayStr);
-                          const dayEvents = events.filter(event => {
-                            if (!event.startTime) return false;
-                            const eventDate = new Date(event.startTime);
-                            return eventDate.toDateString() === day.date.toDateString();
-                          });
-
-                          // Get overdue count for current day
-                          const overdueCount = day.isToday && categorizedData ? categorizedData.overdue.length : 0;
-
-                          return (
-                            <div
-                              key={day.date.toDateString()}
-                              onClick={() => {
-                                if (day.isCurrentMonth) {
-                                  navigateToDate(day.date);
-                                  toggleViewMode('timeline'); // Switch to timeline view when clicking a date
-                                }
-                              }}
-                              className={`bg-white dark:bg-gray-800 p-2 min-h-[100px] cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors ${
-                                !day.isCurrentMonth ? 'opacity-40' : ''
-                              } ${day.isToday ? 'ring-2 ring-blue-400 dark:ring-blue-600' : ''}`}
-                            >
-                              {/* Date number */}
-                              <div className={`text-sm font-semibold mb-1 ${
-                                day.isToday ? 'text-blue-600 dark:text-blue-400' : day.isCurrentMonth ? 'text-gray-900 dark:text-white' : 'text-gray-400 dark:text-gray-600'
-                              }`}>
-                                {day.date.getDate()}
-                              </div>
-
-                              {/* Overdue indicator */}
-                              {overdueCount > 0 && (
-                                <div className="flex items-center gap-1 text-xs text-red-600 dark:text-red-400 mb-1 font-medium">
-                                  <span>⚠️</span>
-                                  <span>{overdueCount} pending</span>
-                                </div>
-                              )}
-
-                              {/* Item pills */}
-                              <div className="space-y-1">
-                                {/* Show events */}
-                                {dayEvents.slice(0, 3).map((event) => (
-                                  <div
-                                    key={event.id}
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      setSelectedEvent(event);
-                                    }}
-                                    className="text-xs px-2 py-1 rounded bg-green-500 dark:bg-green-600 text-white truncate"
-                                    title={event.title}
-                                  >
-                                    {!event.isAllDay && event.startTime && (
-                                      <span className="font-medium">
-                                        {new Date(event.startTime).toLocaleTimeString('en-US', {
-                                          hour: 'numeric',
-                                          minute: '2-digit',
-                                          hour12: true
-                                        })}{' '}
-                                      </span>
-                                    )}
-                                    <span className="truncate">{event.title}</span>
-                                  </div>
-                                ))}
-
-                                {/* Show items */}
-                                {dayItems.slice(0, 3 - dayEvents.length).map((item) => {
-                                  const bgColor = item.itemType === 'habit' ? 'bg-purple-500 dark:bg-purple-600' :
-                                                 item.itemType === 'reminder' ? 'bg-yellow-500 dark:bg-yellow-600' :
-                                                 item.priority === 'high' ? 'bg-red-500 dark:bg-red-600' :
-                                                 'bg-orange-500 dark:bg-orange-600';
-                                  return (
-                                    <div
-                                      key={item.id}
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        openEditModal(item);
-                                      }}
-                                      className={`text-xs px-2 py-1 rounded ${bgColor} text-white truncate`}
-                                      title={item.name}
-                                    >
-                                      {item.dueTime && (
-                                        <span className="font-medium">{item.dueTime} </span>
-                                      )}
-                                      <span className="truncate">{item.name}</span>
-                                    </div>
-                                  );
-                                })}
-
-                                {/* Show overflow indicator */}
-                                {(dayItems.length + dayEvents.length > 3) && (
-                                  <div className="text-xs text-gray-500 dark:text-gray-400 font-medium">
-                                    +{dayItems.length + dayEvents.length - 3} more
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </React.Fragment>
                     ))}
                   </div>
-                </div>
+
+                  {/* Day cells */}
+                  <div className="grid grid-cols-7 gap-px bg-gray-200 dark:bg-gray-700">
+                    {getMonthCalendar().map((week, weekIndex) =>
+                      week.days.map((day, dayIndex) => {
+                        const dayStr = formatDateStr(day.date);
+                        const isMonday = dayIndex === 0;
+
+                        // Get items for this day
+                        const dayItems = items.filter(item => item.dueDate === dayStr);
+                        const dayEvents = events.filter(event => {
+                          if (!event.startTime) return false;
+                          const eventDate = new Date(event.startTime);
+                          return eventDate.toDateString() === day.date.toDateString();
+                        });
+
+                        // Get overdue count for current day
+                        const overdueCount = day.isToday && categorizedData ? categorizedData.overdue.length : 0;
+
+                        return (
+                          <div
+                            key={day.date.toDateString()}
+                            onClick={() => {
+                              if (day.isCurrentMonth) {
+                                const dateStr = formatDateStr(day.date);
+                                router.push(`/calendar?view=timeline&date=${dateStr}`, { scroll: false });
+                                setSelectedDate(day.date);
+                                setViewMode('timeline');
+                                localStorage.setItem('lastCalendarView', 'timeline');
+                              }
+                            }}
+                            className={`relative bg-white dark:bg-gray-800 p-1 min-h-[110px] cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors ${
+                              !day.isCurrentMonth ? 'opacity-40' : ''
+                            } ${day.isToday ? 'ring-2 ring-blue-400 dark:ring-blue-600' : ''}`}
+                          >
+                            {/* Week number badge on Monday cells */}
+                            {isMonday && (
+                              <span
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  const dateStr = formatDateStr(week.weekStartDate);
+                                  router.push(`/calendar?view=week&date=${dateStr}`, { scroll: false });
+                                  setSelectedDate(week.weekStartDate);
+                                  setViewMode('week');
+                                  localStorage.setItem('lastCalendarView', 'week');
+                                }}
+                                className="absolute bottom-1 right-1 text-[10px] font-semibold text-gray-300 dark:text-gray-600 cursor-pointer hover:text-purple-500 dark:hover:text-purple-400 leading-none"
+                                title={`Go to week ${week.weekNumber}`}
+                              >
+                                W{week.weekNumber}
+                              </span>
+                            )}
+
+                            {/* Date number */}
+                            <div className={`text-xs font-semibold mb-0.5 ${
+                              day.isToday ? 'text-blue-600 dark:text-blue-400' : day.isCurrentMonth ? 'text-gray-900 dark:text-white' : 'text-gray-400 dark:text-gray-600'
+                            }`}>
+                              {day.date.getDate()}
+                            </div>
+
+                                  {/* Overdue indicator */}
+                                  {overdueCount > 0 && (
+                                    <div className="flex items-center gap-0.5 text-[10px] text-red-600 dark:text-red-400 mb-0.5 font-medium">
+                                      <span>⚠️</span>
+                                      <span>{overdueCount}</span>
+                                    </div>
+                                  )}
+
+                                  {/* Item pills */}
+                                  <div className="space-y-0.5">
+                                    {/* Show events */}
+                                    {dayEvents.slice(0, 4).map((event) => (
+                                      <div
+                                        key={event.id}
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          setSelectedEvent(event);
+                                        }}
+                                        className="text-[9px] leading-tight px-1 py-px rounded bg-green-500 dark:bg-green-600 text-white truncate"
+                                        title={event.title}
+                                      >
+                                        {!event.isAllDay && event.startTime ? (
+                                          <span className="font-medium">
+                                            {new Date(event.startTime).toLocaleTimeString('en-US', {
+                                              hour: 'numeric',
+                                              minute: '2-digit',
+                                              hour12: true
+                                            }).replace(' ', '')}
+                                          </span>
+                                        ) : (
+                                          <span className="truncate">{event.title}</span>
+                                        )}
+                                      </div>
+                                    ))}
+
+                                    {/* Show items */}
+                                    {dayItems.slice(0, 4 - dayEvents.length).map((item) => {
+                                      const bgColor = item.itemType === 'habit' ? 'bg-purple-500 dark:bg-purple-600' :
+                                                     item.itemType === 'reminder' ? 'bg-yellow-500 dark:bg-yellow-600' :
+                                                     item.priority === 'high' ? 'bg-red-500 dark:bg-red-600' :
+                                                     'bg-orange-500 dark:bg-orange-600';
+                                      return (
+                                        <div
+                                          key={item.id}
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            openEditModal(item);
+                                          }}
+                                          className={`text-[9px] leading-tight px-1 py-px rounded ${bgColor} text-white truncate`}
+                                          title={item.name}
+                                        >
+                                          <span className="truncate">{item.dueTime ? item.dueTime : item.name}</span>
+                                        </div>
+                                      );
+                                    })}
+
+                                    {/* Show overflow indicator */}
+                                    {(dayItems.length + dayEvents.length > 4) && (
+                                      <div className="text-[9px] text-gray-500 dark:text-gray-400 font-medium">
+                                        +{dayItems.length + dayEvents.length - 4} more
+                                      </div>
+                                    )}
+                            </div>
+                          </div>
+                        );
+                      })
+                    )}
                   </div>
                 </div>
 

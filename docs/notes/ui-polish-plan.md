@@ -2,7 +2,7 @@
 
 **Created:** February 4, 2026
 **Last Updated:** February 11, 2026
-**Status:** Phases 1-4 COMPLETE — Phase 5 next
+**Status:** Phases 1-5 COMPLETE — Phase 6 next
 **Estimated Effort:** 11-14 hours (2-3 sessions)
 
 ---
@@ -218,9 +218,10 @@ Comprehensive UI redesign to make LifeOS more compact, clean, and professional a
 
 ---
 
-## Phase 5: Calendar Month View Improvements ⏳ NEXT
+## Phase 5: Calendar Month View Improvements ✅ COMPLETE
 
-**Goal:** Make month view more compact and fix navigation behaviors.
+**Completed:** Feb 11, 2026
+**Goal:** Make month view more compact, fix navigation, add compact mobile header.
 **Note:** Section 5.7 (collapsible overdue) was completed in Phase 4.
 
 **Addresses:**
@@ -231,83 +232,34 @@ Comprehensive UI redesign to make LifeOS more compact, clean, and professional a
 - Item 3.f: Week numbers as "FW#" outside grid
 - Item 3.g: Calendar should scroll, not whole screen
 
-### Changes
+### What was done (Phase 5a — earlier session):
+- ✅ 5.1 Compact month cells — smaller date numbers, tighter padding, smaller item pills
+- ✅ 5.2 Month header shows "February 2026" with month-level arrow navigation
+- ✅ 5.3 Day clicking navigates to THAT day's timeline view
+- ✅ 5.4 Week number clicking navigates to THAT week's view
+- ✅ 5.5 Week numbers moved to small badge inside Monday cells (not a separate column)
+- ✅ 5.7 Collapsible overdue (done in Phase 4)
 
-#### 5.1 Make Month View More Compact
-**File:** `/app/calendar/page.tsx` (lines 1982-2138)
+### What was done (Phase 5b — this session):
+- ✅ Compact mobile header for month view — single sticky row: `[☰] [←] February 2026 [→] [⊞ view] [▽ filter]`
+- ✅ Header.tsx extended with `customMobileContent` render prop (zero impact on other pages)
+- ✅ Date nav card hidden on mobile in month view (desktop unchanged)
+- ✅ Mobile view switcher row hidden in month view (moved to header)
+- ✅ Grid icon (4 squares) differentiates view switcher from hamburger menu
+- ✅ Month text tappable to go to today; turns purple when not current month
+- ✅ Stretched calendar cells taller (88px → 110px min-height) for more content
+- ✅ Smaller pill fonts (11px → 9px) with tighter padding — shows time OR title
+- ✅ Overdue indicator compacted: `⚠️ 5` instead of `⚠️ 5 pending`
+- ✅ 4 items per cell (up from 3) before "+N more" overflow
+- ✅ Back button fix — month nav uses `router.replace()` to avoid stacking history
+- ✅ URL↔state sync via `useEffect` on `searchParams` — back button now properly restores view+date
 
-**Reference:** month.jpg - tighter spacing, smaller text
-
-**Styling Changes:**
-- Reduce cell min-height (currently tall cells)
-- Smaller date numbers: `text-2xl` → `text-lg` or `text-base`
-- Reduce padding in cells: `p-2` → `p-1`
-- Smaller item pills: `text-xs` → `text-[10px]`, less padding
-- Tighter grid gaps if any
-
-#### 5.2 Fix Month Header Navigation
-**File:** `/app/calendar/page.tsx`
-
-**Current:** Shows "Wednesday, February 4, 2026" with arrows
-**New:** Show month name "February 2026" when in month view
-
-- Check current view mode
-- If `view === 'month'`, show format "MMMM YYYY"
-- Arrows navigate to previous/next month (not day)
-
-#### 5.3 Fix Day Clicking Behavior
-**File:** `/app/calendar/page.tsx`
-
-**Current:** Clicking any day goes to today
-**Problem:** Not passing clicked date to navigation
-
-**Fix:**
-- On day click, call `handleDateChange(clickedDate)` AND switch to timeline view
-- Pass actual clicked date, not `new Date()`
-- Update URL: `?view=timeline&date=YYYY-MM-DD`
-
-#### 5.4 Fix Week Number Clicking
-**File:** `/app/calendar/page.tsx`
-
-**Current:** Clicking any week goes to current week
-**Problem:** Same as day clicking - not passing correct date
-
-**Fix:**
-- On week number click, calculate Monday of that week
-- Call `handleDateChange(mondayOfWeek)` AND switch to week view
-- Update URL: `?view=week&date=YYYY-MM-DD`
-
-#### 5.5 Move Week Numbers Outside Grid
-**File:** `/app/calendar/page.tsx`
-
-**Current:** "Wk" column inside grid (8 columns total)
-**New:** "FW#" labels outside grid (7 columns for days)
-
-**Implementation:**
-- Separate week numbers from calendar grid
-- Position week numbers in absolute or separate column
-- Reduce width of week number column
-- Style as "FW5", "FW6" etc.
-
-#### 5.6 Fix Horizontal Scrolling
-**File:** `/app/calendar/page.tsx`
-
-**Current:** Whole page scrolls horizontally
-**Problem:** Parent container has scroll, not calendar
-
-**Fix:**
-- Calendar container: `overflow-x-auto`
-- Parent containers: Remove `overflow-x-auto`
-- Ensure calendar table has `min-w-fit` or fixed width
-- Test on mobile: swipe should scroll calendar, not change pages
-
-#### 5.7 Make Overdue Section Collapsible ✅ DONE (Phase 4)
-
-Completed in Phase 4 — all sections across all calendar views are now collapsible with chevron toggles.
+### Remaining (skipped/deferred):
+- ⏳ 5.6 Horizontal scroll fix — low priority, `overflow-x: hidden` on body handles it for now
 
 ---
 
-## Phase 6: Calendar Week View Improvements
+## Phase 6: Calendar Week View Improvements ⏳ NEXT
 
 **Goal:** Make week view more compact and fix scrolling/navigation.
 
@@ -473,12 +425,12 @@ className="flex items-center gap-3 px-4 py-3 bg-white hover:bg-gray-50
 2. ~~**Phase 2** (Home Page)~~ ✅ DONE
 3. ~~**Phase 3** (Navigation)~~ ✅ DONE
 4. ~~**Phase 4** (All Page + Collapsible Sections)~~ ✅ DONE
-5. **Phase 5** (Month View) - 2-3 hours - Complex, calendar-specific ⏳ NEXT
-6. **Phase 6** (Week View) - 2 hours - Complex, calendar-specific
+5. ~~**Phase 5** (Month View)~~ ✅ DONE
+6. **Phase 6** (Week View) - 2 hours - Complex, calendar-specific ⏳ NEXT
 7. **Phase 7** (Vault) - 1-2 hours - Medium complexity, independent
 8. **Phase 8** (FAB) - 1 hour - Quick win, independent
 
-**Remaining:** ~6-8 hours
+**Remaining:** ~4-5 hours
 
 ---
 
@@ -486,7 +438,7 @@ className="flex items-center gap-3 px-4 py-3 bg-white hover:bg-gray-50
 
 ### Core Navigation
 - `/components/ClientRootLayout.tsx` - Swipe disable
-- `/components/Header.tsx` - Nav bar updates
+- `/components/Header.tsx` - Nav bar updates, `customMobileContent` render prop
 - `/components/Sidebar.tsx` - Mobile menu
 
 ### Pages
@@ -549,15 +501,3 @@ When all phases complete:
 ✅ No horizontal scrolling issues on mobile
 ✅ Overall design feels clean, minimal, and professional
 ✅ Mobile and desktop both work well
-
----
-
-## Next Steps
-
-1. Review this plan
-2. Start with Phase 1 (disable swipe) to establish foundation
-3. Work through phases sequentially or tackle quick wins first
-4. Test thoroughly after each phase
-5. Commit changes incrementally
-
-**Ready to start when you are!**
