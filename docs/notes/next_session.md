@@ -35,12 +35,15 @@
 
 **Phase 6.5 — Calendar View Consolidation & Polish:**
 
-1. ✅ **Merged compact into timeline** — 5 views → 4 (removed "Compact" from ViewMode + view switcher)
-2. ✅ **3-state "Today" section** — Expanded (time grid) → list (events + scheduled as cards) → collapsed (hidden)
-3. ✅ **Compact mobile headers for all views** — Timeline and schedule now have `[☰] [←] Wed, Feb 11 [→] [⊞] [▽]`
-4. ✅ **Date nav + view switcher hidden on mobile for all views** — All views use compact header now
-5. ✅ **Timeline time labels** — Removed AM/PM, hour number only, darker font
-6. ✅ **Week view time labels** — Bigger (11px), bolder, darker, wider column
+1. ✅ **Merged compact into timeline** — 5 views → 4 (today, schedule, week, month)
+2. ✅ **Renamed to "Today"** — View switcher shows "Today" instead of "Timeline"/"Compact"
+3. ✅ **3-state "Today" section** — Collapsed → list (events + scheduled as cards) → grid (time grid) → collapsed
+4. ✅ **Default state** — Overdue collapsed, Today in list mode on page load
+5. ✅ **Compact mobile headers for all views** — Today and schedule now have `[☰] [←] Wed, Feb 11 [→] [⊞] [▽]`
+6. ✅ **Today view scroll fix** — Pinned header like week view (`h-screen overflow-hidden`)
+7. ✅ **Timeline time labels** — Removed AM/PM, hour number only, darker font (`text-gray-700 font-semibold`)
+8. ✅ **Week view time labels** — 12px, `text-black font-bold`, wider column (`w-9`)
+9. ⚠️ **Week view dark mode bug** — Time numbers invisible on phone dark mode (needs Phase 9)
 
 **Files Changed:** `app/calendar/page.tsx`, `components/ViewSwitcherSidebar.tsx`
 

@@ -296,9 +296,10 @@ Comprehensive UI redesign to make LifeOS more compact, clean, and professional a
 ### What was done:
 
 **View Consolidation:**
-- ✅ **Merged compact into timeline** — Removed "compact" as a separate ViewMode (5 views → 4: timeline, schedule, week, month)
-- ✅ **3-state "Today" section** — Renamed "Timeline" to "Today"; cycles: expanded (time grid) → list (events + scheduled as cards) → collapsed (hidden)
-- ✅ **Removed "Compact" from view switcher** — ViewSwitcherSidebar only shows Timeline, Schedule, Week, Month
+- ✅ **Merged compact into timeline** — Removed "compact" as a separate ViewMode (5 views → 4: today, schedule, week, month)
+- ✅ **3-state "Today" section** — Cycles: collapsed → list (events + scheduled as cards) → grid (time grid) → collapsed
+- ✅ **Renamed to "Today"** — ViewSwitcherSidebar shows "Today" instead of "Timeline" or "Compact"
+- ✅ **Default state** — Overdue collapsed, Today in list mode on page load
 - ✅ **Migration** — URL param `?view=compact` and localStorage `lastCalendarView=compact` gracefully fall back to `timeline`
 - ✅ **Mobile default** — Changed from `compact` to `timeline`
 
@@ -306,13 +307,17 @@ Comprehensive UI redesign to make LifeOS more compact, clean, and professional a
 - ✅ **Day view header** — `[☰] [←] Wed, Feb 11 [→] [⊞ view] [▽ filter]` for timeline and schedule views
 - ✅ **All views now have compact headers** — Date nav card and mobile view switcher hidden on mobile for all views (desktop unchanged)
 
-**Time Label Styling:**
-- ✅ **Timeline time labels** — Removed AM/PM, shows hour number only (e.g., "5", "12", "1"), keeps existing font size, darker font
-- ✅ **Week view time labels** — Increased from 10px to 11px, bolder weight (`font-medium`), darker color (`text-gray-500` → `text-gray-600`), wider column (`w-7` → `w-9`)
+**Scroll Fix:**
+- ✅ **Today view pinned header** — Applied same `h-screen overflow-hidden flex flex-col` layout as week view; header stays pinned, only content scrolls
 
-**Noted Issues:**
+**Time Label Styling:**
+- ✅ **Timeline time labels** — Removed AM/PM, shows hour number only (e.g., "5", "12", "1"), keeps existing font size, darker font (`text-gray-700 font-semibold`)
+- ✅ **Week view time labels** — 12px (`text-xs`), `text-black dark:text-white font-bold`, wider column (`w-7` → `w-9`)
+
+**Known Issues:**
 - ⏳ Google Calendar dateless events showing on today — see bugs.md
-- ⏳ Dark mode mismatch — week view has `dark:` classes but rest of app doesn't — future phase
+- ⏳ Week view time numbers invisible on phone dark mode — `dark:` Tailwind classes don't activate without proper dark mode setup. Needs Phase 9. See bugs.md
+- ⏳ Consider merging Schedule view into Today as a 4th state (collapsed → list → multi-day → grid)
 
 **Files Changed:** `app/calendar/page.tsx`, `components/ViewSwitcherSidebar.tsx`
 
