@@ -81,8 +81,8 @@ interface CategorizedCalendarData {
 }
 
 type ItemType = "habit" | "task" | "reminder" | "event";
-// Phase 3.5.3: Unified view system with 5 calendar views
-type ViewMode = "timeline" | "compact" | "schedule" | "week" | "month";
+// Phase 3.5.3: Unified view system with 4 calendar views (compact merged into timeline)
+type ViewMode = "timeline" | "schedule" | "week" | "month";
 
 function HomeContent() {
   const { insideSwipe } = useContext(SwipeContext);
@@ -125,25 +125,26 @@ function HomeContent() {
   );
 
   // Collapsible sections state
-  const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set());
+  const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set(["Overdue", "Today-grid"]));
 
-  // Phase 3.5.3: View mode (timeline/compact/schedule/week/month)
+  // Phase 3.5.3: View mode (timeline/schedule/week/month) — compact merged into timeline
   const [viewMode, setViewMode] = useState<ViewMode>(() => {
     if (typeof window !== 'undefined') {
-      // Check URL param first
+      // Check URL param first (migrate 'compact' → 'timeline')
       const urlView = searchParams.get('view');
-      if (urlView === 'timeline' || urlView === 'compact' || urlView === 'schedule' || urlView === 'week' || urlView === 'month') {
+      if (urlView === 'compact') return 'timeline';
+      if (urlView === 'timeline' || urlView === 'schedule' || urlView === 'week' || urlView === 'month') {
         return urlView;
       }
-      // Then check localStorage for last used view
+      // Then check localStorage for last used view (migrate 'compact' → 'timeline')
       const saved = localStorage.getItem('lastCalendarView');
-      if (saved === 'timeline' || saved === 'compact' || saved === 'schedule' || saved === 'week' || saved === 'month') {
+      if (saved === 'compact') return 'timeline';
+      if (saved === 'timeline' || saved === 'schedule' || saved === 'week' || saved === 'month') {
         return saved;
       }
-      // Default based on screen size: compact for mobile, timeline for desktop
-      return window.innerWidth < 768 ? 'compact' : 'timeline';
+      return 'timeline';
     }
-    return 'compact';
+    return 'timeline';
   });
 
   // Phase 3.4: Timeline zoom level (pixels per hour)
@@ -209,7 +210,9 @@ function HomeContent() {
   /** Sync state from URL when browser back/forward changes searchParams */
   useEffect(() => {
     const urlView = searchParams.get('view');
-    if (urlView === 'timeline' || urlView === 'compact' || urlView === 'schedule' || urlView === 'week' || urlView === 'month') {
+    if (urlView === 'compact') {
+      setViewMode('timeline');
+    } else if (urlView === 'timeline' || urlView === 'schedule' || urlView === 'week' || urlView === 'month') {
       setViewMode(urlView);
     }
     const dateParam = searchParams.get('date');
@@ -1072,6 +1075,59 @@ function HomeContent() {
   /** Check if a section is collapsed */
   const isSectionCollapsed = (sectionKey: string) => collapsedSections.has(sectionKey);
 
+  /** 3-state toggle for Today section: collapsed → list → grid → collapsed */
+  const getTodayState = (): 'grid' | 'list' | 'collapsed' => {
+    if (collapsedSections.has("Today")) return 'collapsed';
+    if (collapsedSections.has("Today-grid")) return 'list';
+    return 'grid';
+  };
+
+  const cycleTodayState = () => {
+    setCollapsedSections((prev) => {
+      const next = new Set(prev);
+      const state = getTodayState();
+      if (state === 'collapsed') {
+        // collapsed → list: show card list
+        next.delete("Today");
+        next.add("Today-grid");
+      } else if (state === 'list') {
+        // list → grid: show time grid
+        next.delete("Today-grid");
+      } else {
+        // grid → collapsed: hide everything
+        next.add("Today");
+      }
+      return next;
+    });
+  };
+
+  /** Render the Today section header with 3-state chevron */
+  const renderTodaySectionHeader = () => {
+    const state = getTodayState();
+    // Chevron rotation: grid=down(90), list=right(0), collapsed=right(0)
+    const chevronClass = state === 'grid' ? 'rotate-90' : '';
+    // Show a subtle indicator of current state
+    const stateLabel = state === 'list' ? ' (list)' : '';
+    return (
+      <button
+        onClick={cycleTodayState}
+        className="flex items-center gap-2 mb-3 mt-6 first:mt-0 w-full text-left"
+      >
+        <span className="text-lg">📅</span>
+        <h3 className="text-sm font-semibold uppercase tracking-wide text-purple-700">
+          Today{stateLabel}
+        </h3>
+        <div className="flex-1 border-t border-gray-200"></div>
+        <svg
+          className={`w-4 h-4 text-purple-700 transition-transform ${chevronClass}`}
+          fill="none" viewBox="0 0 24 24" stroke="currentColor"
+        >
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+        </svg>
+      </button>
+    );
+  };
+
   /** Render a collapsible section header with chevron */
   const renderSectionHeader = (title: string, color: string = "text-gray-700", icon?: string) => (
     <button
@@ -1093,7 +1149,7 @@ function HomeContent() {
   );
 
   // Phase 3.4: Helper to render item cards
-  const renderItemCard = (item: Item, isOverdue: boolean = false, context: string = "compact") => {
+  const renderItemCard = (item: Item, isOverdue: boolean = false, context: string = "timeline") => {
     const isRecurring = item.scheduleType && item.scheduleType !== "";
     const isCompleted = isRecurring
       ? completedToday.has(item.id)
@@ -1389,7 +1445,7 @@ function HomeContent() {
         </div>
 
         {/* Timeline grid */}
-        <div className="relative border-l-2 border-gray-300 ml-12 md:ml-0">
+        <div className="relative border-l-2 border-gray-300 ml-9 md:ml-0">
           
           {/* Phase 3.8: Droppable Background Layer */}
           <div className="absolute inset-0 z-0 w-full h-full">
@@ -1419,7 +1475,7 @@ function HomeContent() {
 
           {hours.map((hour) => {
             const topPosition = (hour - startHour) * timelineZoom;
-            const timeLabel = hour === 12 ? '12 PM' : hour > 12 ? `${hour - 12} PM` : `${hour} AM`;
+            const timeLabel = hour === 0 ? '12' : hour < 12 ? `${hour}` : hour === 12 ? '12' : `${hour - 12}`;
 
             return (
               <div
@@ -1427,7 +1483,7 @@ function HomeContent() {
                 className="absolute w-full border-t border-gray-200 pointer-events-none"
                 style={{ top: `${topPosition}px` }}
               >
-                <span className="absolute -left-11 md:-left-16 -top-3 text-xs text-gray-600 font-medium w-10 md:w-14 text-right">
+                <span className="absolute -left-8 md:-left-12 -top-3 text-xs text-gray-700 font-semibold w-6 md:w-10 text-right">
                   {timeLabel}
                 </span>
               </div>
@@ -1692,6 +1748,90 @@ function HomeContent() {
     );
   };
 
+  /** Compact mobile header for single-day views (timeline, schedule) */
+  const renderDayMobileHeader = ({ onHamburgerClick, onFilterClick }: {
+    onHamburgerClick: () => void;
+    onFilterClick?: () => void;
+  }) => {
+    const dayLabel = selectedDate.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
+    const isTodayDate = isToday();
+
+    return (
+      <div className="flex items-center gap-1">
+        {/* Hamburger menu */}
+        <button
+          onClick={onHamburgerClick}
+          className="p-2 hover:bg-gray-100 rounded-lg transition-colors flex-shrink-0"
+          aria-label="Open menu"
+        >
+          <svg className="w-5 h-5 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+          </svg>
+        </button>
+
+        {/* Previous day */}
+        <button
+          onClick={goToPreviousDay}
+          className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors flex-shrink-0"
+          aria-label="Previous day"
+        >
+          <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+          </svg>
+        </button>
+
+        {/* Day label — tap to go to today; purple text when not today */}
+        <button
+          onClick={goToToday}
+          className={`text-sm font-semibold flex-shrink-0 ${
+            isTodayDate ? 'text-gray-900' : 'text-purple-600 hover:text-purple-700'
+          }`}
+          title="Go to today"
+        >
+          {dayLabel}
+        </button>
+
+        {/* Next day */}
+        <button
+          onClick={goToNextDay}
+          className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors flex-shrink-0"
+          aria-label="Next day"
+        >
+          <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+          </svg>
+        </button>
+
+        {/* Spacer */}
+        <div className="flex-1" />
+
+        {/* View switcher — grid icon */}
+        <button
+          onClick={() => setShowViewSwitcher(true)}
+          className="p-2 hover:bg-gray-100 rounded-lg transition-colors flex-shrink-0"
+          aria-label="Switch view"
+        >
+          <svg className="w-5 h-5 text-gray-700" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M4 5a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H5a1 1 0 01-1-1V5zm10 0a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1V5zM4 15a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H5a1 1 0 01-1-1v-4zm10 0a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4z" />
+          </svg>
+        </button>
+
+        {/* Filter button */}
+        {onFilterClick && (
+          <button
+            onClick={onFilterClick}
+            className="p-2 hover:bg-gray-100 rounded-lg transition-colors flex-shrink-0"
+            aria-label="Filter"
+          >
+            <svg className="w-5 h-5 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+            </svg>
+          </button>
+        )}
+      </div>
+    );
+  };
+
   return (
     <ProtectedRoute>
       <DndContext
@@ -1699,12 +1839,12 @@ function HomeContent() {
         onDragStart={handleDragStart}
         onDragEnd={handleDragEnd}
       >
-      <div className={`bg-gradient-to-br from-purple-50 to-blue-50 ${viewMode === 'week' ? 'h-screen overflow-hidden flex flex-col' : 'min-h-screen'}`}>
-        <div className={`max-w-5xl mx-auto w-full md:px-8 ${viewMode === 'week' ? 'px-1 py-0 flex-1 flex flex-col min-h-0' : viewMode === 'month' ? 'px-2 py-4 md:py-4' : 'px-4 py-4 md:py-4'}`}>
+      <div className={`bg-gradient-to-br from-purple-50 to-blue-50 ${(viewMode === 'week' || viewMode === 'timeline') ? 'h-screen overflow-hidden flex flex-col' : 'min-h-screen'}`}>
+        <div className={`max-w-5xl mx-auto w-full md:px-8 ${viewMode === 'week' ? 'px-1 py-0 flex-1 flex flex-col min-h-0' : viewMode === 'timeline' ? 'px-2 py-0 flex-1 flex flex-col min-h-0' : viewMode === 'month' ? 'px-2 py-4 md:py-4' : 'px-4 py-4 md:py-4'}`}>
           {!insideSwipe && (
             <Header
               onFilterClick={() => setShowFilterMenu(!showFilterMenu)}
-              customMobileContent={viewMode === 'month' ? renderMonthMobileHeader : viewMode === 'week' ? renderWeekMobileHeader : undefined}
+              customMobileContent={viewMode === 'month' ? renderMonthMobileHeader : viewMode === 'week' ? renderWeekMobileHeader : renderDayMobileHeader}
             />
           )}
 
@@ -1749,7 +1889,8 @@ function HomeContent() {
           )}
 
           {/* Date Navigation - Hidden on mobile in month/week view (controls are in compact header) */}
-          <div className={`bg-white rounded-2xl shadow-lg mb-4 md:mb-6 ${(viewMode === 'month' || viewMode === 'week') ? 'hidden md:block p-2 md:p-4' : 'p-3 md:p-6'}`}>
+          {/* Date Navigation - Hidden on mobile for all views (controls are in compact header) */}
+          <div className="bg-white rounded-2xl shadow-lg mb-4 md:mb-6 hidden md:block p-2 md:p-4">
             {/* Mobile: Just arrows and date */}
             <div className="md:hidden flex items-center justify-between">
               <button
@@ -1866,7 +2007,7 @@ function HomeContent() {
           </div>
 
           {/* Main content area with sidebar (Phase 3.8: Drag & Drop) */}
-          <div className={`flex gap-6 ${viewMode === 'week' ? 'flex-1 min-h-0 items-stretch' : 'items-start'}`}>
+          <div className={`flex gap-6 ${(viewMode === 'week' || viewMode === 'timeline') ? 'flex-1 min-h-0 items-stretch' : 'items-start'}`}>
             {/* Phase 3.8: Backlog Sidebar for drag source */}
             {categorizedData && (
               <BacklogSidebar
@@ -1876,7 +2017,7 @@ function HomeContent() {
             )}
 
             {/* Items Section */}
-            <div className={`flex-1 w-full bg-white rounded-2xl shadow-lg ${viewMode === 'week' ? 'p-1 md:p-4 mb-0 flex flex-col min-h-0 overflow-hidden' : viewMode === 'month' ? 'p-2 md:p-4 mb-6' : 'p-3 md:p-8 mb-6'}`}>
+            <div className={`flex-1 w-full bg-white rounded-2xl shadow-lg ${viewMode === 'week' ? 'p-1 md:p-4 mb-0 flex flex-col min-h-0 overflow-hidden' : viewMode === 'timeline' ? 'p-2 md:p-4 mb-0 flex flex-col min-h-0 overflow-hidden' : viewMode === 'month' ? 'p-2 md:p-4 mb-6' : 'p-3 md:p-8 mb-6'}`}>
               {/* Desktop: Show header with Today/Items title and count badges */}
             <div className={`hidden md:flex items-center gap-3 flex-wrap ${viewMode === 'month' ? 'mb-2' : 'mb-6'}`}>
               <span className="text-3xl">📋</span>
@@ -1903,13 +2044,8 @@ function HomeContent() {
               </button>
             </div>
 
-            {/* Mobile: Completed count and view toggle — hidden in month/week view (controls in compact header) */}
-            <div className={`md:hidden flex items-center justify-between gap-2 ${(viewMode === 'month' || viewMode === 'week') ? 'hidden' : 'mb-3'}`}>
-              {viewMode !== 'month' && viewMode !== 'week' && (
-                <span className="text-xs text-green-700 font-medium">
-                  {completedToday.size} completed
-                </span>
-              )}
+            {/* Mobile: Completed count and view toggle — hidden on mobile (controls in compact header) */}
+            <div className="hidden">
 
               {/* Phase 3.5.3: View switcher button */}
               <button
@@ -2170,7 +2306,7 @@ function HomeContent() {
                 {/* Day headers — fixed, non-scrolling */}
                 <div className="flex flex-shrink-0">
                   {/* Empty space for time column */}
-                  <div className="w-7 flex-shrink-0"></div>
+                  <div className="w-9 flex-shrink-0"></div>
                   {/* Day headers — compact like Google Calendar */}
                   <div className="flex-1 grid grid-cols-7 gap-px bg-gray-200 dark:bg-gray-700 rounded-t-lg overflow-hidden">
                     {getWeekDays().map((day) => {
@@ -2200,10 +2336,10 @@ function HomeContent() {
                 <div className="flex-1 overflow-y-auto min-h-0">
                   <div className="flex">
                     {/* Time column — tight */}
-                    <div className="w-7 flex-shrink-0">
+                    <div className="w-9 flex-shrink-0">
                       {Array.from({ length: 18 }, (_, i) => i + 6).map((hour) => (
                         <div key={hour} className="h-12 flex items-start">
-                          <span className="text-[10px] text-gray-400 dark:text-gray-500 text-right w-full pr-0.5 -mt-1.5">
+                          <span className="text-xs text-black dark:text-white font-bold text-right w-full pr-1 -mt-1.5">
                             {hour === 0 ? '12' : hour < 12 ? `${hour}` : hour === 12 ? '12' : `${hour - 12}`}
                           </span>
                         </div>
@@ -2464,192 +2600,9 @@ function HomeContent() {
                   </div>
                 )}
               </div>
-            ) : viewMode === 'compact' ? (
-              <div className="space-y-4">
-                {/* Phase 3.4: Compact Mode - Categorized sections */}
-
-                {/* Reminders Section */}
-                {categorizedData && categorizedData.reminders.length > 0 && filterTypes.has("reminder") && (
-                  <>
-                    {renderSectionHeader("Reminders", "text-yellow-700", "🔔")}
-                    {!isSectionCollapsed("Reminders") && (
-                    <div className="space-y-3">
-                      {categorizedData.reminders.map((item) => renderItemCard(item, false, "compact-reminders"))}
-                    </div>
-                    )}
-                  </>
-                )}
-
-                {/* Overdue Section - Phase 3.10: Droppable to clear overdue flag */}
-                {categorizedData && categorizedData.overdue.length > 0 && filterTypes.has("task") && (
-                  <DroppableSection id="overdue-drop-zone">
-                    {renderSectionHeader("Overdue", "text-red-700", "⚠️")}
-                    {!isSectionCollapsed("Overdue") && (
-                    <div className="space-y-3">
-                      {categorizedData.overdue.map((item) => renderItemCard(item, true, "compact-overdue"))}
-                    </div>
-                    )}
-                  </DroppableSection>
-                )}
-
-                {/* In Progress Section */}
-                {categorizedData && categorizedData.inProgress.length > 0 && filterTypes.has("task") && (
-                  <>
-                    {renderSectionHeader("In Progress", "text-blue-700", "🔵")}
-                    {!isSectionCollapsed("In Progress") && (
-                    <div className="space-y-3">
-                      {categorizedData.inProgress.map((item) => renderItemCard(item, false, "compact-inprogress"))}
-                    </div>
-                    )}
-                  </>
-                )}
-
-                {/* Calendar Events Section */}
-                {filteredEvents.length > 0 && (
-                  <>
-                    {renderSectionHeader("Events", "text-green-700", "📅")}
-                    {!isSectionCollapsed("Events") && (
-                    <div className="space-y-3">
-                      {filteredEvents.map((event) => (
-                        <div
-                          key={`event-${event.id}`}
-                          onClick={() => setSelectedEvent(event)}
-                          className="border-2 rounded-xl p-3 md:p-5 hover:shadow-md transition-all duration-200 cursor-pointer border-gray-100 bg-gradient-to-r from-white to-gray-50 hover:border-green-300"
-                          style={{
-                            borderLeftWidth: "4px",
-                            borderLeftColor: event.calendarColor || "#10b981",
-                          }}
-                        >
-                          <div className="flex items-start justify-between">
-                            <div className="flex-1">
-                              <div className="flex items-center gap-2 mb-2">
-                                <h3 className="text-sm font-semibold text-gray-900">
-                                  {event.title}
-                                </h3>
-                                {event.isAllDay && (
-                                  <span className="text-xs px-2 py-1 rounded-full font-medium bg-blue-100 text-blue-700">
-                                    All Day
-                                  </span>
-                                )}
-                              </div>
-
-                              {event.description && (
-                                <p className="text-gray-600 text-sm mb-3 line-clamp-2">
-                                  {event.description}
-                                </p>
-                              )}
-
-                              <div className="flex items-center gap-4 text-sm">
-                                {!event.isAllDay && (
-                                  <span className="flex items-center gap-2 text-gray-700">
-                                    <svg
-                                      className="w-4 h-4"
-                                      fill="none"
-                                      stroke="currentColor"
-                                      viewBox="0 0 24 24"
-                                    >
-                                      <path
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                        strokeWidth={2}
-                                        d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-                                      />
-                                    </svg>
-                                    <span>
-                                      {new Date(event.startTime).toLocaleTimeString(
-                                        "en-US",
-                                        {
-                                          hour: "2-digit",
-                                          minute: "2-digit",
-                                        }
-                                      )}{" "}
-                                      -{" "}
-                                      {new Date(event.endTime).toLocaleTimeString(
-                                        "en-US",
-                                        {
-                                          hour: "2-digit",
-                                          minute: "2-digit",
-                                        }
-                                      )}
-                                    </span>
-                                  </span>
-                                )}
-
-                                {event.location && (
-                                  <span className="flex items-center gap-2 text-gray-700">
-                                    <svg
-                                      className="w-4 h-4"
-                                      fill="none"
-                                      stroke="currentColor"
-                                      viewBox="0 0 24 24"
-                                    >
-                                      <path
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                        strokeWidth={2}
-                                        d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
-                                      />
-                                    </svg>
-                                    <span className="truncate max-w-xs">
-                                      {event.location}
-                                    </span>
-                                  </span>
-                                )}
-                              </div>
-                            </div>
-
-                            <div className="ml-2">
-                              <span className="text-xs text-gray-500">
-                                {event.calendarName}
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                    )}
-                  </>
-                )}
-
-                {/* Scheduled (with time) Section */}
-                {categorizedData && categorizedData.scheduled.length > 0 && filterTypes.has("task") && (
-                  <>
-                    {renderSectionHeader("Scheduled", "text-purple-700", "📋")}
-                    {!isSectionCollapsed("Scheduled") && (
-                    <div className="space-y-3">
-                      {categorizedData.scheduled.map((item) => renderItemCard(item, item.isOverdue || false, "compact-scheduled"))}
-                    </div>
-                    )}
-                  </>
-                )}
-
-                {/* Scheduled (no time) Section */}
-                {categorizedData && categorizedData.scheduledNoTime.length > 0 && filterTypes.has("task") && (
-                  <DroppableSection id="scheduled-no-time">
-                    {renderSectionHeader("Scheduled (No Time)", "text-gray-600")}
-                    {!isSectionCollapsed("Scheduled (No Time)") && (
-                    <div className="space-y-3">
-                      {categorizedData.scheduledNoTime.map((item) => renderItemCard(item, item.isOverdue || false, "compact-notime"))}
-                    </div>
-                    )}
-                  </DroppableSection>
-                )}
-
-                {/* Pinned / Quick Captures Section */}
-                {categorizedData && categorizedData.pinned.length > 0 && filterTypes.has("task") && (
-                  <>
-                    {renderSectionHeader("Quick Captures", "text-gray-500", "📌")}
-                    {!isSectionCollapsed("Quick Captures") && (
-                    <div className="space-y-3">
-                      {categorizedData.pinned.map((item) => renderItemCard(item, false, "compact-pinned"))}
-                    </div>
-                    )}
-                  </>
-                )}
-              </div>
             ) : (
-              <div className="space-y-6">
-                {/* Phase 3.4: Timeline Mode */}
+              <div className="space-y-4 flex-1 overflow-y-auto min-h-0">
+                {/* Timeline Mode — collapsing the Timeline section shows events/scheduled as card lists */}
 
                 {/* Reminders Section (above timeline) */}
                 {categorizedData && categorizedData.reminders.length > 0 && filterTypes.has("reminder") && (
@@ -2687,11 +2640,119 @@ function HomeContent() {
                   </>
                 )}
 
-                {/* Timeline Section */}
+                {/* Today Section — 3-state: grid (time grid) → list (card list) → collapsed */}
                 {(categorizedData && (categorizedData.scheduled.length > 0 || filteredEvents.length > 0)) && (
                   <>
-                    {renderSectionHeader("Timeline", "text-purple-700", "📅")}
-                    {!isSectionCollapsed("Timeline") && renderTimelineView()}
+                    {renderTodaySectionHeader()}
+
+                    {/* Grid state: show time grid with events plotted */}
+                    {getTodayState() === 'grid' && renderTimelineView()}
+
+                    {/* List state: show events + scheduled as card lists */}
+                    {getTodayState() === 'list' && (
+                      <div className="space-y-3">
+                        {/* Calendar events as cards */}
+                        {filteredEvents.map((event) => (
+                          <div
+                            key={`event-${event.id}`}
+                            onClick={() => setSelectedEvent(event)}
+                            className="border-2 rounded-xl p-3 md:p-5 hover:shadow-md transition-all duration-200 cursor-pointer border-gray-100 bg-gradient-to-r from-white to-gray-50 hover:border-green-300"
+                            style={{
+                              borderLeftWidth: "4px",
+                              borderLeftColor: event.calendarColor || "#10b981",
+                            }}
+                          >
+                            <div className="flex items-start justify-between">
+                              <div className="flex-1">
+                                <div className="flex items-center gap-2 mb-2">
+                                  <h3 className="text-sm font-semibold text-gray-900">
+                                    {event.title}
+                                  </h3>
+                                  {event.isAllDay && (
+                                    <span className="text-xs px-2 py-1 rounded-full font-medium bg-blue-100 text-blue-700">
+                                      All Day
+                                    </span>
+                                  )}
+                                </div>
+
+                                {event.description && (
+                                  <p className="text-gray-600 text-sm mb-3 line-clamp-2">
+                                    {event.description}
+                                  </p>
+                                )}
+
+                                <div className="flex items-center gap-4 text-sm">
+                                  {!event.isAllDay && (
+                                    <span className="flex items-center gap-2 text-gray-700">
+                                      <svg
+                                        className="w-4 h-4"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        viewBox="0 0 24 24"
+                                      >
+                                        <path
+                                          strokeLinecap="round"
+                                          strokeLinejoin="round"
+                                          strokeWidth={2}
+                                          d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                                        />
+                                      </svg>
+                                      <span>
+                                        {new Date(event.startTime).toLocaleTimeString(
+                                          "en-US",
+                                          {
+                                            hour: "2-digit",
+                                            minute: "2-digit",
+                                          }
+                                        )}{" "}
+                                        -{" "}
+                                        {new Date(event.endTime).toLocaleTimeString(
+                                          "en-US",
+                                          {
+                                            hour: "2-digit",
+                                            minute: "2-digit",
+                                          }
+                                        )}
+                                      </span>
+                                    </span>
+                                  )}
+
+                                  {event.location && (
+                                    <span className="flex items-center gap-2 text-gray-700">
+                                      <svg
+                                        className="w-4 h-4"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        viewBox="0 0 24 24"
+                                      >
+                                        <path
+                                          strokeLinecap="round"
+                                          strokeLinejoin="round"
+                                          strokeWidth={2}
+                                          d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
+                                        />
+                                      </svg>
+                                      <span className="truncate max-w-xs">
+                                        {event.location}
+                                      </span>
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+
+                              <div className="ml-2">
+                                <span className="text-xs text-gray-500">
+                                  {event.calendarName}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+
+                        {/* Scheduled items as cards */}
+                        {categorizedData.scheduled.filter(item => filterTypes.has(item.itemType)).map((item) => renderItemCard(item, item.isOverdue || false, "timeline-scheduled-list"))}
+                      </div>
+                    )}
                   </>
                 )}
 

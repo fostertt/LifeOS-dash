@@ -283,9 +283,38 @@ Comprehensive UI redesign to make LifeOS more compact, clean, and professional a
 - ✅ **6.10 Week-aware "Scheduled No Time"** — Filters from full items array for the whole week, not just the selected day
 
 ### Remaining / future polish:
-- ⏳ Additional UI tweaks may be needed on calendar views (spacing, visual refinements)
 - ⏳ Day headers could show events/items count badges
-- ⏳ Consider compact mobile header for other views (timeline, compact, schedule)
+- ⏳ Full dark mode support across app (currently only week view has dark: classes, phone dark mode causes mismatch)
+
+---
+
+## Phase 6.5: Calendar View Consolidation & Polish ✅ COMPLETE
+
+**Completed:** February 11, 2026
+**Goal:** Merge compact view into timeline, add compact mobile headers to all views, fix time label styling.
+
+### What was done:
+
+**View Consolidation:**
+- ✅ **Merged compact into timeline** — Removed "compact" as a separate ViewMode (5 views → 4: timeline, schedule, week, month)
+- ✅ **3-state "Today" section** — Renamed "Timeline" to "Today"; cycles: expanded (time grid) → list (events + scheduled as cards) → collapsed (hidden)
+- ✅ **Removed "Compact" from view switcher** — ViewSwitcherSidebar only shows Timeline, Schedule, Week, Month
+- ✅ **Migration** — URL param `?view=compact` and localStorage `lastCalendarView=compact` gracefully fall back to `timeline`
+- ✅ **Mobile default** — Changed from `compact` to `timeline`
+
+**Compact Mobile Headers:**
+- ✅ **Day view header** — `[☰] [←] Wed, Feb 11 [→] [⊞ view] [▽ filter]` for timeline and schedule views
+- ✅ **All views now have compact headers** — Date nav card and mobile view switcher hidden on mobile for all views (desktop unchanged)
+
+**Time Label Styling:**
+- ✅ **Timeline time labels** — Removed AM/PM, shows hour number only (e.g., "5", "12", "1"), keeps existing font size, darker font
+- ✅ **Week view time labels** — Increased from 10px to 11px, bolder weight (`font-medium`), darker color (`text-gray-500` → `text-gray-600`), wider column (`w-7` → `w-9`)
+
+**Noted Issues:**
+- ⏳ Google Calendar dateless events showing on today — see bugs.md
+- ⏳ Dark mode mismatch — week view has `dark:` classes but rest of app doesn't — future phase
+
+**Files Changed:** `app/calendar/page.tsx`, `components/ViewSwitcherSidebar.tsx`
 
 ---
 
@@ -404,8 +433,10 @@ className="flex items-center gap-3 px-4 py-3 bg-white hover:bg-gray-50
 4. ~~**Phase 4** (All Page + Collapsible Sections)~~ ✅ DONE
 5. ~~**Phase 5** (Month View)~~ ✅ DONE
 6. ~~**Phase 6** (Week View)~~ ✅ DONE
+6.5. ~~**Phase 6.5** (View Consolidation + Headers + Time Labels)~~ ✅ DONE
 7. **Phase 7** (Vault) - 1-2 hours - Medium complexity, independent ⏳ NEXT
 8. **Phase 8** (FAB) - 1 hour - Quick win, independent
+9. **Phase 9** (Dark Mode) - TBD - Full app dark mode support
 
 **Remaining:** ~2-3 hours
 

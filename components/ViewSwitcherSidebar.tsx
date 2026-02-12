@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 
-type ViewMode = "timeline" | "compact" | "schedule" | "week" | "month";
+type ViewMode = "timeline" | "schedule" | "week" | "month";
 
 interface ViewSwitcherSidebarProps {
   currentView: ViewMode;
@@ -13,8 +13,7 @@ interface ViewSwitcherSidebarProps {
 }
 
 const VIEW_OPTIONS = [
-  { id: "timeline" as ViewMode, label: "Timeline", description: "Hourly schedule grid" },
-  { id: "compact" as ViewMode, label: "Compact", description: "Single day, condensed" },
+  { id: "timeline" as ViewMode, label: "Today", description: "Single day schedule" },
   { id: "schedule" as ViewMode, label: "Schedule", description: "Multi-day list view" },
   { id: "week" as ViewMode, label: "Week", description: "7-day grid" },
   { id: "month" as ViewMode, label: "Month", description: "Calendar overview" },

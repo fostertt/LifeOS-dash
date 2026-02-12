@@ -1,3 +1,14 @@
+### Active Bug: Week View Time Numbers Invisible on Phone Dark Mode
+- **Status:** UNRESOLVED (Feb 11, 2026) — requires proper dark mode implementation
+- **Symptoms:** Week view hour numbers (6, 7, 8...) on the left time column are completely invisible on phones with OS-level dark mode enabled.
+- **Cause:** Phone's dark mode inverts/overrides colors, but Tailwind's `dark:` CSS classes don't activate because the app has no dark mode detection (`class="dark"` on `<html>`). The `dark:text-white` class has no effect.
+- **Impact:** Week view time column is unusable on phones with dark mode.
+- **Solution:** Implement proper dark mode support app-wide (Phase 9 in ui-polish-plan.md). Need to either:
+  - Add `darkMode: 'class'` to Tailwind config + detect `prefers-color-scheme`
+  - Or add `darkMode: 'media'` so Tailwind auto-detects OS preference
+- **Screenshot:** `docs/screenshots/white_numbers.jpg`
+- **File:** `app/calendar/page.tsx` (week view time column)
+
 ### Active Bug: Mobile Width Overflow on All Page
 
 - **Status:** UNRESOLVED (as of Feb 5, 2026 Evening)
@@ -22,6 +33,17 @@
   - May need `max-w-full` on all child elements
 - **File:** `app/all/page.tsx`
 - **Context:** Part of UI Polish Phase 4 work
+
+### Known Issue: Google Calendar Dateless Events Showing on Today
+- **Status:** NOTED (Feb 11, 2026) — deferring fix
+- **Symptoms:** Google Calendar all-day events/reminders without a specific date (e.g., "Stay at Best Western Morton Inn") show up on today's timeline view.
+- **Cause:** App logic treats items with no date as "carry to today until completed." Google Calendar synced events without dates get caught by this rule, but users can't complete them since they're external events.
+- **Impact:** Low — only affects Google Calendar synced items without dates.
+- **Possible Solutions:**
+  - Filter out Google Calendar events that have no date match for the current day
+  - Add a "dismiss" action for external events
+  - Only apply "no date = today" logic to user-created items, not synced events
+- **File:** `app/calendar/page.tsx` (categorization logic)
 
 ### Known Issue: Server IP Address Changes
 - **Symptoms:** Site returns 502 Bad Gateway.
