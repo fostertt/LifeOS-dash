@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState, useMemo, useContext } from "react";
-import { useRouter } from "next/navigation";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import Header from "@/components/Header";
 import { SwipeContext } from "@/components/SwipeContainer";
@@ -15,6 +14,9 @@ interface Item {
   description?: string;
   dueDate?: string;
   dueTime?: string;
+  scheduledTime?: string;
+  scheduleType?: string;
+  scheduleDays?: string;
   isCompleted?: boolean;
   completedAt?: string;
   isParent: boolean;
@@ -24,10 +26,12 @@ interface Item {
   energy?: string;
   state?: string;
   tags?: string[];
+  showOnCalendar?: boolean;
+  isOverdue?: boolean;
   subItems?: any[];
 }
 
-type GroupBy = "none" | "state" | "tag" | "complexity" | "energy" | "priority";
+type GroupBy = "none" | "state" | "type" | "tag" | "complexity" | "energy" | "priority";
 
 // State badge colors
 const STATE_COLORS = {
@@ -47,9 +51,21 @@ const STATE_LABELS = {
 // Preferred section order
 const STATE_ORDER = ["In Progress", "Active", "Backlog", "Completed"];
 
+// Item type labels and colors
+const TYPE_LABELS: Record<string, string> = {
+  task: "Task",
+  habit: "Habit",
+  reminder: "Reminder",
+};
+
+const TYPE_COLORS: Record<string, string> = {
+  task: "bg-purple-100 text-purple-800",
+  habit: "bg-green-100 text-green-800",
+  reminder: "bg-amber-100 text-amber-800",
+};
+
 function AllTasksContent() {
   const { insideSwipe } = useContext(SwipeContext);
-  const router = useRouter();
   const [items, setItems] = useState<Item[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -65,6 +81,11 @@ function AllTasksContent() {
     "in_progress",
     "completed",
   ]); // Show all states by default
+  const [selectedTypes, setSelectedTypes] = useState<string[]>([
+    "task",
+    "habit",
+    "reminder",
+  ]); // Show all types by default
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [selectedPriority, setSelectedPriority] = useState<string>("");
   const [selectedComplexity, setSelectedComplexity] = useState<string>("");
@@ -73,14 +94,14 @@ function AllTasksContent() {
   const [showFilters, setShowFilters] = useState(false);
   const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set());
 
-  // Load all tasks
+  // Load all items (tasks, habits, reminders)
   const loadData = async () => {
     setLoading(true);
     setError(null);
 
     try {
-      const response = await fetch("/api/items?type=task");
-      if (!response.ok) throw new Error("Failed to fetch tasks");
+      const response = await fetch("/api/items");
+      if (!response.ok) throw new Error("Failed to fetch items");
 
       const allItems = await response.json();
       setItems(allItems);
@@ -101,6 +122,11 @@ function AllTasksContent() {
   // Filter items based on selected filters
   const filteredItems = useMemo(() => {
     return items.filter((item) => {
+      // Type filter
+      if (!selectedTypes.includes(item.itemType)) {
+        return false;
+      }
+
       // State filter
       if (!selectedStates.includes(item.state || "active")) {
         return false;
@@ -128,12 +154,12 @@ function AllTasksContent() {
 
       return true;
     });
-  }, [items, selectedStates, selectedTags, selectedPriority, selectedComplexity, selectedEnergy]);
+  }, [items, selectedTypes, selectedStates, selectedTags, selectedPriority, selectedComplexity, selectedEnergy]);
 
   // Group items
   const groupedItems = useMemo(() => {
     if (groupBy === "none") {
-      return { "All Tasks": filteredItems };
+      return { "All Items": filteredItems };
     }
 
     const groups: Record<string, Item[]> = {};
@@ -144,6 +170,9 @@ function AllTasksContent() {
       switch (groupBy) {
         case "state":
           groupKey = STATE_LABELS[item.state as keyof typeof STATE_LABELS] || "Active";
+          break;
+        case "type":
+          groupKey = TYPE_LABELS[item.itemType] || "Task";
           break;
         case "tag":
           if (item.tags && item.tags.length > 0) {
@@ -189,12 +218,32 @@ function AllTasksContent() {
         body: JSON.stringify(taskData),
       });
 
-      if (!res.ok) throw new Error("Failed to update task");
+      if (!res.ok) throw new Error("Failed to update item");
 
-      // Reload tasks
+      // Reload items
       await loadData();
     } catch (error) {
-      console.error("Error updating task:", error);
+      console.error("Error updating item:", error);
+      throw error;
+    }
+  };
+
+  // Delete item
+  const deleteTask = async () => {
+    if (!editingTask) return;
+
+    try {
+      const res = await fetch(`/api/items/${editingTask.id}`, {
+        method: "DELETE",
+      });
+
+      if (!res.ok) throw new Error("Failed to delete item");
+
+      setShowTaskModal(false);
+      setEditingTask(null);
+      await loadData();
+    } catch (error) {
+      console.error("Error deleting item:", error);
       throw error;
     }
   };
@@ -214,7 +263,7 @@ function AllTasksContent() {
 
       if (!res.ok) throw new Error("Failed to toggle completion");
 
-      // Reload tasks
+      // Reload items
       await loadData();
     } catch (error) {
       console.error("Error toggling completion:", error);
@@ -228,6 +277,13 @@ function AllTasksContent() {
     );
   };
 
+  // Toggle type filter
+  const toggleTypeFilter = (type: string) => {
+    setSelectedTypes((prev) =>
+      prev.includes(type) ? prev.filter((t) => t !== type) : [...prev, type]
+    );
+  };
+
   // Toggle tag filter
   const toggleTagFilter = (tag: string) => {
     setSelectedTags((prev) =>
@@ -238,6 +294,7 @@ function AllTasksContent() {
   // Clear all filters (but keep default states)
   const clearFilters = () => {
     setSelectedStates(["backlog", "active", "in_progress"]);
+    setSelectedTypes(["task", "habit", "reminder"]);
     setSelectedTags([]);
     setSelectedPriority("");
     setSelectedComplexity("");
@@ -266,7 +323,8 @@ function AllTasksContent() {
   };
 
   const hasActiveFilters =
-    selectedTags.length > 0 || selectedPriority || selectedComplexity || selectedEnergy;
+    selectedTags.length > 0 || selectedPriority || selectedComplexity || selectedEnergy ||
+    selectedTypes.length < 3;
 
   return (
     <ProtectedRoute>
@@ -284,7 +342,7 @@ function AllTasksContent() {
                 Filters
                 {hasActiveFilters && (
                   <span className="ml-1 text-blue-600 text-xs">
-                    ({selectedTags.length + (selectedPriority ? 1 : 0) + (selectedComplexity ? 1 : 0) + (selectedEnergy ? 1 : 0)})
+                    ({selectedTags.length + (selectedPriority ? 1 : 0) + (selectedComplexity ? 1 : 0) + (selectedEnergy ? 1 : 0) + (selectedTypes.length < 3 ? 1 : 0)})
                   </span>
                 )}
               </button>
@@ -305,6 +363,7 @@ function AllTasksContent() {
                 >
                   <option value="none">No grouping</option>
                   <option value="state">By State</option>
+                  <option value="type">By Type</option>
                   <option value="tag">By Tag</option>
                   <option value="complexity">By Complexity</option>
                   <option value="energy">By Energy</option>
@@ -316,6 +375,26 @@ function AllTasksContent() {
             {/* Additional Filters */}
             {showFilters && (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 pt-4 border-t mt-4">
+                {/* Type */}
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Type</label>
+                  <div className="flex flex-wrap gap-2">
+                    {Object.entries(TYPE_LABELS).map(([type, label]) => (
+                      <button
+                        key={type}
+                        onClick={() => toggleTypeFilter(type)}
+                        className={`px-3 py-1 text-sm rounded-full ${
+                          selectedTypes.includes(type)
+                            ? TYPE_COLORS[type]
+                            : "bg-gray-200 text-gray-400"
+                        }`}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
                 {/* State */}
                 <div className="md:col-span-2">
                   <label className="block text-sm font-medium text-gray-700 mb-2">State</label>
@@ -412,7 +491,7 @@ function AllTasksContent() {
           {/* Loading State */}
           {loading && (
             <div className="text-center py-12">
-              <p className="text-gray-600">Loading tasks...</p>
+              <p className="text-gray-600">Loading items...</p>
             </div>
           )}
 
@@ -459,7 +538,7 @@ function AllTasksContent() {
 
                   {groupItems.length === 0 && groupBy === "none" && (
                     <div className="bg-white rounded-lg shadow p-8 text-center">
-                      <p className="text-gray-600 mb-2">No tasks match your filters</p>
+                      <p className="text-gray-600 mb-2">No items match your filters</p>
                       <p className="text-sm text-gray-500">Try adjusting your filters</p>
                     </div>
                   )}
@@ -474,11 +553,26 @@ function AllTasksContent() {
                       >
                         <div className="flex items-start justify-between gap-1 sm:gap-2">
                           <div className="flex-1 min-w-0">
-                            {/* Task name with inline date/time */}
+                            {/* Item name with type badge and inline date/time */}
                             <div className="flex items-baseline gap-2 flex-wrap">
+                              {/* Type indicator for habits and reminders */}
+                              {item.itemType !== "task" && (
+                                <span className={`text-xs px-1.5 py-0.5 rounded ${TYPE_COLORS[item.itemType]}`}>
+                                  {item.itemType === "habit" ? "🔄" : "⏰"}
+                                </span>
+                              )}
                               <h3 className="font-medium text-gray-900 wrap-break-word">
                                 {item.name}
                               </h3>
+                              {/* Schedule info for habits */}
+                              {item.itemType === "habit" && item.scheduleType && (
+                                <span className="text-xs text-green-600">
+                                  {item.scheduleType === "daily" ? "Daily" :
+                                   item.scheduleType === "weekdays" ? "Weekdays" :
+                                   item.scheduleType === "weekends" ? "Weekends" :
+                                   item.scheduleDays || item.scheduleType}
+                                </span>
+                              )}
                               {item.dueDate && (
                                 <span className="text-sm text-gray-500">
                                   ·{" "}
@@ -544,12 +638,12 @@ function AllTasksContent() {
           {/* Summary */}
           {!loading && !error && filteredItems.length > 0 && (
             <div className="mt-6 text-center text-sm text-gray-600">
-              Showing {filteredItems.length} of {items.length} tasks
+              Showing {filteredItems.length} of {items.length} items
             </div>
           )}
         </main>
 
-        {/* Task Edit Modal */}
+        {/* Item Edit Modal */}
         <TaskForm
           isOpen={showTaskModal}
           onClose={() => {
@@ -557,9 +651,10 @@ function AllTasksContent() {
             setEditingTask(null);
           }}
           onSave={saveTask}
+          onDelete={deleteTask}
           existingTask={editingTask}
           availableTags={availableTags}
-          itemType="task"
+          itemType={editingTask?.itemType || "task"}
         />
       </div>
     </ProtectedRoute>

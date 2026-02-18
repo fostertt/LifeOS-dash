@@ -78,6 +78,7 @@ interface CategorizedCalendarData {
   scheduledNoTime: Item[];
   pinned: Item[];
   backlog: Item[];
+  habits: Item[];
 }
 
 type ItemType = "habit" | "task" | "reminder" | "event";
@@ -768,12 +769,28 @@ function HomeContent() {
 
     if (item.itemType === "habit") {
       if (item.scheduleType === "daily") return true;
+      if (item.scheduleType === "weekdays") {
+        // Monday(1)-Friday(5) in JS getDay()
+        const jsDay = selectedDate.getDay();
+        return jsDay >= 1 && jsDay <= 5;
+      }
+      if (item.scheduleType === "weekends") {
+        const jsDay = selectedDate.getDay();
+        return jsDay === 0 || jsDay === 6;
+      }
+      if (item.scheduleType === "specific_days" && item.scheduleDays) {
+        // scheduleDays stores day abbreviations like "Mon,Wed,Fri"
+        const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+        const todayName = dayNames[selectedDate.getDay()];
+        return item.scheduleDays.split(",").map((d) => d.trim()).includes(todayName);
+      }
       if (item.scheduleType === "weekly" && item.scheduleDays) {
         const scheduledDays = item.scheduleDays
           .split(",")
           .map((d) => parseInt(d.trim()));
         return scheduledDays.includes(dayForSchedule);
       }
+      return false;
     }
 
     // Tasks and reminders without a due date appear on today only
@@ -2112,6 +2129,7 @@ function HomeContent() {
               categorizedData.scheduled.length === 0 &&
               categorizedData.scheduledNoTime.length === 0 &&
               categorizedData.pinned.length === 0 &&
+              (!categorizedData.habits || categorizedData.habits.length === 0) &&
               filteredEvents.length === 0
             ) ? (
               <div className="text-center py-16">
@@ -2171,7 +2189,28 @@ function HomeContent() {
                 {/* Multi-day list */}
                 {getScheduleDays().map((day, dayIndex) => {
                   const dayStr = `${day.getFullYear()}-${String(day.getMonth() + 1).padStart(2, '0')}-${String(day.getDate()).padStart(2, '0')}`;
-                  const dayItems = items.filter(item => (item.dueDate && item.dueDate.substring(0, 10) === dayStr) || item.scheduledTime?.startsWith(dayStr));
+                  const dayItems = items.filter(item => {
+                    // Habits: check schedule matches the day
+                    if (item.itemType === "habit") {
+                      if (!filterTypes.has("habit")) return false;
+                      const jsDay = day.getDay();
+                      if (item.scheduleType === "daily") return true;
+                      if (item.scheduleType === "weekdays") return jsDay >= 1 && jsDay <= 5;
+                      if (item.scheduleType === "weekends") return jsDay === 0 || jsDay === 6;
+                      if (item.scheduleType === "specific_days" && item.scheduleDays) {
+                        const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+                        return item.scheduleDays.split(",").map(d => d.trim()).includes(dayNames[jsDay]);
+                      }
+                      if (item.scheduleType === "weekly" && item.scheduleDays) {
+                        const scheduledDays = item.scheduleDays.split(",").map(d => parseInt(d.trim()));
+                        const dayIndex = jsDay === 0 ? 6 : jsDay - 1;
+                        return scheduledDays.includes(dayIndex);
+                      }
+                      return false;
+                    }
+                    // Tasks/reminders: match by dueDate
+                    return (item.dueDate && item.dueDate.substring(0, 10) === dayStr) || item.scheduledTime?.startsWith(dayStr);
+                  });
                   const dayEvents = events.filter(event => {
                     if (!event.startTime) return false;
                     const eventDate = new Date(event.startTime);
@@ -2635,6 +2674,18 @@ function HomeContent() {
                     {!isSectionCollapsed("In Progress") && (
                     <div className="space-y-3">
                       {categorizedData.inProgress.map((item) => renderItemCard(item, false, "timeline-inprogress"))}
+                    </div>
+                    )}
+                  </>
+                )}
+
+                {/* Habits Section */}
+                {categorizedData && categorizedData.habits && categorizedData.habits.length > 0 && filterTypes.has("habit") && (
+                  <>
+                    {renderSectionHeader("Habits", "text-green-700", "🔄")}
+                    {!isSectionCollapsed("Habits") && (
+                    <div className="space-y-3">
+                      {categorizedData.habits.map((item) => renderItemCard(item, false, "timeline-habits"))}
                     </div>
                     )}
                   </>

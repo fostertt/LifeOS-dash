@@ -507,6 +507,20 @@ function WeekViewContent() {
 
     if (item.itemType === "habit") {
       if (item.scheduleType === "daily") return true;
+      if (item.scheduleType === "weekdays") {
+        const jsDay = date.getDay();
+        return jsDay >= 1 && jsDay <= 5;
+      }
+      if (item.scheduleType === "weekends") {
+        const jsDay = date.getDay();
+        return jsDay === 0 || jsDay === 6;
+      }
+      if (item.scheduleType === "specific_days" && item.scheduleDays) {
+        // scheduleDays stores day abbreviations like "Mon,Wed,Fri"
+        const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+        const todayName = dayNames[date.getDay()];
+        return item.scheduleDays.split(",").map((d) => d.trim()).includes(todayName);
+      }
       if (item.scheduleType === "weekly" && item.scheduleDays) {
         const scheduledDays = item.scheduleDays
           .split(",")

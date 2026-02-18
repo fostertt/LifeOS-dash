@@ -7,6 +7,23 @@
 
 ---
 
+## ✅ COMPLETED: Habits/Reminders Integration & All Page Overhaul (Feb 18, 2026)
+
+1. ✅ **All page loads all item types** — Removed `?type=task` filter; shows tasks, habits, and reminders
+2. ✅ **Type filter on All page** — Toggle Task/Habit/Reminder visibility, "By Type" grouping option
+3. ✅ **Delete button in task detail modal** — `TaskForm` now has `onDelete` prop with confirmation dialog
+4. ✅ **Habit recurrence options** — Frequency picker: Daily, Weekdays, Weekends, Specific days (day-of-week pills)
+5. ✅ **Habits default to Active state** — API and form both default habits to "active" instead of "backlog"
+6. ✅ **State selector for all item types** — Was tasks-only, now visible for habits and reminders too
+7. ✅ **Sub-tasks restored in TaskForm** — Add/edit/remove sub-items for tasks, habits, and reminders
+8. ✅ **Habits in calendar views** — Today view has "Habits" section; Schedule view shows habits per-day
+9. ✅ **Calendar schedule matching** — All views handle daily/weekdays/weekends/specific_days schedule types
+10. ✅ **Wiped test data** — Script at `scripts/wipe-test-data.mjs` clears all items/lists/notes, preserves auth
+
+**Files Changed:** `app/all/page.tsx`, `app/calendar/page.tsx`, `app/week/page.tsx`, `app/api/items/route.ts`, `app/api/calendar/items/route.ts`, `components/TaskForm.tsx`
+
+---
+
 ## 🎯 NEXT UP: Phase 7 — Vault Improvements (MEDIUM)
 
 **Goal:** Make vault more compact like Google Keep and fix data refresh bug.
@@ -129,7 +146,7 @@ PM2 runs `npm start` → `next start -p 3002`. Port is baked into `package.json`
 ## Known Issues
 
 - **Google Calendar token expired** — `invalid_grant` errors in PM2 logs. Needs re-auth but doesn't affect UI.
-- **No delete in task detail (All page)** — UX-006 in issues.md.
+- ~~**No delete in task detail (All page)** — UX-006 in issues.md.~~ FIXED Feb 18
 - **No multi-select/bulk delete (All page)** — UX-007 in issues.md. Approach not decided.
 - **Voice pipeline: rename re-triggers processing** — Renaming a voice note file causes it to be re-sent through the pipeline. See bugs.md.
 - See `docs/notes/bugs.md` for other known issues (server IP changes, OAuth loops, foreign key violations).

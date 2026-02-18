@@ -161,9 +161,12 @@ export async function POST(request: NextRequest) {
 
     // Phase 3.1 / ADR-012 Revised: Determine task state based on whether it has a date
     // 4-state model: backlog (no date) | active (has date) | in_progress | completed
+    // Habits default to active since they're recurring and always "scheduled"
     let taskState = state;
     if (!taskState) {
-      if (dueDate || reminderDatetime) {
+      if (itemType === "habit") {
+        taskState = "active"; // Habits are always active by nature
+      } else if (dueDate || reminderDatetime) {
         taskState = "active"; // Has a date = active
       } else {
         taskState = "backlog"; // No date = backlog

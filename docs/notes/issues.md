@@ -79,12 +79,9 @@
 **Applies To:** Tasks, Events, Reminders, Routines (all item types)
 **Related:** Phase 2.6
 
-### UX-006: No Delete Button When Viewing a Task Detail (All Page)
-**Discovered:** Feb 18, 2026
-**Priority:** Medium
-**Description:** Clicking into a task from the `/all` page opens a detail/edit view but there is no delete button. User has to exit back and delete from the list view.
-**Expected:** Delete option available directly in the task detail modal/view
-**File:** `app/all/page.tsx`
+### ~~UX-006: No Delete Button When Viewing a Task Detail (All Page)~~ FIXED
+**Discovered:** Feb 18, 2026 | **Fixed:** Feb 18, 2026
+**Resolution:** Added `onDelete` prop to `TaskForm` component with confirmation dialog. Wired up in All page.
 
 ### UX-007: No Multi-Select for Bulk Delete on All Page
 **Discovered:** Feb 18, 2026

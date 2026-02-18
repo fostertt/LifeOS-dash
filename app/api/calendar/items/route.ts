@@ -143,6 +143,26 @@ export async function GET(request: NextRequest) {
       });
     }
 
+    // Helper: check if a habit is scheduled for a given date
+    const isHabitScheduledForDate = (item: any, date: Date): boolean => {
+      const jsDay = date.getUTCDay(); // 0=Sun, 1=Mon, ..., 6=Sat
+      if (item.scheduleType === "daily") return true;
+      if (item.scheduleType === "weekdays") return jsDay >= 1 && jsDay <= 5;
+      if (item.scheduleType === "weekends") return jsDay === 0 || jsDay === 6;
+      if (item.scheduleType === "specific_days" && item.scheduleDays) {
+        const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+        const todayName = dayNames[jsDay];
+        return item.scheduleDays.split(",").map((d: string) => d.trim()).includes(todayName);
+      }
+      if (item.scheduleType === "weekly" && item.scheduleDays) {
+        const scheduledDays = item.scheduleDays.split(",").map((d: string) => parseInt(d.trim()));
+        const dayIndex = jsDay === 0 ? 6 : jsDay - 1; // Convert to 0=Mon format
+        return scheduledDays.includes(dayIndex);
+      }
+      // Default: show daily habits
+      return item.scheduleType != null;
+    };
+
     // Categorize items
     const reminders: any[] = [];
     const overdue: any[] = [];
@@ -151,10 +171,19 @@ export async function GET(request: NextRequest) {
     const scheduledNoTime: any[] = [];
     const pinned: any[] = [];
     const backlog: any[] = [];
+    const habits: any[] = [];
 
     for (const item of allItems) {
       // Skip completed items (unless they're reminders or pinned)
       const isCompleted = item.isCompleted || false;
+
+      // Habits: check if scheduled for target date
+      if (item.itemType === "habit") {
+        if (isHabitScheduledForDate(item, targetDate)) {
+          habits.push(item);
+        }
+        continue;
+      }
 
       // Reminders: itemType='reminder' AND date <= target date being viewed
       if (item.itemType === "reminder" && item.dueDate) {
@@ -241,6 +270,13 @@ export async function GET(request: NextRequest) {
       return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
     });
 
+    // Sort habits by scheduledTime
+    habits.sort((a, b) => {
+      const timeA = a.scheduledTime || "23:59";
+      const timeB = b.scheduledTime || "23:59";
+      return timeA.localeCompare(timeB);
+    });
+
     return NextResponse.json({
       reminders,
       overdue,
@@ -249,6 +285,7 @@ export async function GET(request: NextRequest) {
       scheduledNoTime,
       pinned,
       backlog,
+      habits,
     });
   } catch (error) {
     console.error("Error fetching calendar items:", error);
