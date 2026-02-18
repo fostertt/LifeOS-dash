@@ -45,6 +45,14 @@
   - Only apply "no date = today" logic to user-created items, not synced events
 - **File:** `app/calendar/page.tsx` (categorization logic)
 
+### Active Bug: Renaming a Voice Note Re-Triggers Processing Pipeline
+- **Status:** UNRESOLVED (Feb 18, 2026)
+- **Symptoms:** Renaming a voice note file causes it to be re-sent through the voice processing pipeline, resulting in duplicate processing.
+- **Context:** Voice pipeline is operational as of Feb 18, 2026.
+- **Cause:** Unknown — likely the file watcher treating a rename as a new file event, not a modification.
+- **Impact:** Medium — creates duplicate notes/tasks from the same recording.
+- **Suspected Fix Direction:** Check if the file watcher distinguishes between `rename` and `add` events; filter rename events or fingerprint files by content rather than name to avoid re-processing.
+
 ### Known Issue: Server IP Address Changes
 - **Symptoms:** Site returns 502 Bad Gateway.
 - **Cause:** DHCP updates server IP, but Nginx Proxy Manager points to old IP.

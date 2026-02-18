@@ -110,11 +110,7 @@
 
 ## PM2 Configuration
 
-**Important:** PM2 must run on port 3002. Start command:
-```bash
-pm2 start "npm start -- -p 3002" --name lifeos-dev --cwd ~/projects/lifeos-dev
-```
-The default `npm start` (without `-p 3002`) starts on port 3001 which causes 502 errors.
+PM2 runs `npm start` → `next start -p 3002`. Port is baked into `package.json` `start` script (fixed Feb 18, 2026 after power loss caused restart on wrong port). Just `pm2 restart lifeos-dev` is sufficient.
 
 ---
 
@@ -133,7 +129,13 @@ The default `npm start` (without `-p 3002`) starts on port 3001 which causes 502
 ## Known Issues
 
 - **Google Calendar token expired** — `invalid_grant` errors in PM2 logs. Needs re-auth but doesn't affect UI.
+- **No delete in task detail (All page)** — UX-006 in issues.md.
+- **No multi-select/bulk delete (All page)** — UX-007 in issues.md. Approach not decided.
+- **Voice pipeline: rename re-triggers processing** — Renaming a voice note file causes it to be re-sent through the pipeline. See bugs.md.
 - See `docs/notes/bugs.md` for other known issues (server IP changes, OAuth loops, foreign key violations).
+
+## Voice Pipeline Status (Feb 18, 2026)
+- Pipeline is operational. Known bug: renaming a voice note re-processes it — see bugs.md.
 
 ---
 
