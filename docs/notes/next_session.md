@@ -1,9 +1,23 @@
 # Next Session - Start Here
 
-**Last Updated:** February 11, 2026
+**Last Updated:** February 19, 2026
 **Current Status:** UI Polish Phase 6 COMPLETE ✅ — Ready for Phase 7
 **Branch:** master (committed & pushed)
 **Production:** <https://lifeos-dev.foster-home.net> (PM2 on port 3002)
+
+---
+
+## ✅ COMPLETED: Calendar Bug Fixes — Dark Mode + Google Calendar Day Assignment (Feb 19, 2026)
+
+1. ✅ **Dark mode time labels** — Changed to `text-gray-800 font-bold` on both week and timeline views; readable on white background regardless of OS dark mode
+2. ✅ **Google Calendar events on wrong days** — Fixed 3 interconnected bugs:
+   - API route now uses America/New_York timezone boundaries (server runs UTC)
+   - All-day date-only strings no longer parsed through `new Date()` (avoided UTC shift)
+   - Added client-side `filteredEventsForDay` as safety net for timeline/today views
+3. ✅ **All-day events in week view** — Excluded from hourly grid, added dedicated "ALL" row above time grid
+4. ✅ **Multi-day event fetching** — Week/month/schedule views now fetch correct date ranges instead of single day
+
+**Files Changed:** `app/calendar/page.tsx`, `app/api/calendar/events/route.ts`
 
 ---
 
@@ -42,7 +56,7 @@
 
 ## ⏳ Future Calendar Polish
 - Day header event count badges in week view
-- Full dark mode support (week view has dark: classes, rest of app doesn't — causes mismatch on phones with dark mode)
+- ~~Full dark mode support (week view has dark: classes, rest of app doesn't — causes mismatch on phones with dark mode)~~ FIXED Feb 19 (used dark-on-white text)
 - Google Calendar dateless events showing on today (see bugs.md)
 - Consider merging Schedule view into Today view as a 4th state (collapsed → list → multi-day list → grid) to reduce view count from 4 to 3
 
@@ -60,7 +74,7 @@
 6. ✅ **Today view scroll fix** — Pinned header like week view (`h-screen overflow-hidden`)
 7. ✅ **Timeline time labels** — Removed AM/PM, hour number only, darker font (`text-gray-700 font-semibold`)
 8. ✅ **Week view time labels** — 12px, `text-black font-bold`, wider column (`w-9`)
-9. ⚠️ **Week view dark mode bug** — Time numbers invisible on phone dark mode (needs Phase 9)
+9. ✅ **Week view dark mode bug** — FIXED Feb 19 (text-gray-800 font-bold)
 
 **Files Changed:** `app/calendar/page.tsx`, `components/ViewSwitcherSidebar.tsx`
 
@@ -145,14 +159,31 @@ PM2 runs `npm start` → `next start -p 3002`. Port is baked into `package.json`
 
 ## Known Issues
 
-- **Google Calendar token expired** — `invalid_grant` errors in PM2 logs. Needs re-auth but doesn't affect UI.
+- ~~**Google Calendar token expired** — `invalid_grant` errors in PM2 logs.~~ FIXED by re-auth (Feb 19)
 - ~~**No delete in task detail (All page)** — UX-006 in issues.md.~~ FIXED Feb 18
 - **No multi-select/bulk delete (All page)** — UX-007 in issues.md. Approach not decided.
 - **Voice pipeline: rename re-triggers processing** — Renaming a voice note file causes it to be re-sent through the pipeline. See bugs.md.
 - See `docs/notes/bugs.md` for other known issues (server IP changes, OAuth loops, foreign key violations).
 
-## Voice Pipeline Status (Feb 18, 2026)
-- Pipeline is operational. Known bug: renaming a voice note re-processes it — see bugs.md.
+## Voice Pipeline Status (Feb 19, 2026)
+- Pipeline is operational and working well. Work email routing added (say "work" → tags items + sends email to work address).
+- Known bug: renaming a voice note re-processes it — see bugs.md.
+
+### Voice Pipeline → LifeOS Integration Ideas (backlog)
+
+These require work in both projects. Not prioritized yet — capturing for when LifeOS focus shifts to integrations.
+
+**Calendar auto-creation (medium effort)**
+Gemini already extracts `due_date` with time. Pipeline could call Google Calendar API when a datetime is present — create an event automatically. Needs: OAuth token on pipeline side, decision on which calendar to use.
+
+**Voice notes in Vault (medium effort)**
+Add a "Voice" section or filter in Vault to browse processed voice note transcripts/summaries. Pipeline already writes JSON output per note — LifeOS would need a `voice_notes` table or a notes tag filter. Good for searchability.
+
+**Rollup summaries as LifeOS notes (easy once decided)**
+Daily or weekly cron on pipeline that summarizes all processed notes for the period and pushes a single LifeOS note. Needs: schedule decision, summary format, whether it also emails.
+
+**Pattern detection (future — needs data volume)**
+Analyze LifeOS items created via voice over time — surface recurring themes, stalled tasks, capture frequency. Needs months of data before it's useful. Good someday-maybe candidate.
 
 ---
 

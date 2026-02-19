@@ -1,13 +1,7 @@
-### Active Bug: Week View Time Numbers Invisible on Phone Dark Mode
-- **Status:** UNRESOLVED (Feb 11, 2026) — requires proper dark mode implementation
-- **Symptoms:** Week view hour numbers (6, 7, 8...) on the left time column are completely invisible on phones with OS-level dark mode enabled.
-- **Cause:** Phone's dark mode inverts/overrides colors, but Tailwind's `dark:` CSS classes don't activate because the app has no dark mode detection (`class="dark"` on `<html>`). The `dark:text-white` class has no effect.
-- **Impact:** Week view time column is unusable on phones with dark mode.
-- **Solution:** Implement proper dark mode support app-wide (Phase 9 in ui-polish-plan.md). Need to either:
-  - Add `darkMode: 'class'` to Tailwind config + detect `prefers-color-scheme`
-  - Or add `darkMode: 'media'` so Tailwind auto-detects OS preference
-- **Screenshot:** `docs/screenshots/white_numbers.jpg`
-- **File:** `app/calendar/page.tsx` (week view time column)
+### Resolved Bug: Week View Time Numbers Invisible on Phone Dark Mode
+- **Status:** RESOLVED (Feb 19, 2026)
+- **Fix:** Changed time labels to `text-gray-800 font-bold` — dark text on the white background area, readable regardless of OS dark mode. Applied to both week view and timeline view time columns.
+- **File:** `app/calendar/page.tsx`
 
 ### Active Bug: Mobile Width Overflow on All Page
 
@@ -33,6 +27,20 @@
   - May need `max-w-full` on all child elements
 - **File:** `app/all/page.tsx`
 - **Context:** Part of UI Polish Phase 4 work
+
+### Resolved Bug: Google Calendar Events Showing on Wrong Days
+- **Status:** RESOLVED (Feb 19, 2026)
+- **Symptoms:** All-day events (e.g., "Pay Day" on Wednesday) appeared on the next day. Recurring timed events (e.g., Monday 6:10 PM gymnastics) appeared on both the correct day and the next.
+- **Root causes (3 interconnected bugs):**
+  1. **API UTC timezone mismatch:** Server runs in UTC, so `new Date("2026-02-19")` = midnight UTC. Google API query window started/ended at wrong local times, including events from adjacent days.
+  2. **Client-side `new Date()` on date-only strings:** All-day events with `startTime: "2026-02-19"` parsed as midnight UTC = 7 PM previous day in EST. `toDateString()` then returned wrong local date.
+  3. **All-day events in week view hourly grid:** All-day events landed in the 7 PM hour slot instead of being displayed separately.
+- **Fixes applied:**
+  - API route now constructs query boundaries in America/New_York with dynamic EST/EDT offset via `Intl.DateTimeFormat`
+  - Added `getEventDateStr()` helper: returns date-only strings as-is for all-day events, extracts local date for timed events
+  - Added `filteredEventsForDay` for timeline/today views (client-side date filtering safety net)
+  - Week view: all-day events excluded from hourly grid, shown in dedicated "ALL" row
+- **Files:** `app/api/calendar/events/route.ts`, `app/calendar/page.tsx`
 
 ### Known Issue: Google Calendar Dateless Events Showing on Today
 - **Status:** NOTED (Feb 11, 2026) — deferring fix

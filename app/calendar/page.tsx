@@ -230,6 +230,17 @@ function HomeContent() {
     return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
   };
 
+  /** Extract local YYYY-MM-DD from a calendar event, handling all-day date-only strings */
+  const getEventDateStr = (event: CalendarEvent): string => {
+    if (event.isAllDay && event.startTime.length === 10) {
+      // Date-only string like "2026-02-19" — use as-is, don't parse through Date()
+      return event.startTime;
+    }
+    // Timed event with timezone offset — extract local date
+    const d = new Date(event.startTime);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  };
+
   // Date navigation functions — always preserve current view in URL
   const navigateToDate = (date: Date, replace = false) => {
     const dateStr = formatDateStr(date);
@@ -428,7 +439,7 @@ function HomeContent() {
 
   useEffect(() => {
     loadData();
-  }, [selectedDate]);
+  }, [selectedDate, viewMode]);
 
   // Update selectedDate when URL changes
   useEffect(() => {
@@ -479,10 +490,42 @@ function HomeContent() {
         setCategorizedData(null);
       }
 
-      // Fetch calendar events for the selected date
+      // Compute date range based on view mode for calendar events
+      let eventsStartDate = dateStr;
+      let eventsEndDate = dateStr;
+      if (viewMode === 'schedule') {
+        // Schedule view shows 14 days ahead
+        const end = new Date(selectedDate);
+        end.setDate(selectedDate.getDate() + 13);
+        eventsEndDate = formatDateStr(end);
+      } else if (viewMode === 'week') {
+        // Week view: Monday to Sunday
+        const dayOfWeek = selectedDate.getDay();
+        const monday = new Date(selectedDate);
+        monday.setDate(selectedDate.getDate() + (dayOfWeek === 0 ? -6 : 1 - dayOfWeek));
+        const sunday = new Date(monday);
+        sunday.setDate(monday.getDate() + 6);
+        eventsStartDate = formatDateStr(monday);
+        eventsEndDate = formatDateStr(sunday);
+      } else if (viewMode === 'month') {
+        // Month view: 6-week grid (42 days) starting from first visible day
+        const year = selectedDate.getFullYear();
+        const month = selectedDate.getMonth();
+        const firstDay = new Date(year, month, 1);
+        const firstDayOfWeek = firstDay.getDay();
+        const daysFromPrevMonth = firstDayOfWeek === 0 ? 6 : firstDayOfWeek - 1;
+        const gridStart = new Date(firstDay);
+        gridStart.setDate(firstDay.getDate() - daysFromPrevMonth);
+        const gridEnd = new Date(gridStart);
+        gridEnd.setDate(gridStart.getDate() + 41);
+        eventsStartDate = formatDateStr(gridStart);
+        eventsEndDate = formatDateStr(gridEnd);
+      }
+
+      // Fetch calendar events for the computed date range
       try {
         const eventsRes = await fetch(
-          `/api/calendar/events?startDate=${dateStr}&endDate=${dateStr}`
+          `/api/calendar/events?startDate=${eventsStartDate}&endDate=${eventsEndDate}`
         );
         if (eventsRes.ok) {
           const eventsData = await eventsRes.json();
@@ -1033,8 +1076,15 @@ function HomeContent() {
   // Filter events based on filter settings
   const filteredEvents = filterTypes.has("event") ? events : [];
 
+  // For timeline/today views, also filter events to the selected date only
+  // (week/month views fetch multi-day ranges, so we need client-side date filtering)
+  const selectedDateStr = formatDateStr(selectedDate);
+  const filteredEventsForDay = filteredEvents.filter(
+    event => event.startTime && getEventDateStr(event) === selectedDateStr
+  );
+
   // Combine items and events, then sort chronologically
-  const allDisplayItems = [...filteredItems, ...filteredEvents];
+  const allDisplayItems = [...filteredItems, ...filteredEventsForDay];
   const sortedItems = sortItemsChronologically(filteredItems);
 
   const getItemTypeLabel = (type: ItemType) => {
@@ -1504,7 +1554,7 @@ function HomeContent() {
                 className="absolute w-full border-t border-gray-200 pointer-events-none"
                 style={{ top: `${topPosition}px` }}
               >
-                <span className="absolute -left-8 md:-left-12 -top-3 text-xs text-gray-700 font-semibold w-6 md:w-10 text-right">
+                <span className="absolute -left-8 md:-left-12 -top-3 text-xs text-gray-800 font-bold w-6 md:w-10 text-right">
                   {timeLabel}
                 </span>
               </div>
@@ -1552,7 +1602,7 @@ function HomeContent() {
           })}
 
           {/* Render calendar events with time */}
-          {filteredEvents.map((event) => {
+          {filteredEventsForDay.map((event) => {
             if (event.isAllDay) return null;
 
             const startTime = new Date(event.startTime);
@@ -2046,7 +2096,7 @@ function HomeContent() {
                 {isToday() ? "Today" : "Items"}
               </h2>
               <span className="bg-purple-100 text-purple-700 px-3 py-1 rounded-full text-sm font-semibold">
-                {sortedItems.length + filteredEvents.length} items
+                {sortedItems.length + filteredEventsForDay.length} items
               </span>
               <span className="bg-green-100 text-green-700 px-3 py-1 rounded-full text-sm font-semibold">
                 {completedToday.size} completed
@@ -2134,7 +2184,7 @@ function HomeContent() {
               categorizedData.scheduledNoTime.length === 0 &&
               categorizedData.pinned.length === 0 &&
               (!categorizedData.habits || categorizedData.habits.length === 0) &&
-              filteredEvents.length === 0
+              filteredEventsForDay.length === 0
             ) ? (
               <div className="text-center py-16">
                 <div className="flex justify-center mb-4">
@@ -2217,8 +2267,7 @@ function HomeContent() {
                   });
                   const dayEvents = events.filter(event => {
                     if (!event.startTime) return false;
-                    const eventDate = new Date(event.startTime);
-                    return eventDate.toDateString() === day.toDateString();
+                    return getEventDateStr(event) === dayStr;
                   });
 
                   const hasItems = dayItems.length > 0 || dayEvents.length > 0;
@@ -2375,6 +2424,39 @@ function HomeContent() {
                   </div>
                 </div>
 
+                {/* All-day events row */}
+                {(() => {
+                  const allDayEvents = events.filter(e => e.isAllDay);
+                  if (allDayEvents.length === 0) return null;
+                  return (
+                    <div className="flex flex-shrink-0">
+                      <div className="w-9 flex-shrink-0 flex items-center justify-end pr-1">
+                        <span className="text-[9px] text-gray-400 font-medium">ALL</span>
+                      </div>
+                      <div className="flex-1 grid grid-cols-7 gap-px bg-gray-200 dark:bg-gray-700">
+                        {getWeekDays().map((day) => {
+                          const dayStr = formatDateStr(day);
+                          const dayAllDay = allDayEvents.filter(e => getEventDateStr(e) === dayStr);
+                          return (
+                            <div key={`allday-${dayStr}`} className="bg-white dark:bg-gray-800 px-0.5 py-0.5 min-h-[20px]">
+                              {dayAllDay.map(event => (
+                                <div
+                                  key={event.id}
+                                  onClick={() => setSelectedEvent(event)}
+                                  className="text-[10px] leading-tight px-1 py-0.5 mb-0.5 rounded cursor-pointer bg-blue-400 dark:bg-blue-600 text-white truncate"
+                                  title={event.title}
+                                >
+                                  {event.title}
+                                </div>
+                              ))}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })()}
+
                 {/* Time grid — scrollable, takes all remaining space */}
                 <div className="flex-1 overflow-y-auto min-h-0">
                   <div className="flex">
@@ -2382,7 +2464,7 @@ function HomeContent() {
                     <div className="w-9 flex-shrink-0">
                       {Array.from({ length: 18 }, (_, i) => i + 6).map((hour) => (
                         <div key={hour} className="h-12 flex items-start">
-                          <span className="text-xs text-black dark:text-white font-bold text-right w-full pr-1 -mt-1.5">
+                          <span className="text-xs text-gray-800 font-bold text-right w-full pr-1 -mt-1.5">
                             {hour === 0 ? '12' : hour < 12 ? `${hour}` : hour === 12 ? '12' : `${hour - 12}`}
                           </span>
                         </div>
@@ -2403,9 +2485,9 @@ function HomeContent() {
                                 return itemHour === hour;
                               });
                               const hourEvents = events.filter(event => {
-                                if (!event.startTime) return false;
+                                if (!event.startTime || event.isAllDay) return false;
+                                if (getEventDateStr(event) !== dayStr) return false;
                                 const eventDate = new Date(event.startTime);
-                                if (eventDate.toDateString() !== day.toDateString()) return false;
                                 return eventDate.getHours() === hour;
                               });
 
@@ -2513,8 +2595,7 @@ function HomeContent() {
                         const dayItems = items.filter(item => item.dueDate && item.dueDate.substring(0, 10) === dayStr);
                         const dayEvents = events.filter(event => {
                           if (!event.startTime) return false;
-                          const eventDate = new Date(event.startTime);
-                          return eventDate.toDateString() === day.date.toDateString();
+                          return getEventDateStr(event) === dayStr;
                         });
 
                         // Get overdue count for current day
@@ -2696,7 +2777,7 @@ function HomeContent() {
                 )}
 
                 {/* Today Section — 3-state: grid (time grid) → list (card list) → collapsed */}
-                {(categorizedData && (categorizedData.scheduled.length > 0 || filteredEvents.length > 0)) && (
+                {(categorizedData && (categorizedData.scheduled.length > 0 || filteredEventsForDay.length > 0)) && (
                   <>
                     {renderTodaySectionHeader()}
 
@@ -2707,7 +2788,7 @@ function HomeContent() {
                     {getTodayState() === 'list' && (
                       <div className="space-y-3">
                         {/* Calendar events as cards */}
-                        {filteredEvents.map((event) => (
+                        {filteredEventsForDay.map((event) => (
                           <div
                             key={`event-${event.id}`}
                             onClick={() => setSelectedEvent(event)}

@@ -40,10 +40,25 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Parse dates
-    const timeMin = new Date(startDate);
-    const timeMax = new Date(endDate);
-    timeMax.setHours(23, 59, 59, 999);
+    // Build date boundaries in user's timezone (America/New_York).
+    // Server runs in UTC, so we use Intl to get the correct UTC offset for EST/EDT.
+    const getEasternOffset = (dateStr: string): string => {
+      const d = new Date(`${dateStr}T12:00:00Z`); // noon UTC to avoid edge cases
+      const eastern = new Intl.DateTimeFormat('en-US', {
+        timeZone: 'America/New_York',
+        timeZoneName: 'shortOffset',
+      }).formatToParts(d);
+      const tzPart = eastern.find(p => p.type === 'timeZoneName')?.value || 'GMT-5';
+      // tzPart is like "GMT-5" or "GMT-4" — convert to offset string like "-05:00"
+      const match = tzPart.match(/GMT([+-]?\d+)/);
+      const hours = match ? parseInt(match[1]) : -5;
+      const sign = hours <= 0 ? '-' : '+';
+      return `${sign}${String(Math.abs(hours)).padStart(2, '0')}:00`;
+    };
+    const startOffset = getEasternOffset(startDate);
+    const endOffset = getEasternOffset(endDate);
+    const timeMin = new Date(`${startDate}T00:00:00${startOffset}`);
+    const timeMax = new Date(`${endDate}T23:59:59.999${endOffset}`);
 
     // Get enabled calendars
     const enabledCalendars = await prisma.calendarSync.findMany({
