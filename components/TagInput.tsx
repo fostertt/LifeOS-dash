@@ -30,6 +30,7 @@ export default function TagInput({
 }: TagInputProps) {
   const [inputValue, setInputValue] = useState("");
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const [isFocused, setIsFocused] = useState(false);
   const [selectedSuggestionIndex, setSelectedSuggestionIndex] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -50,14 +51,12 @@ export default function TagInput({
     const exists = tags.some((t) => normalizeTag(t) === normalizeTag(trimmedTag));
     if (exists) {
       setInputValue("");
-      setShowSuggestions(false);
       return;
     }
 
-    // Add tag preserving original case
+    // Add tag preserving original case, keep focus so user can add more
     onTagsChange([...tags, trimmedTag]);
     setInputValue("");
-    setShowSuggestions(false);
     setSelectedSuggestionIndex(0);
   };
 
@@ -91,11 +90,11 @@ export default function TagInput({
     }
   };
 
-  // Update suggestions visibility based on input
+  // Show suggestions when focused and there are available tags to show
   useEffect(() => {
-    setShowSuggestions(inputValue.length > 0 && suggestions.length > 0);
+    setShowSuggestions(isFocused && suggestions.length > 0);
     setSelectedSuggestionIndex(0);
-  }, [inputValue, suggestions.length]);
+  }, [inputValue, suggestions.length, isFocused]);
 
   return (
     <div className="relative w-full">
@@ -110,7 +109,7 @@ export default function TagInput({
         {tags.map((tag) => (
           <span
             key={tag}
-            className="inline-flex items-center gap-1 px-2 py-1 text-sm bg-blue-100 text-blue-800 rounded-full"
+            className="inline-flex items-center gap-1 px-2 py-1 text-sm bg-blue-200 text-blue-900 font-medium rounded-full"
           >
             <span>{tag}</span>
             {!disabled && (
@@ -136,24 +135,30 @@ export default function TagInput({
           value={inputValue}
           onChange={(e) => setInputValue(e.target.value)}
           onKeyDown={handleKeyDown}
-          onFocus={() => inputValue && setShowSuggestions(true)}
-          onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
+          onFocus={() => setIsFocused(true)}
+          onBlur={() => setTimeout(() => { setIsFocused(false); setShowSuggestions(false); }, 200)}
           placeholder={tags.length === 0 ? placeholder : ""}
           disabled={disabled}
-          className="flex-1 min-w-[120px] outline-none bg-transparent text-sm"
+          className="flex-1 min-w-[120px] outline-none bg-transparent text-sm text-gray-900"
         />
       </div>
 
       {/* Autocomplete suggestions dropdown */}
       {showSuggestions && suggestions.length > 0 && (
         <div className="absolute z-10 w-full mt-1 bg-white border rounded-lg shadow-lg max-h-48 overflow-y-auto">
+          {/* Show header when browsing all tags (empty input) */}
+          {!inputValue.trim() && (
+            <div className="px-3 py-1.5 text-xs font-semibold text-gray-500 uppercase border-b bg-gray-50">
+              Existing tags
+            </div>
+          )}
           {suggestions.map((suggestion, index) => (
             <button
               key={suggestion}
               type="button"
               onClick={() => handleAddTag(suggestion)}
-              className={`w-full text-left px-3 py-2 text-sm hover:bg-gray-100 ${
-                index === selectedSuggestionIndex ? "bg-gray-100" : ""
+              className={`w-full text-left px-3 py-3 text-base font-medium text-gray-900 hover:bg-gray-100 ${
+                index === selectedSuggestionIndex ? "bg-purple-50" : ""
               }`}
             >
               {suggestion}
@@ -164,7 +169,7 @@ export default function TagInput({
               <button
                 type="button"
                 onClick={() => handleAddTag(inputValue)}
-                className="w-full text-left px-3 py-2 text-sm text-blue-600 hover:bg-gray-100 border-t"
+                className="w-full text-left px-3 py-3 text-base font-medium text-blue-700 hover:bg-gray-100 border-t"
               >
                 Create "{inputValue.trim()}"
               </button>

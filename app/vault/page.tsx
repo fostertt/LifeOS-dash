@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useContext } from "react";
+import { useEffect, useState, useContext, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import Header from "@/components/Header";
@@ -9,6 +9,7 @@ import NoteCard from "@/components/NoteCard";
 import NoteForm from "@/components/NoteForm";
 import ListCard from "@/components/ListCard";
 import FAB from "@/components/FAB";
+import { useRefreshOnFocus } from "@/lib/useRefreshOnFocus";
 
 interface ListItem {
   id: number;
@@ -105,6 +106,11 @@ export default function NotesAndListsPage() {
     }
   };
 
+  /** Reload both notes and lists */
+  const refreshAll = useCallback(() => {
+    Promise.all([loadLists(), loadNotes()]);
+  }, []);
+
   useEffect(() => {
     const loadData = async () => {
       await Promise.all([loadLists(), loadNotes()]);
@@ -112,6 +118,9 @@ export default function NotesAndListsPage() {
     };
     loadData();
   }, []);
+
+  // Re-fetch data when user returns to the tab/app
+  useRefreshOnFocus(refreshAll, !loading);
 
   // Handle browser back button/gesture for list modal
   useEffect(() => {
@@ -518,6 +527,7 @@ export default function NotesAndListsPage() {
             setEditingNote(null);
           }}
           onSave={saveNote}
+          onDelete={deleteNote}
           existingNote={editingNote}
           availableTags={allTags}
         />

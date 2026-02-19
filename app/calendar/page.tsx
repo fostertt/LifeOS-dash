@@ -8,6 +8,7 @@ import { SwipeContext } from "@/components/SwipeContainer";
 import EventDetailModal, { CalendarEvent } from "@/components/EventDetailModal";
 import TagInput from "@/components/TagInput";
 import { extractUniqueTags } from "@/lib/tags";
+import { useRefreshOnFocus } from "@/lib/useRefreshOnFocus";
 import {
   DndContext,
   DragOverlay,
@@ -503,6 +504,9 @@ function HomeContent() {
       setLoading(false);
     }
   };
+
+  // Re-fetch data when user returns to the tab/app
+  useRefreshOnFocus(loadData);
 
   const toggleItem = async (itemId: number) => {
     try {

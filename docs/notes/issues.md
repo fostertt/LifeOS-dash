@@ -1,6 +1,6 @@
 # LifeOS Issues & Enhancements
 
-**Last Updated:** January 30, 2026
+**Last Updated:** February 19, 2026
 
 ---
 
@@ -82,6 +82,29 @@
 ### ~~UX-006: No Delete Button When Viewing a Task Detail (All Page)~~ FIXED
 **Discovered:** Feb 18, 2026 | **Fixed:** Feb 18, 2026
 **Resolution:** Added `onDelete` prop to `TaskForm` component with confirmation dialog. Wired up in All page.
+
+### ~~UX-008: Cannot Delete Notes~~ FIXED
+**Discovered:** Feb 19, 2026 | **Fixed:** Feb 19, 2026
+**Resolution:** Added `onDelete` prop to `NoteForm` with confirmation dialog. DELETE API endpoint already existed but was never wired to UI. Same pattern as UX-006 task delete fix.
+
+### ~~UX-009: Tag Chips Too Faint on Mobile~~ FIXED
+**Discovered:** Feb 19, 2026 | **Fixed:** Feb 19, 2026
+**Resolution:** Bumped tag chip styling from `bg-blue-100 text-blue-800` to `bg-blue-200 text-blue-900 font-medium` in TagInput and NoteCard. Added explicit `text-gray-900` to input field. Also improved autocomplete dropdown: larger tap targets (`py-3`), `text-base font-medium text-gray-900` for suggestion text.
+
+### ~~UX-010: Tag Autocomplete Not Showing Existing Tags~~ FIXED
+**Discovered:** Feb 19, 2026 | **Fixed:** Feb 19, 2026
+**Resolution:** TagInput only showed suggestions when typing (`inputValue.length > 0`). Added focus state tracking so all available tags show on focus with "Existing tags" header. Tags stay visible while adding multiple in a row.
+
+### ~~UX-011: Data Doesn't Refresh Without Page Reload~~ FIXED
+**Discovered:** Feb 19, 2026 | **Fixed:** Feb 19, 2026
+**Resolution:** Created `useRefreshOnFocus` hook (`lib/useRefreshOnFocus.ts`) using `visibilitychange` + `focus` events with 5s throttle. Applied to all 4 pages (vault, all, week, calendar). Built as simple hook for easy upgrade to SWR/React Query later if multi-user is needed.
+
+### FEAT-003: Rich Text / Markdown Support in Notes
+**Discovered:** Feb 19, 2026
+**Priority:** Medium
+**Description:** Notes are plain text only (textarea). Would benefit from markdown support for headers, bold, lists, etc.
+**Approach:** Markdown with preview recommended over full rich text editor (lighter weight). Needs ADR.
+**File:** `components/NoteForm.tsx`
 
 ### UX-007: No Multi-Select for Bulk Delete on All Page
 **Discovered:** Feb 18, 2026

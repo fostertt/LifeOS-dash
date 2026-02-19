@@ -6,6 +6,7 @@ import { useSearchParams, useRouter } from "next/navigation";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import Header from "@/components/Header";
 import EventDetailModal, { CalendarEvent } from "@/components/EventDetailModal";
+import { useRefreshOnFocus } from "@/lib/useRefreshOnFocus";
 
 interface SubItem {
   id?: number;
@@ -238,6 +239,9 @@ function WeekViewContent() {
       setLoading(false);
     }
   };
+
+  // Re-fetch data when user returns to the tab/app
+  useRefreshOnFocus(loadData);
 
   const toggleItem = async (itemId: number, date: Date) => {
     const dateStr = `${date.getFullYear()}-${String(

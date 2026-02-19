@@ -12,6 +12,7 @@ interface NoteFormProps {
     tags: string[];
     pinned: boolean;
   }) => Promise<void>;
+  onDelete?: (noteId: number) => Promise<void>;
   existingNote?: {
     id: number;
     title?: string | null;
@@ -36,6 +37,7 @@ export default function NoteForm({
   isOpen,
   onClose,
   onSave,
+  onDelete,
   existingNote,
   availableTags,
 }: NoteFormProps) {
@@ -44,6 +46,8 @@ export default function NoteForm({
   const [tags, setTags] = useState<string[]>([]);
   const [pinned, setPinned] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   // Handle browser back button/gesture to close modal
   useEffect(() => {
@@ -78,7 +82,24 @@ export default function NoteForm({
       setTags([]);
       setPinned(false);
     }
+    setShowDeleteConfirm(false);
+    setDeleting(false);
   }, [existingNote, isOpen]);
+
+  /** Delete note with confirmation */
+  const handleDelete = async () => {
+    if (!existingNote || !onDelete) return;
+    setDeleting(true);
+    try {
+      await onDelete(existingNote.id);
+      onClose();
+    } catch (error) {
+      console.error("Error deleting note:", error);
+    } finally {
+      setDeleting(false);
+      setShowDeleteConfirm(false);
+    }
+  };
 
   const handleSave = async () => {
     if (!content.trim()) return;
@@ -166,8 +187,41 @@ export default function NoteForm({
           </div>
         </div>
 
+        {/* Delete confirmation */}
+        {existingNote && onDelete && showDeleteConfirm && (
+          <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+            <p className="text-sm text-red-800 mb-3">Delete this note? This cannot be undone.</p>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setShowDeleteConfirm(false)}
+                disabled={deleting}
+                className="flex-1 px-3 py-1.5 text-sm border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDelete}
+                disabled={deleting}
+                className="flex-1 px-3 py-1.5 text-sm bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50"
+              >
+                {deleting ? "Deleting..." : "Delete"}
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Actions */}
         <div className="flex gap-3 mt-6">
+          {/* Delete button - only shown when editing an existing note */}
+          {existingNote && onDelete && !showDeleteConfirm && (
+            <button
+              onClick={() => setShowDeleteConfirm(true)}
+              disabled={saving}
+              className="px-4 py-2 border border-red-300 text-red-600 rounded-lg hover:bg-red-50 transition-colors font-medium"
+            >
+              Delete
+            </button>
+          )}
           <button
             onClick={onClose}
             disabled={saving}

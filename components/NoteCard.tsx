@@ -67,7 +67,7 @@ export default function NoteCard({
           {tags.map((tag) => (
             <span
               key={tag}
-              className="inline-block px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded-full"
+              className="inline-block px-2 py-1 text-xs bg-blue-200 text-blue-900 font-medium rounded-full"
             >
               {tag}
             </span>

@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useState, useMemo, useContext } from "react";
+import { useEffect, useState, useMemo, useContext, useCallback } from "react";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import Header from "@/components/Header";
 import { SwipeContext } from "@/components/SwipeContainer";
 import TaskForm from "@/components/TaskForm";
 import { extractUniqueTags, itemMatchesTags } from "@/lib/tags";
+import { useRefreshOnFocus } from "@/lib/useRefreshOnFocus";
 
 interface Item {
   id: number;
@@ -115,6 +116,9 @@ function AllTasksContent() {
   useEffect(() => {
     loadData();
   }, []);
+
+  // Re-fetch data when user returns to the tab/app
+  useRefreshOnFocus(loadData, !loading);
 
   // Extract unique tags from items
   const availableTags = useMemo(() => extractUniqueTags(items), [items]);
