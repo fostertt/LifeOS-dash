@@ -96,34 +96,29 @@ export default function GlobalCreateManager() {
       <FAB
         options={[
           {
-            label: "New Task",
-            icon: "✅",
+            label: "Task",
+            icon: <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>,
             onClick: () => setActiveModal("task"),
-            color: "#8B5CF6", // purple
           },
           {
-            label: "New Habit",
-            icon: "🔄",
+            label: "Habit",
+            icon: <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>,
             onClick: () => setActiveModal("habit"),
-            color: "#10B981", // green
           },
           {
-            label: "New Reminder",
-            icon: "⏰",
+            label: "Reminder",
+            icon: <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>,
             onClick: () => setActiveModal("reminder"),
-            color: "#F59E0B", // amber
           },
           {
-            label: "New Note",
-            icon: "📝",
+            label: "Note",
+            icon: <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>,
             onClick: () => setActiveModal("note"),
-            color: "#3B82F6", // blue
           },
           {
-            label: "New List",
-            icon: "📋",
+            label: "List",
+            icon: <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg>,
             onClick: () => setActiveModal("list"),
-            color: "#EC4899", // pink
           },
         ]}
       />

@@ -93,7 +93,7 @@ function AllTasksContent() {
   const [selectedEnergy, setSelectedEnergy] = useState<string>("");
   const [groupBy, setGroupBy] = useState<GroupBy>("state");
   const [showFilters, setShowFilters] = useState(false);
-  const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set());
+  const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set(["Completed"]));
 
   // Load all items (tasks, habits, reminders)
   const loadData = async () => {
@@ -201,6 +201,11 @@ function AllTasksContent() {
       if (!groups[groupKey]) groups[groupKey] = [];
       groups[groupKey].push(item);
     });
+
+    // Always include a Completed section when grouping by state
+    if (groupBy === "state" && !groups["Completed"]) {
+      groups["Completed"] = [];
+    }
 
     return groups;
   }, [filteredItems, groupBy]);
@@ -324,6 +329,27 @@ function AllTasksContent() {
     if (!a.dueDate) return 1;
     if (!b.dueDate) return -1;
     return a.dueDate.localeCompare(b.dueDate);
+  };
+
+  /** Delete all completed non-recurring items */
+  const clearCompleted = async () => {
+    const completedItems = items.filter(
+      (item) => item.state === "completed" && !item.scheduleType
+    );
+    if (completedItems.length === 0) return;
+
+    if (!confirm(`Delete ${completedItems.length} completed item${completedItems.length > 1 ? "s" : ""}?`)) return;
+
+    try {
+      await Promise.all(
+        completedItems.map((item) =>
+          fetch(`/api/items/${item.id}`, { method: "DELETE" })
+        )
+      );
+      await loadData();
+    } catch (error) {
+      console.error("Error clearing completed items:", error);
+    }
   };
 
   const hasActiveFilters =
@@ -525,19 +551,28 @@ function AllTasksContent() {
                   return (
                 <div key={groupName}>
                   {groupBy !== "none" && (
-                    <button
-                      onClick={() => toggleSection(groupName)}
-                      className="flex items-center gap-2 text-lg font-semibold text-gray-900 mb-3 capitalize w-full text-left"
-                    >
-                      {groupName} ({groupItems.length})
-                      <div className="flex-1" />
-                      <svg
-                        className={`w-4 h-4 text-gray-500 transition-transform ${isCollapsed ? "" : "rotate-90"}`}
-                        fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                    <div className="flex items-center gap-2 mb-3">
+                      <button
+                        onClick={() => toggleSection(groupName)}
+                        className="flex items-center gap-2 text-lg font-semibold text-gray-900 capitalize flex-1 text-left"
                       >
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                      </svg>
-                    </button>
+                        {groupName} ({groupItems.length})
+                        <svg
+                          className={`w-4 h-4 text-gray-500 transition-transform ${isCollapsed ? "" : "rotate-90"}`}
+                          fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                        >
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                        </svg>
+                      </button>
+                      {groupName === "Completed" && groupItems.length > 0 && (
+                        <button
+                          onClick={clearCompleted}
+                          className="text-xs text-red-500 hover:text-red-700 px-2 py-1 rounded hover:bg-red-50"
+                        >
+                          Clear all
+                        </button>
+                      )}
+                    </div>
                   )}
 
                   {groupItems.length === 0 && groupBy === "none" && (
@@ -553,7 +588,7 @@ function AllTasksContent() {
                       <div
                         key={item.id}
                         onClick={() => handleTaskClick(item)}
-                        className="bg-white rounded-lg border border-gray-200 p-2 sm:p-3 hover:border-gray-300 hover:bg-gray-50 transition-colors cursor-pointer"
+                        className={`bg-white rounded-lg border border-gray-200 p-2 sm:p-3 hover:border-gray-300 hover:bg-gray-50 transition-colors cursor-pointer ${item.isCompleted ? "opacity-60" : ""}`}
                       >
                         <div className="flex items-start justify-between gap-1 sm:gap-2">
                           <div className="flex-1 min-w-0">
@@ -565,7 +600,7 @@ function AllTasksContent() {
                                   {item.itemType === "habit" ? "🔄" : "⏰"}
                                 </span>
                               )}
-                              <h3 className="font-medium text-gray-900 wrap-break-word">
+                              <h3 className={`font-medium text-gray-900 wrap-break-word ${item.isCompleted ? "line-through" : ""}`}>
                                 {item.name}
                               </h3>
                               {/* Schedule info for habits */}

@@ -140,6 +140,8 @@ export async function POST(
         data: {
           isCompleted: newCompletedState,
           completedAt: newCompletedState ? new Date().toISOString() : null,
+          // Move to completed state when checked, restore to active when unchecked
+          state: newCompletedState ? "completed" : (item.state === "completed" ? "active" : item.state),
         },
       });
 
