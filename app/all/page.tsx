@@ -118,7 +118,7 @@ function AllTasksContent() {
   }, []);
 
   // Re-fetch data when user returns to the tab/app
-  useRefreshOnFocus(loadData, !loading);
+  useRefreshOnFocus(loadData);
 
   // Extract unique tags from items
   const availableTags = useMemo(() => extractUniqueTags(items), [items]);
@@ -389,7 +389,7 @@ function AllTasksContent() {
                 <select
                   value={groupBy}
                   onChange={(e) => setGroupBy(e.target.value as GroupBy)}
-                  className="border rounded px-2 py-1 text-xs"
+                  className="border rounded px-2 py-1 text-sm font-medium text-gray-700"
                 >
                   <option value="none">No grouping</option>
                   <option value="state">By State</option>

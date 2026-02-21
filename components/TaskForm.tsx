@@ -79,7 +79,7 @@ export default function TaskForm({
 }: TaskFormProps) {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
-  const [state, setState] = useState("backlog");
+  const [state, setState] = useState("active");
   const [priority, setPriority] = useState("");
   const [complexity, setComplexity] = useState("");
   const [energy, setEnergy] = useState("");
@@ -131,7 +131,7 @@ export default function TaskForm({
     if (existingTask) {
       setName(existingTask.name);
       setDescription(existingTask.description || "");
-      setState(existingTask.state || (itemType === "habit" ? "active" : "backlog"));
+      setState(existingTask.state || "active");
       setPriority(existingTask.priority || "");
       setComplexity(existingTask.complexity || "");
       setEnergy(existingTask.energy || "");
@@ -182,7 +182,7 @@ export default function TaskForm({
       // Reset form for new task
       setName("");
       setDescription("");
-      setState(itemType === "habit" ? "active" : "backlog");
+      setState("active");
       setPriority("");
       setComplexity("");
       setEnergy("");

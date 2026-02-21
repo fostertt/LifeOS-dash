@@ -120,7 +120,7 @@ export default function NotesAndListsPage() {
   }, []);
 
   // Re-fetch data when user returns to the tab/app
-  useRefreshOnFocus(refreshAll, !loading);
+  useRefreshOnFocus(refreshAll);
 
   // Handle browser back button/gesture for list modal
   useEffect(() => {

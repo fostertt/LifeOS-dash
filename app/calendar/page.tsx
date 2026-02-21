@@ -2407,8 +2407,13 @@ function HomeContent() {
                         <div
                           key={day.toDateString()}
                           onClick={() => {
-                            navigateToDate(day);
-                            toggleViewMode('timeline');
+                            const dateStr = formatDateStr(day);
+                            router.push(`/calendar?view=timeline&date=${dateStr}`, { scroll: false });
+                            setSelectedDate(day);
+                            setViewMode('timeline');
+                            if (typeof window !== 'undefined') {
+                              localStorage.setItem('lastCalendarView', 'timeline');
+                            }
                           }}
                           className={`bg-white dark:bg-gray-800 py-1 px-0.5 text-center cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors ${isToday ? 'bg-blue-50 dark:bg-blue-900/30' : ''}`}
                         >

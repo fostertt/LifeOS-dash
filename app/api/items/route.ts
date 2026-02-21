@@ -159,25 +159,12 @@ export async function POST(request: NextRequest) {
     // Check if this item will have sub-items
     const hasSubItems = Array.isArray(subItems) && subItems.length > 0;
 
-    // Phase 3.1 / ADR-012 Revised: Determine task state based on whether it has a date
-    // 4-state model: backlog (no date) | active (has date) | in_progress | completed
-    // Habits default to active since they're recurring and always "scheduled"
-    let taskState = state;
-    if (!taskState) {
-      if (itemType === "habit") {
-        taskState = "active"; // Habits are always active by nature
-      } else if (dueDate || reminderDatetime) {
-        taskState = "active"; // Has a date = active
-      } else {
-        taskState = "backlog"; // No date = backlog
-      }
-    }
+    // Determine task state — default to "active" for all types
+    const taskState = state || "active";
 
-    // ADR-012 Rule: Backlog cannot have dates
-    // If state is explicitly set to backlog, clear any dates
-    const finalDueDate = taskState === "backlog" ? null : parseLocalDate(dueDate);
-    const finalDueTime = taskState === "backlog" ? null : dueTime;
-    const finalShowOnCalendar = taskState === "backlog" ? false : (showOnCalendar || false);
+    const finalDueDate = parseLocalDate(dueDate);
+    const finalDueTime = dueTime || null;
+    const finalShowOnCalendar = showOnCalendar || false;
 
     // Phase 3.4: Convert duration string to minutes for timeline calculations
     const durationMinutes = convertDurationToMinutes(duration);

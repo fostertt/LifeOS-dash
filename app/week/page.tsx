@@ -833,7 +833,7 @@ function WeekViewContent() {
                     return (
                       <div
                         key={index}
-                        onClick={() => router.push(`/?date=${dateStr}`)}
+                        onClick={() => router.push(`/calendar?date=${dateStr}`)}
                         className={`p-4 text-center font-semibold cursor-pointer transition-colors ${
                           isToday
                             ? "bg-purple-600 text-white hover:bg-purple-700"
