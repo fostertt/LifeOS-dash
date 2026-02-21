@@ -128,7 +128,7 @@ Tyrrell has compiled ~20 UX improvements from real-world usage of LifeOS on mobi
 - Keep existing sort (recent/alphabetical). Add sort to All page too.
 - **Files**: `app/vault/page.tsx`, `app/all/page.tsx`
 
-**Status**: [ ] Not started
+**Status**: ✅ Complete
 
 ---
 
@@ -142,7 +142,7 @@ Tyrrell has compiled ~20 UX improvements from real-world usage of LifeOS on mobi
 - `SwipeContainer` component already exists — wire callbacks to existing nav functions.
 - **Files**: `app/calendar/page.tsx`, `app/week/page.tsx`
 
-**Status**: [ ] Not started
+**Status**: ✅ Complete
 
 ---
 

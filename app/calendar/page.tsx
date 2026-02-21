@@ -10,6 +10,7 @@ import FilterPanel from "@/components/FilterPanel";
 import TagInput from "@/components/TagInput";
 import { extractUniqueTags, itemMatchesTags } from "@/lib/tags";
 import { useRefreshOnFocus } from "@/lib/useRefreshOnFocus";
+import { useSwipe } from "@/lib/useSwipe";
 import {
   DndContext,
   DragOverlay,
@@ -320,6 +321,9 @@ function HomeContent() {
   /** View-aware navigation: month by month, week by week, others by day */
   const goToPrevious = () => viewMode === 'month' ? goToPreviousMonth() : viewMode === 'week' ? goToPreviousWeek() : goToPreviousDay();
   const goToNext = () => viewMode === 'month' ? goToNextMonth() : viewMode === 'week' ? goToNextWeek() : goToNextDay();
+
+  /** Swipe left = forward in time, swipe right = back in time */
+  const swipeHandlers = useSwipe({ onSwipeLeft: goToNext, onSwipeRight: goToPrevious });
 
   /** View-aware header label: month shows "February 2026", week shows "February FW6", others show full date */
   const formatHeaderDate = () => {
@@ -1911,7 +1915,7 @@ function HomeContent() {
         onDragStart={handleDragStart}
         onDragEnd={handleDragEnd}
       >
-      <div className={`bg-gradient-to-br from-purple-50 to-blue-50 ${(viewMode === 'week' || viewMode === 'timeline') ? 'h-screen overflow-hidden flex flex-col' : 'min-h-screen'}`}>
+      <div {...swipeHandlers} className={`bg-gradient-to-br from-purple-50 to-blue-50 ${(viewMode === 'week' || viewMode === 'timeline') ? 'h-screen overflow-hidden flex flex-col' : 'min-h-screen'}`}>
         <div className={`max-w-5xl mx-auto w-full md:px-8 ${viewMode === 'week' ? 'px-1 py-0 flex-1 flex flex-col min-h-0' : viewMode === 'timeline' ? 'px-2 py-0 flex-1 flex flex-col min-h-0' : viewMode === 'month' ? 'px-2 py-4 md:py-4' : 'px-4 py-4 md:py-4'}`}>
           {!insideSwipe && (
             <Header
