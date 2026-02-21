@@ -11,53 +11,57 @@ Tyrrell has compiled ~20 UX improvements from real-world usage of LifeOS on mobi
 ## Group 1: Bug Fixes & Quick Wins
 *Small, independent fixes. Do these first.*
 
-### 1.1 Fix auto-refresh not triggering
+### 1.1 [~] Fix auto-refresh not triggering
 - **Problem**: `useRefreshOnFocus` hook works but `loadData` is recreated every render, and the hook's `useEffect` deps include `callback` — causing the listener to constantly re-register. On the All page, the `enabled` param is `!loading` which is `false` during the refresh itself, potentially unregistering the listener.
 - **Fix**: Wrap `loadData` in `useCallback` on each page (all, calendar, week, vault). Remove the `enabled` guard that disables during loading — just keep the throttle.
 - **Files**: `app/all/page.tsx`, `app/calendar/page.tsx`, `app/week/page.tsx`, `app/vault/page.tsx`, `lib/useRefreshOnFocus.ts`
+- **Note**: Improved (pageshow + ref fix) but still unreliable on Android. Needs further investigation.
 
-### 1.2 Fix week view day-click navigating to wrong page
+### 1.2 ✅ Fix week view day-click navigating to wrong page
 - **Problem**: `week/page.tsx:836` — clicking day header navigates to `/?date=${dateStr}` (home/cards page). Should navigate to `/calendar?date=${dateStr}`.
 - **Fix**: Change `router.push(/?date=...)` to `router.push(/calendar?date=...)`. Only the day header div (with day name/number) should be clickable, not the items area below.
 - **File**: `app/week/page.tsx:836`
 
-### 1.3 Default task state: active instead of backlog
+### 1.3 ✅ Default task state: active instead of backlog
 - **Problem**: `TaskForm.tsx:185` defaults new tasks to `"backlog"`. API route also defaults to backlog if no date.
 - **Fix**: Change default to `"active"` in TaskForm (line 82, 134, 185). Update API POST route to default to `"active"`. Remove the ADR-012 constraint that backlog clears dates.
 - **Files**: `components/TaskForm.tsx`, `app/api/items/route.ts`
 
-### 1.4 Fix grouping button text readability (All page)
+### 1.4 ✅ Fix grouping button text readability (All page)
 - **Problem**: Group-by dropdown uses `text-xs` with default border, hard to read.
 - **Fix**: Change to `text-sm font-medium text-gray-700` and add better border styling.
 - **File**: `app/all/page.tsx:389-401`
 
-**Status**: [~] Partial — 1.1 auto-refresh improved (pageshow + ref fix) but still unreliable on Android; 1.2, 1.3, 1.4 complete
+**Status**: [~] Partial — 1.1 improved but still unreliable on Android; 1.2, 1.3, 1.4 complete
 
 ---
 
 ## Group 2: TaskForm / Modal Compactness
 *Tighten the create/edit modal so Create button is visible without scrolling.*
 
-### 2.1 Add "Advanced" collapsible section
+### 2.1 ✅ Add "Advanced" collapsible section
 - Move State, Priority, Complexity, Energy into a collapsible "Advanced" section (collapsed by default for new items, expanded if editing and any values are set).
 - Keep Name, Description, Date/Time, Tags, and action buttons always visible.
 - **File**: `components/TaskForm.tsx`
+- **Note**: Also replaced the large schedule block with separate Date / Time icon buttons (each calls `showPicker()` directly). Habit form compacted to match task/reminder layout. Recurring + Pin to Today on same line.
 
-### 2.2 Compact sub-items section
+### 2.2 ✅ Compact sub-items section
 - Remove "No sub-tasks added yet" text — just show the "Add Sub-Task" button.
 - Sub-items list uses tighter spacing (gap-1 instead of gap-2).
 - **File**: `components/TaskForm.tsx:503-544`
 
-### 2.3 Fix sub-task date picker overflow
+### 2.3 ✅ Fix sub-task date picker overflow
 - Replace inline `<input type="date">` with a small calendar icon button that opens a date picker popover/popup positioned within viewport.
 - **File**: `components/TaskForm.tsx:520-530`
+- **Note**: Implemented via `showPicker()` on a hidden input — goes straight to the native date picker with no intermediate popover.
 
-### 2.4 Enter key advances to next sub-item/list-item
+### 2.4 [⏸] Enter key advances to next sub-item/list-item
 - In sub-task name inputs: pressing Enter creates a new sub-item and focuses it.
 - Same behavior for list items in ListForm.
 - **Files**: `components/TaskForm.tsx`, `components/ListForm.tsx`
+- **Note**: Deferred — Android virtual keyboards send keyCode 229 in keydown so `e.key === 'Enter'` never matches; `beforeinput` with `inputType === 'insertLineBreak'` also doesn't fire reliably on Android/GBoard. Desktop Enter works fine. Needs a different approach (e.g. `<textarea rows={1}>` detecting `\n` in onChange). ListForm inline items are a Group 8 concern anyway.
 
-**Status**: [~] Partial — 2.1 compact date+time (separate Date/Time icon buttons via showPicker()), 2.2 compact sub-items, 2.3 calendar icon showPicker() for sub-item dates: all complete. 2.4 (Enter key) deferred — Android virtual keyboards send keyCode 229 in keydown so `e.key === 'Enter'` never matches; `beforeinput` with `inputType === 'insertLineBreak'` also doesn't fire reliably on Android/GBoard. Desktop Enter works fine. Needs a different approach (e.g. `<textarea rows={1}>` and detect `\n` in onChange). ListForm enter-to-add also deferred (ListForm has no inline list items — that's a Group 8 concern). Habit form compacted to match task/reminder layout as a bonus.
+**Status**: [~] Partial — 2.1, 2.2, 2.3 complete; 2.4 deferred (Android keyboard limitation)
 
 ---
 
