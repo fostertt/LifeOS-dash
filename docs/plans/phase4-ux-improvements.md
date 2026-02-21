@@ -174,51 +174,66 @@ Tyrrell has compiled ~20 UX improvements from real-world usage of LifeOS on mobi
 ## Group 7: Recurring Task Options (Schema + UI)
 *Expand recurrence beyond just "daily". Use Opus for schema design.*
 
-### 7.1 Database schema update
-- Add fields to Item model (some may already exist): `recurrenceType`, `recurrenceInterval`, `recurrenceUnit`, `recurrenceAnchor`
+### 7.1 ✅ Database schema update
+- Added recurrence fields to Item model: `recurrenceType`, `recurrenceInterval`, `recurrenceUnit`, `recurrenceAnchor`
 - Types: `daily`, `weekly`, `monthly_day`, `every_n_days`, `every_n_weeks`, `days_after_completion`
-- **File**: `prisma/schema.prisma` (migration needed)
+- **File**: `prisma/schema.prisma`
 
-### 7.2 Recurrence UI in TaskForm
-- Replace the simple "Recurring (daily)" checkbox with a recurrence picker:
-  - Every day / Every N days / Every week on [days] / Every N weeks / This day of month / N days after completion
-- Show a human-readable summary: "Every 3 days", "Every Tuesday", "Monthly on the 15th"
+### 7.2 ✅ Recurrence UI in TaskForm
+- Replaced simple "Recurring (daily)" checkbox with full recurrence picker
+- Supports: Every day / Every N days / Every week on [days] / Every N weeks / This day of month / N days after completion
+- Shows human-readable summary
 - **File**: `components/TaskForm.tsx`
 
-### 7.3 Update toggle/completion logic for new recurrence types
-- Completion logic in `/api/items/[id]/toggle` needs to handle new recurrence patterns.
-- Next occurrence calculation for each type.
-- **Files**: `app/api/items/[id]/toggle/route.ts`, `app/week/page.tsx` (isScheduledForDay), `app/calendar/page.tsx`
+### 7.3 ✅ Update toggle/completion logic for new recurrence types
+- Two completion models: per-date (daily/weekly/monthly) and advancing (every_n/days_after_completion)
+- Per-date uses ItemCompletion table; advancing advances dueDate on completion
+- **Files**: `app/api/items/[id]/toggle/route.ts`, `app/week/page.tsx`, `app/calendar/page.tsx`
+- **ADR**: ADR-014 in decisions.md
 
-**Status**: [ ] Not started
+**Status**: ✅ Complete
 
 ---
 
-## Group 8: Notes/Lists UX Improvements (Deferred - Design TBD)
-*These need more design discussion and reference image review.*
+## Group 8: Notes/Lists UX Improvements
+*Keep-style full-page editors replacing modal-based editing.*
 
-### 8.1 Google Keep-style note editing
-- Notes: Title at top, freeform content area below, bottom toolbar with actions (like notes1.jpg)
-- Inline editing instead of modal-based editing
-- **Files**: `app/vault/[id]/page.tsx`, `components/NoteForm.tsx`
+### 8.1 ✅ Keep-style note editing
+- Full-page editor at `/vault/notes/[id]` (numeric ID or "new")
+- Title at top, freeform content area, inline color/tags/pin/Save/Delete below
+- Back arrow = cancel (no save), explicit Save button
+- Added `color` field to Note model (migration: `add_color_to_notes`)
+- Old `NoteForm.tsx` modal deleted
+- **Files**: `app/vault/notes/[id]/page.tsx`, `prisma/schema.prisma`, `app/api/notes/route.ts`, `app/api/notes/[id]/route.ts`
 
-### 8.2 Google Keep-style list editing
-- Lists: Title at top, checkbox + item inline, "+" to add item (like list1.jpg)
-- Enter key creates next item
-- Bottom toolbar with color/tag options
-- **Files**: `app/vault/[id]/page.tsx`, `components/ListForm.tsx`
+### 8.2 ✅ Keep-style list editing
+- Full-page editor at `/vault/lists/[id]` (numeric ID or "new")
+- Title at top, checkbox items with inline add, color/tags/pin/Save/Delete below
+- New lists: "Add item" always visible, eagerly creates list on first item add
+- Smart lists: read-only filtered task view preserved
+- Old `ListForm.tsx` modal deleted, `/vault/[id]` redirects to `/vault/lists/[id]`
+- **Files**: `app/vault/lists/[id]/page.tsx`, `app/vault/[id]/page.tsx`
 
-### 8.3 Optional checkboxes in Notes
+### 8.3 [⏸] Optional checkboxes in Notes
+- Skipped for now — deferred to future design review
 - Notes can optionally have checklist items (toggle to add checkboxes)
-- Keeps notes and lists as separate types in DB
-- **Files**: `components/NoteForm.tsx`, `app/api/notes/[id]/route.ts`, `prisma/schema.prisma`
 
-### 8.4 Tags on Lists (replace color circles)
-- Add tag support to lists (same as notes already have)
-- Keep color picker but as a "highlight color" feature available on both notes and lists
-- **Files**: `components/ListForm.tsx`, `components/ListCard.tsx`
+### 8.4 ✅ Tags on Lists
+- Wired existing `tags` JSON field to list editor UI via inline TagInput
+- Tags show as chips on ListCard (same style as NoteCard)
+- API PATCH route updated to accept `tags`
+- List tags included in vault page tag aggregation
+- **Files**: `app/api/lists/[id]/route.ts`, `components/ListCard.tsx`
 
-**Status**: [ ] Not started
+### 8.5 [TODO] Pin bottom panel to viewport
+- Color/tags/pin/Save/Delete buttons are currently inline and scroll with content
+- Need to fix them to the bottom of the viewport so content scrolls above
+- Must account for BottomTabBar height on mobile
+- Tracked as UX-010 in issues.md
+- **Reference**: `docs/screenshots/note-list.jpg`
+
+**Status**: [~] Partial — 8.1, 8.2, 8.4 complete; 8.3 deferred; 8.5 TODO
+**ADR**: ADR-015 in decisions.md
 
 ---
 
@@ -232,8 +247,8 @@ Tyrrell has compiled ~20 UX improvements from real-world usage of LifeOS on mobi
 | 4 | Group 4: Filters | Medium | Consistency across views |
 | 5 | Group 5: Swipe | Small | SwipeContainer already exists |
 | 6 | Group 6: Click-to-Add | Small-Med | Timeline enhancement |
-| 7 | Group 7: Recurring | Large | Schema change + logic |
-| 8 | Group 8: Notes/Lists | Large | Needs design iteration |
+| 7 | Group 7: Recurring | Large | ✅ Complete |
+| 8 | Group 8: Notes/Lists | Large | [~] 8.5 remaining (fixed bottom panel) |
 
 ---
 
