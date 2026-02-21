@@ -149,17 +149,25 @@ Tyrrell has compiled ~20 UX improvements from real-world usage of LifeOS on mobi
 ## Group 6: Click-to-Add on Timeline
 *Click empty time slots to quick-add tasks.*
 
-### 6.1 Add click handler to timeline time slots (Calendar/Today view)
-- Clicking an empty time slot opens the task creation modal with date and time pre-filled.
-- Only works on views with time slots (today/calendar view, week view).
-- **Files**: `app/calendar/page.tsx`, `app/week/page.tsx`
+### 6.1 ✅ Add click handler to timeline time slots (Calendar/Today view)
+- Clicking an empty time slot opens TaskForm with date and time pre-filled.
+- Replaced old inline calendar modal with `TaskForm` component for both create and edit.
+- Added `prefill?: { date?, time? }` prop to `TaskForm` for pre-seeding new items.
+- **Files**: `app/calendar/page.tsx`, `components/TaskForm.tsx`
 
-### 6.2 Show timeline even when no events scheduled
-- Add toggle/option in today view to always show the timeline grid (6am-10pm time slots).
-- Default: show timeline always.
+### 6.2 ✅ Show timeline even when no events scheduled
+- Today section now always renders (removed `scheduled.length > 0` guard).
+- Default changed to 'grid' (removed `"Today-grid"` from initial collapsed set).
 - **File**: `app/calendar/page.tsx`
 
-**Status**: [ ] Not started
+### 6.3 [~] Click-to-add on week view
+- Day cells are clickable — tap empty space to create task for that day.
+- Item/event cards use `e.stopPropagation()` to avoid bubbling.
+- Week view now uses `TaskForm` for edit too.
+- **Files**: `app/week/page.tsx`
+- **Note**: Implemented but not yet confirmed working — needs testing/debugging.
+
+**Status**: [~] Partial — 6.1 and 6.2 complete; 6.3 wired up but unverified
 
 ---
 

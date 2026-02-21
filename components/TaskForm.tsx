@@ -52,6 +52,8 @@ interface TaskFormProps {
   availableTags: string[];
   title?: string;
   itemType?: "task" | "habit" | "reminder";
+  /** Pre-fill date/time for new items (e.g., click-to-add from timeline) */
+  prefill?: { date?: string; time?: string };
 }
 
 /**
@@ -76,6 +78,7 @@ export default function TaskForm({
   availableTags,
   title,
   itemType = "task",
+  prefill,
 }: TaskFormProps) {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
@@ -221,8 +224,8 @@ export default function TaskForm({
       setComplexity("");
       setEnergy("");
       setTags([]);
-      setDate("");
-      setTime("");
+      setDate(prefill?.date || "");
+      setTime(prefill?.time || "");
       setIsRecurring(false);
       setShowOnCalendar(false);
       setIsOverdue(false);

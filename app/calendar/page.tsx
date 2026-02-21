@@ -22,6 +22,7 @@ import {
   DragStartEvent,
 } from "@dnd-kit/core";
 import BacklogSidebar from "@/components/BacklogSidebar";
+import TaskForm from "@/components/TaskForm";
 import DroppableTimeSlot from "@/components/DroppableTimeSlot";
 import DroppableSection from "@/components/DroppableSection";
 import DraggableTaskCard from "@/components/DraggableTaskCard";
@@ -118,6 +119,12 @@ function HomeContent() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [savingItem, setSavingItem] = useState(false);
   const [deletingItem, setDeletingItem] = useState(false);
+
+  // TaskForm (new modal) state — used for click-to-add and item editing
+  const [showTaskForm, setShowTaskForm] = useState(false);
+  const [taskFormItem, setTaskFormItem] = useState<Item | null>(null);
+  const [taskFormType, setTaskFormType] = useState<"task" | "habit" | "reminder">("task");
+  const [taskFormPrefill, setTaskFormPrefill] = useState<{ date?: string; time?: string } | undefined>(undefined);
   const [toasts, setToasts] = useState<Toast[]>([]);
   const [filterTypes, setFilterTypes] = useState<Set<ItemType>>(
     new Set(["habit", "task", "reminder", "event"])
@@ -134,7 +141,7 @@ function HomeContent() {
   );
 
   // Collapsible sections state
-  const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set(["Overdue", "Today-grid"]));
+  const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set(["Overdue"]));
 
   // Phase 3.5.3: View mode (timeline/schedule/week/month) — compact merged into timeline
   const [viewMode, setViewMode] = useState<ViewMode>(() => {
@@ -615,63 +622,51 @@ function HomeContent() {
     }
   };
 
-  const openCreateModal = (type: ItemType) => {
-    setSelectedItemType(type);
-    setModalMode("create");
-    setFormName("");
-    setFormDescription("");
-    setFormTime("");
-    setFormDay("");
-    setFormRecurring(false);
-    setFormPriority("");
-    setFormComplexity(""); // Phase 3.1: Renamed from formEffort
-    setFormDuration("");
-    setFormEnergy(""); // Phase 3.1: Renamed from formFocus
-    setFormTags([]); // Phase 3.2: Tags
-    setFormShowOnCalendar(false); // Phase 3.4: Pin to today
-    setFormSubItems([]);
+  const openCreateModal = (type: ItemType, prefill?: { time?: string; date?: string }) => {
+    if (type === "event") return; // events are Google Calendar only
+    setTaskFormType(type as "task" | "habit" | "reminder");
+    setTaskFormItem(null);
+    setTaskFormPrefill(prefill);
     setShowAddMenu(false);
-    setShowModal(true);
+    setShowTaskForm(true);
   };
 
   const openEditModal = (item: Item) => {
-    setEditingItem(item);
-    setModalMode("edit");
-    setSelectedItemType(item.itemType);
-    setFormName(item.name);
-    setFormDescription(item.description || "");
+    setTaskFormItem(item);
+    setTaskFormType(item.itemType);
+    setTaskFormPrefill(undefined);
+    setShowTaskForm(true);
+  };
 
-    // Set time based on item type
-    if (item.itemType === "habit") {
-      setFormTime(item.scheduledTime ? item.scheduledTime.substring(0, 5) : "");
+  /** Save handler for TaskForm — creates or updates depending on taskFormItem */
+  const handleTaskFormSave = async (taskData: any) => {
+    if (taskFormItem) {
+      // Update existing item
+      const res = await fetch(`/api/items/${taskFormItem.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(taskData),
+      });
+      if (!res.ok) throw new Error("Failed to update item");
     } else {
-      setFormTime(item.dueTime ? item.dueTime.substring(0, 5) : "");
+      // Create new item
+      const res = await fetch("/api/items", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ itemType: taskFormType, ...taskData }),
+      });
+      if (!res.ok) throw new Error("Failed to create item");
     }
+    await loadData();
+  };
 
-    // Set day for tasks
-    setFormDay(item.dueDate ? item.dueDate.split("T")[0] : "");
-
-    // Set recurring if scheduleType is daily
-    setFormRecurring(item.scheduleType === "daily");
-
-    // Set metadata fields (Phase 3.1: updated field names)
-    setFormPriority(item.priority || "");
-    setFormComplexity(item.complexity || "");
-    setFormDuration(item.duration || "");
-    setFormEnergy(item.energy || "");
-    setFormTags(item.tags || []); // Phase 3.2: Tags
-    setFormShowOnCalendar(item.showOnCalendar || false); // Phase 3.4: Pin to today
-
-    // Load sub-items
-    setFormSubItems(
-      item.subItems?.map((si) => ({
-        id: si.id,
-        name: si.name,
-        dueDate: si.dueDate ? si.dueDate.split("T")[0] : undefined,
-      })) || []
-    );
-
-    setShowModal(true);
+  /** Delete handler for TaskForm */
+  const handleTaskFormDelete = async () => {
+    if (!taskFormItem) return;
+    const res = await fetch(`/api/items/${taskFormItem.id}`, { method: "DELETE" });
+    if (!res.ok) throw new Error("Failed to delete item");
+    setShowTaskForm(false);
+    await loadData();
   };
 
   const closeModal = () => {
@@ -1564,18 +1559,26 @@ function HomeContent() {
                if (hour === endHour + 1) return null;
                
                return (
-                 <div 
-                    key={`slot-${hour}`} 
-                    className="absolute w-full"
-                    style={{ 
-                        top: `${topPosition}px`, 
-                        height: `${timelineZoom}px` 
+                 <div
+                    key={`slot-${hour}`}
+                    className="absolute w-full cursor-pointer"
+                    style={{
+                        top: `${topPosition}px`,
+                        height: `${timelineZoom}px`
+                    }}
+                    onClick={() => {
+                      // Don't open modal if a drag-and-drop is in progress
+                      if (activeId !== null) return;
+                      openCreateModal("task", {
+                        time: `${String(hour).padStart(2, '0')}:00`,
+                        date: formatDateStr(selectedDate),
+                      });
                     }}
                  >
-                    <DroppableTimeSlot 
-                       id={`time-slot-${hour}`} 
-                       time={`${hour}:00`} 
-                       date={selectedDate} 
+                    <DroppableTimeSlot
+                       id={`time-slot-${hour}`}
+                       time={`${hour}:00`}
+                       date={selectedDate}
                     />
                  </div>
                );
@@ -2776,8 +2779,8 @@ function HomeContent() {
                   </>
                 )}
 
-                {/* Today Section — 3-state: grid (time grid) → list (card list) → collapsed */}
-                {(categorizedData && (categorizedData.scheduled.length > 0 || filteredEventsForDay.length > 0)) && (
+                {/* Today Section — 3-state: grid (time grid) → list (card list) → collapsed. Always shown so user can access the timeline even on empty days. */}
+                {categorizedData && (
                   <>
                     {renderTodaySectionHeader()}
 
@@ -2923,459 +2926,17 @@ function HomeContent() {
 
         {/* Universal Add Button - REMOVED (Replaced by GlobalCreateManager) */}
 
-        {/* Add/Edit Modal */}
-        {showModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-2xl p-8 max-w-md w-full max-h-[90vh] overflow-y-auto">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">
-                {modalMode === "create"
-                  ? `Create New ${getItemTypeLabel(selectedItemType)}`
-                  : `Edit ${getItemTypeLabel(selectedItemType)}`}
-              </h2>
-
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Name <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={formName}
-                    onChange={(e) => setFormName(e.target.value)}
-                    placeholder={`e.g., ${
-                      selectedItemType === "habit"
-                        ? "Morning Exercise"
-                        : selectedItemType === "task"
-                        ? "Finish report"
-                        : "Doctor's appointment"
-                    }`}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-white text-gray-900 placeholder-gray-400"
-                    autoFocus
-                    maxLength={100}
-                  />
-                  <p className="text-xs text-gray-500 mt-1">
-                    {formName.length}/100 characters
-                  </p>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Description (optional)
-                  </label>
-                  <textarea
-                    value={formDescription}
-                    onChange={(e) => setFormDescription(e.target.value)}
-                    placeholder="Add additional details or notes..."
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-white text-gray-900 placeholder-gray-400 resize-none"
-                    rows={3}
-                    maxLength={500}
-                  />
-                  <p className="text-xs text-gray-500 mt-1">
-                    {formDescription.length}/500 characters
-                  </p>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Time (optional)
-                  </label>
-                  <input
-                    type="time"
-                    value={formTime}
-                    onChange={(e) => setFormTime(e.target.value)}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-white text-gray-900"
-                  />
-                </div>
-
-                {(selectedItemType === "task" ||
-                  selectedItemType === "reminder") && (
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Day (optional)
-                    </label>
-                    <input
-                      type="date"
-                      value={formDay}
-                      onChange={(e) => setFormDay(e.target.value)}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-white text-gray-900"
-                    />
-                  </div>
-                )}
-
-                <div>
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={formRecurring}
-                      onChange={(e) => setFormRecurring(e.target.checked)}
-                      className="w-4 h-4 text-purple-600 rounded focus:ring-2 focus:ring-purple-500"
-                    />
-                    <span className="text-sm font-medium text-gray-700">
-                      Recurring (daily)
-                    </span>
-                  </label>
-                </div>
-
-                {/* Phase 3.4: Pin to Today */}
-                {selectedItemType === "task" && (
-                  <div>
-                    <label className="flex items-center gap-2 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={formShowOnCalendar}
-                        onChange={(e) => setFormShowOnCalendar(e.target.checked)}
-                        className="w-4 h-4 text-purple-600 rounded focus:ring-2 focus:ring-purple-500"
-                      />
-                      <span className="text-sm font-medium text-gray-700">
-                        Pin to today's calendar
-                      </span>
-                    </label>
-                    <p className="text-xs text-gray-500 mt-1 ml-6">
-                      Show this task on today's calendar regardless of due date
-                    </p>
-                  </div>
-                )}
-
-                {/* Metadata Fields */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Priority
-                    </label>
-                    <select
-                      value={formPriority}
-                      onChange={(e) => setFormPriority(e.target.value)}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-white text-gray-900"
-                    >
-                      <option value="">None</option>
-                      <option value="high">High</option>
-                      <option value="medium">Medium</option>
-                      <option value="low">Low</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Complexity
-                    </label>
-                    <select
-                      value={formComplexity}
-                      onChange={(e) => setFormComplexity(e.target.value)}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-white text-gray-900"
-                    >
-                      <option value="">None</option>
-                      <option value="easy">Easy</option>
-                      <option value="medium">Medium</option>
-                      <option value="hard">Hard</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Duration
-                    </label>
-                    <select
-                      value={formDuration}
-                      onChange={(e) => setFormDuration(e.target.value)}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-white text-gray-900"
-                    >
-                      <option value="">None</option>
-                      <option value="15min">15 min</option>
-                      <option value="30min">30 min</option>
-                      <option value="1hour">1 hour</option>
-                      <option value="1-2hours">1-2 hours</option>
-                      <option value="2-4hours">2-4 hours</option>
-                      <option value="4-8hours">4-8 hours (full day)</option>
-                      <option value="1-3days">1-3 days</option>
-                      <option value="4-7days">4-7 days</option>
-                      <option value="1-2weeks">1-2 weeks</option>
-                      <option value="2+weeks">2+ weeks</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Energy Required
-                    </label>
-                    <select
-                      value={formEnergy}
-                      onChange={(e) => setFormEnergy(e.target.value)}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-white text-gray-900"
-                    >
-                      <option value="">None</option>
-                      <option value="high">High energy</option>
-                      <option value="medium">Medium energy</option>
-                      <option value="low">Low energy</option>
-                    </select>
-                    <p className="text-xs text-gray-500 mt-1">
-                      What mental/physical state do you need to be in?
-                    </p>
-                  </div>
-
-                  {/* Phase 3.2: Tags */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Tags
-                    </label>
-                    <TagInput
-                      tags={formTags}
-                      availableTags={availableTags}
-                      onTagsChange={setFormTags}
-                      placeholder="Add tags (projects, contexts, areas)..."
-                    />
-                    <p className="text-xs text-gray-500 mt-1">
-                      Organize with tags like "The Deck", "@home", "Health", etc.
-                    </p>
-                  </div>
-                </div>
-
-                {/* Sub-Items Section */}
-                <div className="border-t pt-4">
-                  <div className="flex items-center justify-between mb-3">
-                    <label className="block text-sm font-medium text-gray-700">
-                      Sub-
-                      {selectedItemType === "habit"
-                        ? "Habits"
-                        : selectedItemType === "task"
-                        ? "Tasks"
-                        : "Items"}
-                    </label>
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setFormSubItems([
-                          ...formSubItems,
-                          { name: "", dueDate: undefined },
-                        ])
-                      }
-                      className="text-sm text-purple-600 hover:text-purple-700 font-medium flex items-center gap-1"
-                    >
-                      <svg
-                        className="w-4 h-4"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M12 4v16m8-8H4"
-                        />
-                      </svg>
-                      Add Sub-
-                      {selectedItemType === "habit"
-                        ? "Habit"
-                        : selectedItemType === "task"
-                        ? "Task"
-                        : "Item"}
-                    </button>
-                  </div>
-
-                  {formSubItems.length === 0 ? (
-                    <p className="text-sm text-gray-500 italic">
-                      No sub-items added yet
-                    </p>
-                  ) : (
-                    <div className="space-y-3 max-h-48 overflow-y-auto">
-                      {formSubItems.map((subItem, index) => {
-                        // Date validation - only warn if sub-task date is AFTER parent date
-                        const parentDueDate = formDay
-                          ? new Date(formDay)
-                          : null;
-                        const subItemDate = subItem.dueDate
-                          ? new Date(subItem.dueDate)
-                          : null;
-                        const isAfterParent =
-                          parentDueDate &&
-                          subItemDate &&
-                          subItemDate > parentDueDate;
-
-                        return (
-                          <div key={index} className="flex items-start gap-2">
-                            <div className="flex-1">
-                              <input
-                                type="text"
-                                value={subItem.name}
-                                onChange={(e) => {
-                                  const updated = [...formSubItems];
-                                  updated[index] = {
-                                    ...updated[index],
-                                    name: e.target.value,
-                                  };
-                                  setFormSubItems(updated);
-                                }}
-                                placeholder={`Sub-${selectedItemType} name`}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-white text-gray-900 text-sm"
-                              />
-                            </div>
-                            {(selectedItemType === "task" ||
-                              selectedItemType === "reminder") && (
-                              <div className="w-36">
-                                <input
-                                  type="date"
-                                  value={subItem.dueDate || ""}
-                                  onChange={(e) => {
-                                    const updated = [...formSubItems];
-                                    updated[index] = {
-                                      ...updated[index],
-                                      dueDate: e.target.value || undefined,
-                                    };
-                                    setFormSubItems(updated);
-                                  }}
-                                  className={`w-full px-2 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-white text-sm ${
-                                    isAfterParent
-                                      ? "border-red-500 text-red-500"
-                                      : "border-gray-300 text-gray-900"
-                                  }`}
-                                />
-                                {isAfterParent && (
-                                  <p className="text-xs text-red-500 mt-1">
-                                    After parent due date
-                                  </p>
-                                )}
-                              </div>
-                            )}
-                            <button
-                              type="button"
-                              onClick={() => {
-                                const updated = formSubItems.filter(
-                                  (_, i) => i !== index
-                                );
-                                setFormSubItems(updated);
-                              }}
-                              className="p-2 text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors"
-                              title="Remove sub-item"
-                            >
-                              <svg
-                                className="w-4 h-4"
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
-                              >
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  strokeWidth={2}
-                                  d="M6 18L18 6M6 6l12 12"
-                                />
-                              </svg>
-                            </button>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              <div className="flex gap-3 mt-6">
-                {modalMode === "edit" && (
-                  <button
-                    onClick={() => setShowDeleteConfirm(true)}
-                    disabled={deletingItem || savingItem}
-                    className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    Delete
-                  </button>
-                )}
-                <button
-                  onClick={closeModal}
-                  disabled={savingItem || deletingItem}
-                  className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={modalMode === "create" ? createItem : updateItem}
-                  disabled={!formName.trim() || savingItem || deletingItem}
-                  className="flex-1 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                >
-                  {savingItem && (
-                    <svg
-                      className="animate-spin h-4 w-4"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                    >
-                      <circle
-                        className="opacity-25"
-                        cx="12"
-                        cy="12"
-                        r="10"
-                        stroke="currentColor"
-                        strokeWidth="4"
-                      />
-                      <path
-                        className="opacity-75"
-                        fill="currentColor"
-                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                      />
-                    </svg>
-                  )}
-                  {savingItem
-                    ? modalMode === "create"
-                      ? "Creating..."
-                      : "Saving..."
-                    : modalMode === "create"
-                    ? "Create"
-                    : "Save Changes"}
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Delete Confirmation Modal */}
-        {showDeleteConfirm && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60]">
-            <div className="bg-white rounded-2xl p-8 max-w-sm w-full mx-4">
-              <h2 className="text-base font-semibold text-gray-900 mb-3">
-                Delete Item?
-              </h2>
-              <p className="text-gray-600 mb-6">
-                Are you sure you want to delete this item? This action cannot be
-                undone.
-              </p>
-              <div className="flex gap-3">
-                <button
-                  onClick={() => setShowDeleteConfirm(false)}
-                  disabled={deletingItem}
-                  className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={deleteItem}
-                  disabled={deletingItem}
-                  className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                >
-                  {deletingItem && (
-                    <svg
-                      className="animate-spin h-4 w-4"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                    >
-                      <circle
-                        className="opacity-25"
-                        cx="12"
-                        cy="12"
-                        r="10"
-                        stroke="currentColor"
-                        strokeWidth="4"
-                      />
-                      <path
-                        className="opacity-75"
-                        fill="currentColor"
-                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                      />
-                    </svg>
-                  )}
-                  {deletingItem ? "Deleting..." : "Delete"}
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
+        {/* TaskForm — handles create and edit for tasks, habits, reminders */}
+        <TaskForm
+          isOpen={showTaskForm}
+          onClose={() => setShowTaskForm(false)}
+          onSave={handleTaskFormSave}
+          onDelete={taskFormItem ? handleTaskFormDelete : undefined}
+          existingTask={taskFormItem}
+          availableTags={availableTags}
+          itemType={taskFormType}
+          prefill={taskFormPrefill}
+        />
 
         {/* Toast Notifications */}
         <div className="fixed bottom-8 left-8 space-y-2 z-50">

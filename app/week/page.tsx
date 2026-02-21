@@ -6,6 +6,7 @@ import { useSearchParams, useRouter } from "next/navigation";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import Header from "@/components/Header";
 import EventDetailModal, { CalendarEvent } from "@/components/EventDetailModal";
+import TaskForm from "@/components/TaskForm";
 import { useRefreshOnFocus } from "@/lib/useRefreshOnFocus";
 
 interface SubItem {
@@ -91,6 +92,11 @@ function WeekViewContent() {
     null
   );
 
+  // TaskForm state for click-to-add and item editing
+  const [showTaskForm, setShowTaskForm] = useState(false);
+  const [taskFormItem, setTaskFormItem] = useState<Item | null>(null);
+  const [taskFormPrefillDate, setTaskFormPrefillDate] = useState<string | undefined>(undefined);
+
   // Form fields
   const [formName, setFormName] = useState("");
   const [formTime, setFormTime] = useState("");
@@ -132,6 +138,47 @@ function WeekViewContent() {
 
   const goToCurrentWeek = () => {
     navigateToWeek(new Date());
+  };
+
+  /** Open TaskForm to create a task for a specific date */
+  const openCreateForDate = (dateStr: string) => {
+    setTaskFormItem(null);
+    setTaskFormPrefillDate(dateStr);
+    setShowTaskForm(true);
+  };
+
+  /** Open TaskForm to edit an existing item */
+  const openEditTaskForm = (item: Item) => {
+    setTaskFormItem(item);
+    setTaskFormPrefillDate(undefined);
+    setShowTaskForm(true);
+  };
+
+  const handleTaskFormSave = async (taskData: any) => {
+    if (taskFormItem) {
+      const res = await fetch(`/api/items/${taskFormItem.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(taskData),
+      });
+      if (!res.ok) throw new Error("Failed to update item");
+    } else {
+      const res = await fetch("/api/items", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ itemType: "task", ...taskData }),
+      });
+      if (!res.ok) throw new Error("Failed to create item");
+    }
+    await loadData();
+  };
+
+  const handleTaskFormDelete = async () => {
+    if (!taskFormItem) return;
+    const res = await fetch(`/api/items/${taskFormItem.id}`, { method: "DELETE" });
+    if (!res.ok) throw new Error("Failed to delete item");
+    setShowTaskForm(false);
+    await loadData();
   };
 
   const isCurrentWeek = () => {
@@ -883,16 +930,17 @@ function WeekViewContent() {
                     return (
                       <div
                         key={dayIndex}
-                        className={`p-3 min-h-[200px] ${
+                        className={`p-3 min-h-[200px] cursor-pointer ${
                           isToday ? "bg-purple-50" : "bg-white"
                         }`}
+                        onClick={() => openCreateForDate(dateStr)}
                       >
                         <div className="space-y-2">
                           {/* Render events */}
                           {dayEvents.map((event) => (
                             <div
                               key={`event-${event.id}`}
-                              onClick={() => setSelectedEvent(event)}
+                              onClick={(e) => { e.stopPropagation(); setSelectedEvent(event); }}
                               className="text-sm border rounded-lg p-2 border-gray-200 bg-white hover:border-green-300 cursor-pointer"
                               style={{
                                 borderLeftWidth: "3px",
@@ -939,7 +987,7 @@ function WeekViewContent() {
                             return (
                               <div
                                 key={item.id}
-                                onClick={() => openEditModal(item)}
+                                onClick={(e) => { e.stopPropagation(); openEditTaskForm(item); }}
                                 className={`text-sm border rounded-lg p-2 cursor-pointer ${
                                   isCompleted
                                     ? "border-green-300 bg-green-50"
@@ -1621,6 +1669,18 @@ function WeekViewContent() {
             onClose={() => setSelectedEvent(null)}
           />
         )}
+
+        {/* TaskForm — click-to-add on day cells and item editing */}
+        <TaskForm
+          isOpen={showTaskForm}
+          onClose={() => setShowTaskForm(false)}
+          onSave={handleTaskFormSave}
+          onDelete={taskFormItem ? handleTaskFormDelete : undefined}
+          existingTask={taskFormItem}
+          availableTags={[]}
+          itemType="task"
+          prefill={taskFormItem ? undefined : { date: taskFormPrefillDate }}
+        />
       </div>
     </ProtectedRoute>
   );
