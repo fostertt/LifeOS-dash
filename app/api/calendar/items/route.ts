@@ -162,6 +162,7 @@ export async function GET(request: NextRequest) {
     const overdue: any[] = [];
     const scheduled: any[] = [];
     const scheduledNoTime: any[] = [];
+    const undated: any[] = []; // ADR-017: active tasks with no date (available today)
     const pinned: any[] = [];
     const backlog: any[] = [];
     const habits: any[] = [];
@@ -250,6 +251,12 @@ export async function GET(request: NextRequest) {
         }
       }
 
+      // ADR-017: Undated active tasks — no date, not overdue (overdue has its own section)
+      if (item.state === "active" && !item.dueDate && !item.isOverdue && !isCompleted && item.itemType === "task") {
+        undated.push(item);
+        continue;
+      }
+
       // Pinned items (showOnCalendar=true)
       if (item.showOnCalendar && !isCompleted) {
         // Only add if not already in another category
@@ -291,6 +298,7 @@ export async function GET(request: NextRequest) {
       overdue,
       scheduled,
       scheduledNoTime,
+      undated,
       pinned,
       backlog,
       habits,

@@ -82,7 +82,8 @@ interface CategorizedCalendarData {
   reminders: Item[];
   overdue: Item[];
   scheduled: Item[];
-  scheduledNoTime: Item[];
+  scheduledNoTime: Item[]; // Today's date, no time
+  undated: Item[];         // ADR-017: Active tasks with no date at all
   pinned: Item[];
   backlog: Item[];
   habits: Item[];
@@ -1017,6 +1018,7 @@ function HomeContent() {
       ...(categorizedData?.backlog || []),
       ...(categorizedData?.overdue || []),
       ...(categorizedData?.scheduledNoTime || []),
+      ...(categorizedData?.undated || []),
       ...(categorizedData?.scheduled || []),
     ];
 
@@ -2199,6 +2201,7 @@ function HomeContent() {
               categorizedData.overdue.length === 0 &&
               categorizedData.scheduled.length === 0 &&
               categorizedData.scheduledNoTime.length === 0 &&
+              (categorizedData.undated || []).length === 0 &&
               categorizedData.pinned.length === 0 &&
               (!categorizedData.habits || categorizedData.habits.length === 0) &&
               filteredEventsForDay.length === 0
@@ -2811,13 +2814,14 @@ function HomeContent() {
                   </>
                 )}
 
-                {/* Scheduled (no time) Section — above timeline so untimed tasks are visible first */}
-                {categorizedData && categorizedData.scheduledNoTime.length > 0 && filterTypes.has("task") && (
+                {/* ADR-017: Unscheduled section — today's date (no time) + undated active tasks */}
+                {categorizedData && ([...categorizedData.scheduledNoTime, ...(categorizedData.undated || [])].length > 0) && filterTypes.has("task") && (
                   <DroppableSection id="scheduled-no-time">
-                    {renderSectionHeader("Scheduled (No Time)", "text-gray-600")}
-                    {!isSectionCollapsed("Scheduled (No Time)") && (
+                    {renderSectionHeader("Unscheduled", "text-gray-600", "📋")}
+                    {!isSectionCollapsed("Unscheduled") && (
                     <div className="space-y-3">
                       {categorizedData.scheduledNoTime.map((item) => renderItemCard(item, item.isOverdue || false, "timeline-notime"))}
+                      {(categorizedData.undated || []).map((item) => renderItemCard(item, false, "timeline-undated"))}
                     </div>
                     )}
                   </DroppableSection>
