@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import FAB from "./FAB";
 import TaskForm from "./TaskForm";
@@ -19,6 +19,15 @@ type CreateType = "task" | "habit" | "reminder" | "note" | "list" | null;
 export default function GlobalCreateManager() {
   const router = useRouter();
   const [activeModal, setActiveModal] = useState<CreateType>(null);
+
+  // Listen for create events dispatched by BottomTabBar (mobile nav)
+  useEffect(() => {
+    function handleCreate(e: Event) {
+      setActiveModal((e as CustomEvent<{ type: string }>).detail.type as CreateType);
+    }
+    window.addEventListener('lifeos:create', handleCreate);
+    return () => window.removeEventListener('lifeos:create', handleCreate);
+  }, []);
   
   // Tag support is currently placeholder until we implement global tag fetching
   const availableTags: string[] = [];
@@ -93,6 +102,8 @@ export default function GlobalCreateManager() {
 
   return (
     <>
+      {/* FAB is hidden on mobile — BottomTabBar's center + button handles create there */}
+      <div className="hidden md:block">
       <FAB
         options={[
           {
@@ -122,6 +133,7 @@ export default function GlobalCreateManager() {
           },
         ]}
       />
+      </div>
 
       {/* Shared Task/Habit/Reminder Form */}
       {(activeModal === "task" || activeModal === "habit" || activeModal === "reminder") && (

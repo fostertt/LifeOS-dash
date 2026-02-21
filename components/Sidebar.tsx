@@ -13,14 +13,12 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
   const { data: session } = useSession();
   const pathname = usePathname();
 
+  // Primary nav (Home, All, Calendar, Vault) is now in the bottom tab bar.
+  // Sidebar shows secondary pages only.
   const menuItems = [
-    { href: "/", label: "Home" },
     { href: "/projects", label: "Projects" },
-    { href: "/all", label: "All" },
-    { href: "/calendar", label: "Calendar" },
-    { href: "/vault", label: "Vault" },
     { href: "/recipes", label: "Recipes" },
-    { href: "/settings/calendars", label: "Calendars" },
+    { href: "/settings/calendars", label: "Settings" },
   ];
 
   return (

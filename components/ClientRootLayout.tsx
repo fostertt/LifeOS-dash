@@ -1,15 +1,16 @@
 'use client';
 
 import GlobalCreateManager from './GlobalCreateManager';
+import BottomTabBar from './BottomTabBar';
 import { ReactNode } from 'react';
 
 /**
- * ClientRootLayout - UI Polish Phase 1
- *
- * Simplified layout that always renders children directly.
- * Swipe navigation has been disabled for cleaner UX.
+ * ClientRootLayout - UI Polish Phase 1 + Phase 4 Group 3
  *
  * GlobalCreateManager (FAB) is always available for quick actions.
+ * BottomTabBar provides primary mobile navigation (hidden on md+).
+ * pb-16 md:pb-0 on the content wrapper prevents pages from rendering
+ * behind the fixed bottom tab bar on mobile.
  */
 
 interface ClientRootLayoutProps {
@@ -20,7 +21,10 @@ export default function ClientRootLayout({ children }: ClientRootLayoutProps) {
   return (
     <>
       <GlobalCreateManager />
-      {children}
+      <div className="pb-16 md:pb-0">
+        {children}
+      </div>
+      <BottomTabBar />
     </>
   );
 }

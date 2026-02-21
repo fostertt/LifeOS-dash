@@ -68,23 +68,35 @@ Tyrrell has compiled ~20 UX improvements from real-world usage of LifeOS on mobi
 ## Group 3: Navigation Redesign (Bottom Tab Bar)
 *Replace hamburger-only mobile nav with bottom tab bar.*
 
-### 3.1 Create BottomTabBar component
-- Fixed bottom bar (mobile only, hidden on md+) with 4-5 tabs: Home, All, Calendar, Vault
-- Active tab highlighted with purple indicator
-- Each tab has icon + small label
+### 3.1 ✅ Create BottomTabBar component
+- 5-tab fixed bottom bar (mobile only, hidden on md+): Home | All | [+] | Calendar | Vault
+- Active tab: purple icon/text + thin purple bar at top
+- Center [+] opens a create menu (dispatches `lifeos:create` custom event); `GlobalCreateManager` listens and opens the appropriate modal. FAB hidden on mobile, kept on desktop.
+- Calendar tab: tapping when already on a calendar view opens a view-switcher popup (Today / Schedule / Week / Month) above the tab. Reads current `?view=` from `window.location` to highlight active view.
+- iOS safe area: `paddingBottom: env(safe-area-inset-bottom)` on the nav element.
 - **New file**: `components/BottomTabBar.tsx`
 
-### 3.2 Update layout to include BottomTabBar
-- Add BottomTabBar to `ClientRootLayout` (appears on all pages when authenticated)
-- Add bottom padding to pages to account for tab bar height
-- **Files**: `components/ClientRootLayout.tsx`, various page files
+### 3.2 ✅ Update layout to include BottomTabBar
+- Added `<BottomTabBar />` to `ClientRootLayout`
+- Wrapped children in `pb-16 md:pb-0` so page content clears the fixed bar
+- **Files**: `components/ClientRootLayout.tsx`
 
-### 3.3 Slim down Sidebar to secondary nav
-- Keep hamburger button in header but sidebar now only shows: Projects, Recipes, Settings (formerly "Calendars")
-- Rename "Calendars" to "Settings" in sidebar. Settings page shows calendar selection + future settings.
-- **Files**: `components/Sidebar.tsx`, `components/Header.tsx`
+### 3.3 ✅ Slim down Sidebar to secondary nav
+- Sidebar now shows only: Projects, Recipes, Settings (formerly "Calendars")
+- **Files**: `components/Sidebar.tsx`
 
-**Status**: [ ] Not started
+### 3.4 ✅ Calendar header cleanup
+- Removed 4-dot view-switcher icon from all 3 calendar mobile headers (Month, Week, Day/Schedule) — view switching moved to bottom tab Calendar popup
+- Moved hamburger from left to right on all calendar mobile headers (matches default Header.tsx which already had it right)
+- **File**: `app/calendar/page.tsx`
+
+**Status**: ✅ Complete
+
+### Future task (Group 9+): Unify mobile header compactness
+- All pages currently use the default Header.tsx mobile header (LifeOS title centered, hamburger right).
+- The calendar page has a compact custom header: `[< label >] [spacer] [filter] [hamburger]` — no wasted title row.
+- Apply the same compact single-row header pattern to: Home, All, Vault, Projects, Recipes pages.
+- Each page would show its own contextual title/controls in the compact row instead of the generic "LifeOS" centered title.
 
 ---
 
