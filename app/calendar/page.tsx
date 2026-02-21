@@ -63,6 +63,10 @@ interface Item {
   showOnCalendar?: boolean; // Pin to today's calendar view
   // Phase 3.10: Overdue persistence
   isOverdue?: boolean; // Persistent overdue flag
+  // Phase 4.7: Recurrence fields
+  recurrenceType?: string;
+  recurrenceInterval?: number;
+  recurrenceAnchor?: string;
   subItems?: SubItem[];
   completions?: Array<{ completionDate: string }>;
 }
@@ -263,6 +267,31 @@ function HomeContent() {
     // Timed event with timezone offset — extract local date
     const d = new Date(event.startTime);
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  };
+
+  /** Check if an item (task/reminder) with no time is scheduled for a given day.
+   *  Handles both dueDate-based and recurrence-based scheduling. */
+  const isItemScheduledForDay = (item: Item, dayStr: string, day: Date): boolean => {
+    // Per-date recurring types show on matching days
+    if (item.recurrenceType) {
+      switch (item.recurrenceType) {
+        case 'daily':
+          return true;
+        case 'weekly': {
+          const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+          return item.recurrenceAnchor?.split(",").includes(dayNames[day.getDay()]) || false;
+        }
+        case 'monthly':
+          return day.getDate() === parseInt(item.recurrenceAnchor || "0");
+        case 'every_n_days':
+        case 'every_n_weeks':
+        case 'days_after_completion':
+          // Advancing types — match exact dueDate
+          return item.dueDate ? item.dueDate.substring(0, 10) === dayStr : false;
+      }
+    }
+    // Non-recurring: match exact dueDate
+    return item.dueDate ? item.dueDate.substring(0, 10) === dayStr : false;
   };
 
   // Date navigation functions — always preserve current view in URL
@@ -2459,6 +2488,63 @@ function HomeContent() {
                   );
                 })()}
 
+                {/* Scheduled (no time) row — items with date but no time, shown in their day column */}
+                {(() => {
+                  const weekDays = getWeekDays();
+                  // Collect all no-time items for each day in the week
+                  const hasAnyNoTimeItems = weekDays.some((day) => {
+                    const dayStr = formatDateStr(day);
+                    return items.some(item =>
+                      !item.dueTime &&
+                      !item.isCompleted &&
+                      item.itemType !== 'habit' &&
+                      filterTypes.has(item.itemType) &&
+                      isItemScheduledForDay(item, dayStr, day)
+                    );
+                  });
+                  if (!hasAnyNoTimeItems) return null;
+                  return (
+                    <div className="flex flex-shrink-0">
+                      <div className="w-9 flex-shrink-0 flex items-center justify-end pr-1">
+                        <svg className="w-3 h-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                        </svg>
+                      </div>
+                      <div className="flex-1 grid grid-cols-7 gap-px bg-gray-200 dark:bg-gray-700">
+                        {weekDays.map((day) => {
+                          const dayStr = formatDateStr(day);
+                          const dayNoTimeItems = items.filter(item =>
+                            !item.dueTime &&
+                            !item.isCompleted &&
+                            item.itemType !== 'habit' &&
+                            filterTypes.has(item.itemType) &&
+                            isItemScheduledForDay(item, dayStr, day)
+                          );
+                          return (
+                            <div key={`notime-${dayStr}`} className="bg-white dark:bg-gray-800 px-0.5 py-0.5 min-h-[20px]">
+                              {dayNoTimeItems.map(item => {
+                                const bgColor = item.itemType === 'reminder' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
+                                  : item.priority === 'high' ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
+                                  : 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200';
+                                return (
+                                  <div
+                                    key={`notime-${item.id}`}
+                                    onClick={() => openEditModal(item)}
+                                    className={`text-[10px] leading-tight px-1 py-0.5 mb-0.5 rounded cursor-pointer ${bgColor} truncate`}
+                                    title={item.name}
+                                  >
+                                    {item.name}
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })()}
+
                 {/* Time grid — scrollable, takes all remaining space */}
                 <div className="flex-1 overflow-y-auto min-h-0">
                   <div className="flex">
@@ -2537,40 +2623,7 @@ function HomeContent() {
                     </div>
                   </div>
 
-                {/* Scheduled No Time section — items in this week with date but no time */}
-                {(() => {
-                  const weekDays = getWeekDays();
-                  const weekDateStrs = weekDays.map(d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`);
-                  const noTimeItems = items.filter(item =>
-                    item.dueDate &&
-                    weekDateStrs.includes(item.dueDate.substring(0, 10)) &&
-                    !item.dueTime &&
-                    !item.isCompleted &&
-                    filterTypes.has(item.itemType) &&
-                    passesAdditionalFilters(item)
-                  );
-                  return noTimeItems.length > 0 ? (
-                    <div className="flex-shrink-0 mt-1">
-                    <DroppableSection id="scheduled-no-time">
-                      {renderSectionHeader("Scheduled (No Time)", "text-gray-600")}
-                      {!isSectionCollapsed("Scheduled (No Time)") && (
-                      <div className="flex flex-wrap gap-1.5">
-                        {noTimeItems.map((item) => (
-                          <div
-                            key={`week-notime-${item.id}`}
-                            onClick={() => openEditModal(item)}
-                            className="text-xs px-2 py-1 rounded-md bg-gray-100 text-gray-700 border border-gray-200 cursor-pointer hover:bg-gray-200 transition-colors truncate max-w-[180px]"
-                            title={item.name}
-                          >
-                            {item.name}
-                          </div>
-                        ))}
-                      </div>
-                      )}
-                    </DroppableSection>
-                    </div>
-                  ) : null;
-                })()}
+                {/* Scheduled No Time — now shown in per-day row above the time grid */}
               </div>
             ) : viewMode === 'month' ? (
               <div className="space-y-4">

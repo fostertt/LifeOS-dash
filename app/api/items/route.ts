@@ -156,6 +156,35 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Validate recurrence fields if provided
+    if (recurrenceType) {
+      if (recurrenceInterval !== undefined && recurrenceInterval < 1) {
+        return NextResponse.json(
+          { error: "recurrenceInterval must be >= 1" },
+          { status: 400 }
+        );
+      }
+      if (recurrenceType === 'weekly' && recurrenceAnchor) {
+        const validDays = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+        const days = recurrenceAnchor.split(",").map((d: string) => d.trim());
+        if (days.some((d: string) => !validDays.includes(d))) {
+          return NextResponse.json(
+            { error: "recurrenceAnchor for weekly must contain valid day names (Sun,Mon,Tue,Wed,Thu,Fri,Sat)" },
+            { status: 400 }
+          );
+        }
+      }
+      if (recurrenceType === 'monthly' && recurrenceAnchor) {
+        const day = parseInt(recurrenceAnchor);
+        if (isNaN(day) || day < 1 || day > 31) {
+          return NextResponse.json(
+            { error: "recurrenceAnchor for monthly must be a day number 1-31" },
+            { status: 400 }
+          );
+        }
+      }
+    }
+
     // Check if this item will have sub-items
     const hasSubItems = Array.isArray(subItems) && subItems.length > 0;
 

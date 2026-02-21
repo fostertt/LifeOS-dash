@@ -35,6 +35,9 @@ interface Item {
   effort?: string;
   duration?: string;
   focus?: string;
+  recurrenceType?: string;
+  recurrenceInterval?: number;
+  recurrenceAnchor?: string;
   subItems?: SubItem[];
   completions?: Array<{ completionDate: string }>;
 }
@@ -110,6 +113,7 @@ function WeekViewContent() {
 
   // Track expanded items for sub-item display
   const [expandedItems, setExpandedItems] = useState<Set<number>>(new Set());
+
 
   // Week navigation functions
   const navigateToWeek = (date: Date) => {
@@ -581,22 +585,46 @@ function WeekViewContent() {
       return false;
     }
 
-    // Tasks and reminders without a due date appear on today
+    // Tasks and reminders: handle recurrence types first, then fall through to dueDate match
     if (item.itemType === "task" || item.itemType === "reminder") {
+      // Per-date recurring tasks (daily, weekly, monthly) — show on matching days
+      if (item.recurrenceType) {
+        switch (item.recurrenceType) {
+          case 'daily':
+            return true;
+          case 'weekly': {
+            const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+            return item.recurrenceAnchor?.split(",").includes(dayNames[date.getDay()]) || false;
+          }
+          case 'monthly':
+            return date.getDate() === parseInt(item.recurrenceAnchor || "0");
+          case 'every_n_days':
+          case 'every_n_weeks':
+          case 'days_after_completion': {
+            // Advancing types — match exact dueDate only
+            if (!item.dueDate) return false;
+            const dueDateStr = typeof item.dueDate === "string" ? item.dueDate : (item.dueDate as Date).toISOString();
+            const datePart = dueDateStr.split("T")[0];
+            const [y, m, d] = datePart.split("-").map(Number);
+            const dueDate = new Date(y, m - 1, d);
+            return dueDate.toDateString() === date.toDateString();
+          }
+        }
+      }
+
       if (!item.dueDate) {
-        // Show on today only
+        // No due date — show on today only
         const today = new Date();
         return date.toDateString() === today.toDateString();
       }
       // Parse the date string without timezone conversion to avoid off-by-one errors
-      // The dueDate comes as ISO string like "2025-11-16T00:00:00.000Z" or date string "2025-11-16"
       const dueDateStr =
         typeof item.dueDate === "string"
           ? item.dueDate
           : (item.dueDate as Date).toISOString();
-      const datePart = dueDateStr.split("T")[0]; // Extract "2025-11-16"
+      const datePart = dueDateStr.split("T")[0];
       const [year, month, day] = datePart.split("-").map(Number);
-      const dueDate = new Date(year, month - 1, day); // Create local date without timezone shift
+      const dueDate = new Date(year, month - 1, day);
       return dueDate.toDateString() === date.toDateString();
     }
 

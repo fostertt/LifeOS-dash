@@ -214,6 +214,30 @@ Should we replace "smart lists" concept with:
 3. Consider context-aware vs. universal approach
 4. Implement in Phase 2.6 or 2.7
 
+### ADR-014: Recurring Task Completion Models (2026-02-21)
+
+**Context:**
+- Tasks/reminders only supported a simple "Recurring (daily)" checkbox
+- Schema already had `recurrenceType`, `recurrenceInterval`, `recurrenceAnchor` fields unused
+- Need richer recurrence: every N days, weekly on specific days, monthly, days after completion
+
+**Decision:**
+Two completion models based on recurrence type:
+
+- **Per-date completion** (daily, weekly, monthly): Uses `ItemCompletion` table, same as habits. Task reappears each scheduled day. `scheduleType` is set so existing toggle logic works.
+- **Advancing completion** (every_n_days, every_n_weeks, days_after_completion): On completion, records history in `ItemCompletion`, advances `dueDate` to next occurrence, keeps task uncompleted. Task "completes and reappears" on next due date.
+
+**Field mapping:**
+- `recurrenceType`: daily, every_n_days, weekly, every_n_weeks, monthly, days_after_completion
+- `recurrenceInterval`: frequency (e.g., every 3 days)
+- `recurrenceAnchor`: context-dependent (day names for weekly, day number for monthly, start date for every_n)
+- `recurrenceUnit`: not used — type encodes unit
+
+**Consequences:**
+- Per-date types integrate with existing habit completion infrastructure
+- Advancing types use a complete→advance→uncomplete pattern in a single toggle call
+- Calendar week view shows no-time items in per-day row (not bottom flat list)
+
 ### ADR-013: Persistent Overdue Flag (2026-02-03)
 
 **Context:**

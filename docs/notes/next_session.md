@@ -1,9 +1,28 @@
 # Next Session - Start Here
 
-**Last Updated:** February 19, 2026
-**Current Status:** UI Polish Phase 6 COMPLETE ✅ — Ready for Phase 7
+**Last Updated:** February 21, 2026
+**Current Status:** Phase 4 Group 7 COMPLETE ✅ — Recurring Task Options
 **Branch:** master (committed & pushed)
 **Production:** <https://lifeos-dev.foster-home.net> (PM2 on port 3002)
+
+---
+
+## ✅ COMPLETED: Phase 4 Group 7 — Recurring Task Options (Feb 21, 2026)
+
+1. ✅ **Recurrence picker UI** — Replaced simple "Recurring" checkbox with dropdown: daily, every N days, weekly on days, every N weeks, monthly on day, N days after completion. Day-of-week pills for weekly, number inputs for intervals, human-readable summary below.
+2. ✅ **Two completion models** — Per-date (daily/weekly/monthly) uses ItemCompletion table like habits. Advancing (every_n_days/every_n_weeks/days_after_completion) advances dueDate on completion.
+3. ✅ **Day-matching logic** — Week view (`/week`) and calendar API both handle all 6 recurrence types for showing tasks on correct days.
+4. ✅ **Calendar week view: per-day no-time row** — Items with date but no time now appear in their correct day column (between all-day row and time grid), replacing the old flat "SCHEDULED (NO TIME)" bottom section.
+5. ✅ **API validation** — Light guardrails on recurrence fields (interval >= 1, valid day names, day 1-31).
+6. ✅ **Number input UX fix** — Changed from type="number" to type="text" with inputMode="numeric" so values can be cleared and retyped on mobile.
+
+**New issues captured (not yet fixed):**
+- **UX-008**: Pin to Today cut off on mobile task form — needs pin icon instead of checkbox+text
+- **UX-009**: No complete button in edit task modal — needs checkbox in header row
+
+**ADR-014:** Recurring Task Completion Models — documents the two-model approach
+
+**Files Changed:** `components/TaskForm.tsx`, `app/api/items/[id]/toggle/route.ts`, `app/week/page.tsx`, `app/api/calendar/items/route.ts`, `app/calendar/page.tsx`, `app/api/items/route.ts`, `app/api/items/[id]/route.ts`
 
 ---
 
@@ -175,8 +194,9 @@ PM2 runs `npm start` → `next start -p 3002`. Port is baked into `package.json`
 
 These require work in both projects. Not prioritized yet — capturing for when LifeOS focus shifts to integrations.
 
-**Calendar auto-creation (medium effort)**
+**Calendar auto-creation via natural language (medium effort)**
 Gemini already extracts `due_date` with time. Pipeline could call Google Calendar API when a datetime is present — create an event automatically. Needs: OAuth token on pipeline side, decision on which calendar to use.
+Voice memo (2026-02-21): "schedule the birthday party between 2 and 4 on Saturday" → creates calendar event. Natural language time parsing is the core ask.
 
 **Voice notes in Vault (medium effort)**
 Add a "Voice" section or filter in Vault to browse processed voice note transcripts/summaries. Pipeline already writes JSON output per note — LifeOS would need a `voice_notes` table or a notes tag filter. Good for searchability.

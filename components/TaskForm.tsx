@@ -25,6 +25,9 @@ interface TaskFormProps {
     scheduledTime?: string;
     scheduleType?: string;
     scheduleDays?: string;
+    recurrenceType?: string;
+    recurrenceInterval?: number;
+    recurrenceAnchor?: string;
     showOnCalendar?: boolean;
     isOverdue?: boolean;
     subItems?: SubItem[];
@@ -45,6 +48,9 @@ interface TaskFormProps {
     scheduledTime?: string;
     scheduleType?: string;
     scheduleDays?: string;
+    recurrenceType?: string;
+    recurrenceInterval?: number;
+    recurrenceAnchor?: string;
     showOnCalendar?: boolean;
     isOverdue?: boolean;
     subItems?: any[];
@@ -91,8 +97,12 @@ export default function TaskForm({
   // Schedule fields
   const [date, setDate] = useState("");
   const [time, setTime] = useState("");
-  const [isRecurring, setIsRecurring] = useState(false);
   const [showOnCalendar, setShowOnCalendar] = useState(false);
+
+  // Recurrence fields for tasks/reminders
+  const [recurrenceType, setRecurrenceType] = useState("");
+  const [recurrenceInterval, setRecurrenceInterval] = useState(1);
+  const [recurrenceAnchor, setRecurrenceAnchor] = useState("");
 
   // Habit schedule fields
   const [habitScheduleType, setHabitScheduleType] = useState("daily");
@@ -184,7 +194,10 @@ export default function TaskForm({
       const t = existingTask.dueTime || existingTask.scheduledTime || "";
       setTime(t ? t.substring(0, 5) : "");
 
-      setIsRecurring(existingTask.scheduleType === "daily");
+      // Load recurrence fields for tasks/reminders
+      setRecurrenceType(existingTask.recurrenceType || "");
+      setRecurrenceInterval(existingTask.recurrenceInterval || 1);
+      setRecurrenceAnchor(existingTask.recurrenceAnchor || "");
 
       if (existingTask.scheduleType) {
         setHabitScheduleType(existingTask.scheduleType);
@@ -226,7 +239,9 @@ export default function TaskForm({
       setTags([]);
       setDate(prefill?.date || "");
       setTime(prefill?.time || "");
-      setIsRecurring(false);
+      setRecurrenceType("");
+      setRecurrenceInterval(1);
+      setRecurrenceAnchor("");
       setShowOnCalendar(false);
       setIsOverdue(false);
       setHabitScheduleType("daily");
@@ -270,7 +285,26 @@ export default function TaskForm({
       } else {
         if (date) payload.dueDate = date;
         if (time) payload.dueTime = time;
-        if (isRecurring) payload.scheduleType = "daily";
+
+        // Recurrence: set recurrence fields and scheduleType for per-date types
+        if (recurrenceType) {
+          payload.recurrenceType = recurrenceType;
+          payload.recurrenceInterval = recurrenceInterval;
+          payload.recurrenceAnchor = recurrenceAnchor || undefined;
+          // Per-date types use ItemCompletion table via scheduleType
+          if (['daily', 'weekly', 'monthly'].includes(recurrenceType)) {
+            payload.scheduleType = recurrenceType;
+            if (recurrenceType === 'weekly') {
+              payload.scheduleDays = recurrenceAnchor; // "Mon,Wed,Fri"
+            }
+          }
+        } else {
+          // Clear recurrence fields when set to "Not recurring"
+          payload.recurrenceType = "";
+          payload.recurrenceInterval = 1;
+          payload.recurrenceAnchor = "";
+          payload.scheduleType = "";
+        }
       }
 
       if (subItems.length > 0) {
@@ -292,6 +326,17 @@ export default function TaskForm({
       case "habit": return "Sub-Habit";
       case "reminder": return "Sub-Item";
       default: return "Sub-Task";
+    }
+  };
+
+  /** Get ordinal suffix for a number: 1→"st", 2→"nd", 3→"rd", etc. */
+  const getOrdinalSuffix = (n: number): string => {
+    if (n >= 11 && n <= 13) return "th";
+    switch (n % 10) {
+      case 1: return "st";
+      case 2: return "nd";
+      case 3: return "rd";
+      default: return "th";
     }
   };
 
@@ -498,27 +543,158 @@ export default function TaskForm({
               </div>
             )}
 
-            {/* Task/reminder: recurring + pin on same line */}
+            {/* Task/reminder: recurrence picker + pin on same line */}
             {itemType !== 'habit' && (
-              <div className="flex gap-5">
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={isRecurring}
-                    onChange={(e) => setIsRecurring(e.target.checked)}
-                    className="w-4 h-4 text-purple-600 rounded focus:ring-2 focus:ring-purple-500"
-                  />
-                  <span className="text-sm text-gray-700">Recurring</span>
-                </label>
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={showOnCalendar}
-                    onChange={(e) => setShowOnCalendar(e.target.checked)}
-                    className="w-4 h-4 text-purple-600 rounded focus:ring-2 focus:ring-purple-500"
-                  />
-                  <span className="text-sm text-gray-700">Pin to Today</span>
-                </label>
+              <div className="space-y-2">
+                <div className="flex items-center gap-3">
+                  {/* Recurrence dropdown */}
+                  <select
+                    value={recurrenceType}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setRecurrenceType(val);
+                      // Set sensible defaults for anchor based on type
+                      if (val === 'monthly' && date) {
+                        setRecurrenceAnchor(String(parseInt(date.split('-')[2])));
+                      } else if (val === 'weekly') {
+                        setRecurrenceAnchor("");
+                      } else if (val === 'every_n_days' || val === 'every_n_weeks') {
+                        setRecurrenceAnchor(date || "");
+                      } else {
+                        setRecurrenceAnchor("");
+                      }
+                      setRecurrenceInterval(1);
+                    }}
+                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 text-sm"
+                  >
+                    <option value="">Not recurring</option>
+                    <option value="daily">Every day</option>
+                    <option value="every_n_days">Every ___ days</option>
+                    <option value="weekly">Weekly on...</option>
+                    <option value="every_n_weeks">Every ___ weeks</option>
+                    <option value="monthly">Monthly on day ___</option>
+                    <option value="days_after_completion">___ days after completion</option>
+                  </select>
+
+                  {/* Pin to Today */}
+                  <label className="flex items-center gap-2 cursor-pointer shrink-0">
+                    <input
+                      type="checkbox"
+                      checked={showOnCalendar}
+                      onChange={(e) => setShowOnCalendar(e.target.checked)}
+                      className="w-4 h-4 text-purple-600 rounded focus:ring-2 focus:ring-purple-500"
+                    />
+                    <span className="text-sm text-gray-700">Pin to Today</span>
+                  </label>
+                </div>
+
+                {/* Type-specific controls */}
+                {(recurrenceType === 'every_n_days' || recurrenceType === 'every_n_weeks') && (
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-gray-600">Every</span>
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      pattern="[0-9]*"
+                      value={recurrenceInterval === 0 ? "" : recurrenceInterval}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        if (val === "") { setRecurrenceInterval(0); return; }
+                        const num = parseInt(val);
+                        if (!isNaN(num) && num <= 365) setRecurrenceInterval(num);
+                      }}
+                      onBlur={() => { if (recurrenceInterval < 1) setRecurrenceInterval(1); }}
+                      className="w-16 px-2 py-1.5 border border-gray-300 rounded-lg text-sm text-center bg-white text-gray-900"
+                    />
+                    <span className="text-sm text-gray-600">
+                      {recurrenceType === 'every_n_days' ? 'days' : 'weeks'}
+                    </span>
+                  </div>
+                )}
+
+                {recurrenceType === 'days_after_completion' && (
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      pattern="[0-9]*"
+                      value={recurrenceInterval === 0 ? "" : recurrenceInterval}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        if (val === "") { setRecurrenceInterval(0); return; }
+                        const num = parseInt(val);
+                        if (!isNaN(num) && num <= 365) setRecurrenceInterval(num);
+                      }}
+                      onBlur={() => { if (recurrenceInterval < 1) setRecurrenceInterval(1); }}
+                      className="w-16 px-2 py-1.5 border border-gray-300 rounded-lg text-sm text-center bg-white text-gray-900"
+                    />
+                    <span className="text-sm text-gray-600">days after completion</span>
+                  </div>
+                )}
+
+                {recurrenceType === 'weekly' && (
+                  <div className="flex flex-wrap gap-2">
+                    {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day) => (
+                      <button
+                        key={day}
+                        type="button"
+                        onClick={() => {
+                          const current = recurrenceAnchor ? recurrenceAnchor.split(",").filter(Boolean) : [];
+                          const updated = current.includes(day)
+                            ? current.filter((d) => d !== day)
+                            : [...current, day];
+                          setRecurrenceAnchor(updated.join(","));
+                        }}
+                        className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                          recurrenceAnchor?.split(",").includes(day)
+                            ? "bg-purple-600 text-white"
+                            : "bg-white border border-gray-300 text-gray-700 hover:bg-gray-50"
+                        }`}
+                      >
+                        {day}
+                      </button>
+                    ))}
+                  </div>
+                )}
+
+                {recurrenceType === 'monthly' && (
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-gray-600">Monthly on day</span>
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      pattern="[0-9]*"
+                      value={recurrenceAnchor}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        if (val === "") { setRecurrenceAnchor(""); return; }
+                        const num = parseInt(val);
+                        if (!isNaN(num) && num <= 31) setRecurrenceAnchor(String(num));
+                      }}
+                      onBlur={() => {
+                        const num = parseInt(recurrenceAnchor);
+                        if (!num || num < 1) setRecurrenceAnchor("1");
+                      }}
+                      className="w-16 px-2 py-1.5 border border-gray-300 rounded-lg text-sm text-center bg-white text-gray-900"
+                    />
+                  </div>
+                )}
+
+                {/* Human-readable summary */}
+                {recurrenceType && (
+                  <p className="text-xs text-purple-600 font-medium">
+                    {recurrenceType === 'daily' && 'Repeats every day'}
+                    {recurrenceType === 'every_n_days' && `Every ${recurrenceInterval} day${recurrenceInterval > 1 ? 's' : ''}${date ? ` starting ${formatDisplayDate(date)}` : ''}`}
+                    {recurrenceType === 'weekly' && (
+                      recurrenceAnchor
+                        ? `Every ${recurrenceAnchor.split(",").join(" and ")}`
+                        : 'Select days above'
+                    )}
+                    {recurrenceType === 'every_n_weeks' && `Every ${recurrenceInterval} week${recurrenceInterval > 1 ? 's' : ''}`}
+                    {recurrenceType === 'monthly' && `Monthly on the ${parseInt(recurrenceAnchor) || 1}${getOrdinalSuffix(parseInt(recurrenceAnchor) || 1)}`}
+                    {recurrenceType === 'days_after_completion' && `${recurrenceInterval} day${recurrenceInterval > 1 ? 's' : ''} after completion`}
+                  </p>
+                )}
               </div>
             )}
 

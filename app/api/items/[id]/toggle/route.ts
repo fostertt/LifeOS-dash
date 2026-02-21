@@ -51,10 +51,77 @@ export async function POST(
       return NextResponse.json({ error: "Item not found" }, { status: 404 });
     }
 
-    // Determine if this is a recurring item (habit with schedule) or one-time item (task/reminder)
-    const isRecurring = item.scheduleType && item.scheduleType !== "";
+    // Determine completion model:
+    // Per-date recurring (habits, daily/weekly/monthly tasks): use ItemCompletion table
+    // Advancing recurring (every_n_days, every_n_weeks, days_after_completion): advance dueDate
+    const isPerDateRecurring = item.scheduleType && item.scheduleType !== "";
+    const isAdvancingRecurring = item.recurrenceType &&
+      ['every_n_days', 'every_n_weeks', 'days_after_completion'].includes(item.recurrenceType);
 
-    if (isRecurring) {
+    if (isAdvancingRecurring) {
+      // Advancing recurrence: complete, record history, then advance dueDate and uncomplete
+      const isCompleting = !item.isCompleted;
+
+      if (isCompleting) {
+        const now = new Date();
+        const completionDate = new Date(date);
+        const interval = item.recurrenceInterval || 1;
+
+        // Calculate next due date based on recurrence type
+        let nextDueDate: Date;
+        if (item.recurrenceType === 'every_n_days') {
+          const currentDue = item.dueDate ? new Date(item.dueDate) : now;
+          nextDueDate = new Date(currentDue);
+          nextDueDate.setDate(nextDueDate.getDate() + interval);
+        } else if (item.recurrenceType === 'every_n_weeks') {
+          const currentDue = item.dueDate ? new Date(item.dueDate) : now;
+          nextDueDate = new Date(currentDue);
+          nextDueDate.setDate(nextDueDate.getDate() + (interval * 7));
+        } else {
+          // days_after_completion: N days from today
+          nextDueDate = new Date(now);
+          nextDueDate.setDate(nextDueDate.getDate() + interval);
+        }
+        // Normalize to midnight
+        nextDueDate.setHours(0, 0, 0, 0);
+
+        // Record completion history
+        await prisma.itemCompletion.create({
+          data: {
+            itemId,
+            completionDate,
+          },
+        });
+
+        // Advance dueDate, keep item uncompleted for next occurrence
+        await prisma.item.update({
+          where: { id: itemId },
+          data: {
+            isCompleted: false,
+            completedAt: null,
+            dueDate: nextDueDate,
+            // Clear overdue flag since it's been handled
+            isOverdue: false,
+          },
+        });
+
+        return NextResponse.json({
+          completed: true,
+          advanced: true,
+          nextDueDate: nextDueDate.toISOString().split('T')[0],
+        });
+      } else {
+        // Uncompleting an advancing task — just toggle back (edge case, shouldn't happen often)
+        await prisma.item.update({
+          where: { id: itemId },
+          data: {
+            isCompleted: false,
+            completedAt: null,
+          },
+        });
+        return NextResponse.json({ completed: false });
+      }
+    } else if (isPerDateRecurring) {
       // For recurring items (habits): use ItemCompletion table to track by date
       const completionDate = new Date(date);
 

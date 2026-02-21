@@ -114,6 +114,19 @@
 **Status:** Approach not decided yet — needs design consideration before implementing.
 **File:** `app/all/page.tsx`
 
+### UX-008: Pin to Today Cut Off on Mobile Task Form
+**Discovered:** Feb 21, 2026
+**Priority:** Medium
+**Description:** On mobile, the "Pin to Today" checkbox is off-screen to the right of the recurrence dropdown. User has to scroll horizontally to see/access it. Need a more compact representation — possibly a pin icon button instead of checkbox+text.
+**Screenshot:** `docs/screenshots/task1.jpg`
+**File:** `components/TaskForm.tsx`
+
+### UX-009: No Complete Button in Edit Task Modal
+**Discovered:** Feb 21, 2026
+**Priority:** Medium
+**Description:** When opening a task from month view (or any view) via the edit modal, there's no way to mark it complete without going back to a list view. Should have a "Complete" checkbox in the modal header row, next to "Edit Task" title.
+**File:** `components/TaskForm.tsx`
+
 ---
 
 ## 🤔 Architectural Questions (Need Discussion)

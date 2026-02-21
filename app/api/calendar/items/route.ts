@@ -223,6 +223,29 @@ export async function GET(request: NextRequest) {
         // Don't continue - let overdue items also appear in scheduled sections
       }
 
+      // Per-date recurring tasks/reminders: check if scheduled for target date
+      if (item.recurrenceType && ['daily', 'weekly', 'monthly'].includes(item.recurrenceType) && !isCompleted) {
+        let matchesDate = false;
+        if (item.recurrenceType === 'daily') {
+          matchesDate = true;
+        } else if (item.recurrenceType === 'weekly' && item.recurrenceAnchor) {
+          const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+          const targetDayName = dayNames[targetDate.getUTCDay()];
+          matchesDate = item.recurrenceAnchor.split(",").map((d: string) => d.trim()).includes(targetDayName);
+        } else if (item.recurrenceType === 'monthly' && item.recurrenceAnchor) {
+          matchesDate = targetDate.getUTCDate() === parseInt(item.recurrenceAnchor);
+        }
+
+        if (matchesDate) {
+          if (item.dueTime) {
+            scheduled.push(item);
+          } else {
+            scheduledNoTime.push(item);
+          }
+          continue;
+        }
+      }
+
       // Scheduled: active + has date
       if (item.state === "active" && item.dueDate && !isCompleted) {
         const itemDate = new Date(item.dueDate);
