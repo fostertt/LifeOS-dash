@@ -916,9 +916,15 @@ function HomeContent() {
 
   const toggleFilter = (type: ItemType) => {
     setFilterTypes((prev) => {
+      if (prev.size === 4) {
+        // From "All" state: first tap selects only this type
+        return new Set([type]);
+      }
       const newSet = new Set(prev);
       if (newSet.has(type)) {
         newSet.delete(type);
+        // If nothing left selected, restore All
+        if (newSet.size === 0) return new Set(["habit", "task", "reminder", "event"]);
       } else {
         newSet.add(type);
       }
@@ -2129,21 +2135,26 @@ function HomeContent() {
             {showFilterMenu && (
               <div className="bg-white rounded-lg shadow border border-gray-200 px-4 pb-4 mb-2">
                 <FilterPanel
-                  selectedTypes={Array.from(filterTypes)}
+                  // Pass empty array when all 4 types are selected so "All" bubble shows as active
+                  selectedTypes={filterTypes.size === 4 ? [] : Array.from(filterTypes)}
                   onToggleType={(type) => toggleFilter(type as ItemType)}
+                  onClearTypes={() => setFilterTypes(new Set(["habit", "task", "reminder", "event"]))}
                   availableTypes={["task", "habit", "reminder", "event"]}
                   selectedPriorities={selectedPriorities}
                   onTogglePriority={(p) => setSelectedPriorities((prev) =>
                     prev.includes(p) ? prev.filter((x) => x !== p) : [...prev, p]
                   )}
+                  onClearPriorities={() => setSelectedPriorities([])}
                   selectedComplexities={selectedComplexities}
                   onToggleComplexity={(c) => setSelectedComplexities((prev) =>
                     prev.includes(c) ? prev.filter((x) => x !== c) : [...prev, c]
                   )}
+                  onClearComplexities={() => setSelectedComplexities([])}
                   selectedEnergies={selectedEnergies}
                   onToggleEnergy={(e) => setSelectedEnergies((prev) =>
                     prev.includes(e) ? prev.filter((x) => x !== e) : [...prev, e]
                   )}
+                  onClearEnergies={() => setSelectedEnergies([])}
                   selectedTags={selectedCalendarTags}
                   onTagsChange={setSelectedCalendarTags}
                   availableTags={availableCalendarTags}
