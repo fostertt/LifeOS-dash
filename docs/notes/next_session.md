@@ -163,6 +163,8 @@ PM2 runs `npm start` → `next start -p 3002`. Port is baked into `package.json`
 - ~~**No delete in task detail (All page)** — UX-006 in issues.md.~~ FIXED Feb 18
 - **No multi-select/bulk delete (All page)** — UX-007 in issues.md. Approach not decided.
 - **Voice pipeline: rename re-triggers processing** — Renaming a voice note file causes it to be re-sent through the pipeline. See bugs.md.
+- **Phase 4 Group 2 — Enter key in sub-items on Android (2.4 deferred):** `onKeyDown` doesn't fire for Enter on Android (keyCode 229 / Unidentified). Added `beforeinput` event listener (`inputType === 'insertLineBreak'`) but this also doesn't work on Android — unclear if it's a GBoard issue or the listener registration timing. Needs more investigation; Android may need a completely different approach (e.g., textarea rows=1 detecting `\n` in onChange). Desktop Enter works fine.
+- **Phase 4 Group 2 — Habit schedule entry (deferred):** Habit form still has compact icon buttons for time + frequency dropdown, but would benefit from looking more like the Google Keep-style inline entry. Deferred to Group 8 scope.
 - See `docs/notes/bugs.md` for other known issues (server IP changes, OAuth loops, foreign key violations).
 
 ## Voice Pipeline Status (Feb 19, 2026)

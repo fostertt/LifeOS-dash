@@ -57,7 +57,7 @@ Tyrrell has compiled ~20 UX improvements from real-world usage of LifeOS on mobi
 - Same behavior for list items in ListForm.
 - **Files**: `components/TaskForm.tsx`, `components/ListForm.tsx`
 
-**Status**: [ ] Not started
+**Status**: [~] Partial — 2.1 compact date+time (separate Date/Time icon buttons via showPicker()), 2.2 compact sub-items, 2.3 calendar icon showPicker() for sub-item dates: all complete. 2.4 (Enter key) deferred — Android virtual keyboards send keyCode 229 in keydown so `e.key === 'Enter'` never matches; `beforeinput` with `inputType === 'insertLineBreak'` also doesn't fire reliably on Android/GBoard. Desktop Enter works fine. Needs a different approach (e.g. `<textarea rows={1}>` and detect `\n` in onChange). ListForm enter-to-add also deferred (ListForm has no inline list items — that's a Group 8 concern). Habit form compacted to match task/reminder layout as a bonus.
 
 ---
 
