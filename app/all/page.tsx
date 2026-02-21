@@ -7,6 +7,7 @@ import { SwipeContext } from "@/components/SwipeContainer";
 import TaskForm from "@/components/TaskForm";
 import { extractUniqueTags, itemMatchesTags } from "@/lib/tags";
 import { useRefreshOnFocus } from "@/lib/useRefreshOnFocus";
+import FilterPanel from "@/components/FilterPanel";
 
 interface Item {
   id: number;
@@ -88,9 +89,14 @@ function AllTasksContent() {
     "reminder",
   ]); // Show all types by default
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
-  const [selectedPriority, setSelectedPriority] = useState<string>("");
-  const [selectedComplexity, setSelectedComplexity] = useState<string>("");
-  const [selectedEnergy, setSelectedEnergy] = useState<string>("");
+  const [selectedPriorities, setSelectedPriorities] = useState<string[]>([]);
+  const [selectedComplexities, setSelectedComplexities] = useState<string[]>([]);
+  const [selectedEnergies, setSelectedEnergies] = useState<string[]>([]);
+
+  // Badge visibility toggles — shown in always-visible control bar
+  const [showPriorityBadge, setShowPriorityBadge] = useState(true);
+  const [showComplexityBadge, setShowComplexityBadge] = useState(true);
+  const [showEnergyBadge, setShowEnergyBadge] = useState(true);
   const [groupBy, setGroupBy] = useState<GroupBy>("state");
   const [showFilters, setShowFilters] = useState(false);
   const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set(["Completed"]));
@@ -141,24 +147,24 @@ function AllTasksContent() {
         return false;
       }
 
-      // Priority filter
-      if (selectedPriority && item.priority !== selectedPriority) {
+      // Priority filter (multi-select; items with no value always pass)
+      if (selectedPriorities.length > 0 && item.priority && !selectedPriorities.includes(item.priority)) {
         return false;
       }
 
-      // Complexity filter
-      if (selectedComplexity && item.complexity !== selectedComplexity) {
+      // Complexity filter (multi-select)
+      if (selectedComplexities.length > 0 && item.complexity && !selectedComplexities.includes(item.complexity)) {
         return false;
       }
 
-      // Energy filter
-      if (selectedEnergy && item.energy !== selectedEnergy) {
+      // Energy filter (multi-select)
+      if (selectedEnergies.length > 0 && item.energy && !selectedEnergies.includes(item.energy)) {
         return false;
       }
 
       return true;
     });
-  }, [items, selectedTypes, selectedStates, selectedTags, selectedPriority, selectedComplexity, selectedEnergy]);
+  }, [items, selectedTypes, selectedStates, selectedTags, selectedPriorities, selectedComplexities, selectedEnergies]);
 
   // Group items
   const groupedItems = useMemo(() => {
@@ -293,10 +299,24 @@ function AllTasksContent() {
     );
   };
 
-  // Toggle tag filter
-  const toggleTagFilter = (tag: string) => {
-    setSelectedTags((prev) =>
-      prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]
+  // Toggle priority filter
+  const togglePriorityFilter = (p: string) => {
+    setSelectedPriorities((prev) =>
+      prev.includes(p) ? prev.filter((x) => x !== p) : [...prev, p]
+    );
+  };
+
+  // Toggle complexity filter
+  const toggleComplexityFilter = (c: string) => {
+    setSelectedComplexities((prev) =>
+      prev.includes(c) ? prev.filter((x) => x !== c) : [...prev, c]
+    );
+  };
+
+  // Toggle energy filter
+  const toggleEnergyFilter = (e: string) => {
+    setSelectedEnergies((prev) =>
+      prev.includes(e) ? prev.filter((x) => x !== e) : [...prev, e]
     );
   };
 
@@ -305,10 +325,20 @@ function AllTasksContent() {
     setSelectedStates(["backlog", "active", "in_progress"]);
     setSelectedTypes(["task", "habit", "reminder"]);
     setSelectedTags([]);
-    setSelectedPriority("");
-    setSelectedComplexity("");
-    setSelectedEnergy("");
+    setSelectedPriorities([]);
+    setSelectedComplexities([]);
+    setSelectedEnergies([]);
   };
+
+  // Back button closes filter panel instead of navigating away
+  useEffect(() => {
+    if (showFilters) {
+      window.history.pushState({ filterOpen: true }, '');
+      const handlePopState = () => setShowFilters(false);
+      window.addEventListener('popstate', handlePopState);
+      return () => window.removeEventListener('popstate', handlePopState);
+    }
+  }, [showFilters]);
 
   /** Toggle a section's collapsed state */
   const toggleSection = (groupName: string) => {
@@ -353,168 +383,107 @@ function AllTasksContent() {
   };
 
   const hasActiveFilters =
-    selectedTags.length > 0 || selectedPriority || selectedComplexity || selectedEnergy ||
+    selectedTags.length > 0 ||
+    selectedPriorities.length > 0 ||
+    selectedComplexities.length > 0 ||
+    selectedEnergies.length > 0 ||
     selectedTypes.length < 3;
 
   return (
     <ProtectedRoute>
       <div className="min-h-screen bg-gray-50 overflow-x-hidden">
-        {!insideSwipe && <Header />}
+        {!insideSwipe && <Header onFilterClick={() => setShowFilters(!showFilters)} />}
 
         <main className="max-w-7xl mx-auto px-6 sm:px-6 lg:px-8 py-4">
-          {/* Filter and Group Controls */}
-          <div className="bg-white rounded-lg shadow p-3 mb-4">
-            <div className="flex items-center justify-between gap-2">
-              <button
-                onClick={() => setShowFilters(!showFilters)}
-                className="text-sm font-medium text-gray-700 hover:text-gray-900"
+          {/* Always-visible control bar: Group By + badge toggles + clear */}
+          <div className="bg-white rounded-lg shadow px-3 py-2 mb-4">
+            <div className="flex items-center gap-3 flex-wrap">
+              {/* Group By */}
+              <select
+                value={groupBy}
+                onChange={(e) => setGroupBy(e.target.value as GroupBy)}
+                className="border rounded px-2 py-1 text-sm font-medium text-gray-700"
               >
-                Filters
-                {hasActiveFilters && (
-                  <span className="ml-1 text-blue-600 text-xs">
-                    ({selectedTags.length + (selectedPriority ? 1 : 0) + (selectedComplexity ? 1 : 0) + (selectedEnergy ? 1 : 0) + (selectedTypes.length < 3 ? 1 : 0)})
-                  </span>
-                )}
-              </button>
+                <option value="none">No grouping</option>
+                <option value="state">By State</option>
+                <option value="type">By Type</option>
+                <option value="tag">By Tag</option>
+                <option value="complexity">By Complexity</option>
+                <option value="energy">By Energy</option>
+                <option value="priority">By Priority</option>
+              </select>
 
-              <div className="flex items-center gap-2">
-                {hasActiveFilters && (
+              <span className="text-gray-300 hidden sm:inline">·</span>
+
+              {/* Badge visibility chip toggles */}
+              <div className="flex items-center gap-1.5">
+                <button
+                  onClick={() => setShowPriorityBadge((v) => !v)}
+                  className={`px-2 py-0.5 text-xs rounded-full border transition-colors ${
+                    showPriorityBadge
+                      ? "bg-red-100 text-red-700 border-red-200"
+                      : "bg-gray-50 text-gray-400 border-gray-200"
+                  }`}
+                  title="Toggle priority badges"
+                >
+                  ↑P
+                </button>
+                <button
+                  onClick={() => setShowComplexityBadge((v) => !v)}
+                  className={`px-2 py-0.5 text-xs rounded-full border transition-colors ${
+                    showComplexityBadge
+                      ? "bg-green-100 text-green-700 border-green-200"
+                      : "bg-gray-50 text-gray-400 border-gray-200"
+                  }`}
+                  title="Toggle complexity badges"
+                >
+                  C
+                </button>
+                <button
+                  onClick={() => setShowEnergyBadge((v) => !v)}
+                  className={`px-2 py-0.5 text-xs rounded-full border transition-colors ${
+                    showEnergyBadge
+                      ? "bg-purple-100 text-purple-700 border-purple-200"
+                      : "bg-gray-50 text-gray-400 border-gray-200"
+                  }`}
+                  title="Toggle energy badges"
+                >
+                  ⚡E
+                </button>
+              </div>
+
+              {/* Clear filters (only when active) */}
+              {hasActiveFilters && (
+                <>
+                  <span className="text-gray-300 hidden sm:inline">·</span>
                   <button
                     onClick={clearFilters}
                     className="text-xs text-gray-500 hover:text-gray-700"
                   >
-                    Clear
+                    Clear filters
                   </button>
-                )}
-                <select
-                  value={groupBy}
-                  onChange={(e) => setGroupBy(e.target.value as GroupBy)}
-                  className="border rounded px-2 py-1 text-sm font-medium text-gray-700"
-                >
-                  <option value="none">No grouping</option>
-                  <option value="state">By State</option>
-                  <option value="type">By Type</option>
-                  <option value="tag">By Tag</option>
-                  <option value="complexity">By Complexity</option>
-                  <option value="energy">By Energy</option>
-                  <option value="priority">By Priority</option>
-                </select>
-              </div>
+                </>
+              )}
             </div>
 
-            {/* Additional Filters */}
+            {/* Filter panel (bubble UI) — shown when filter icon in header is tapped */}
             {showFilters && (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 pt-4 border-t mt-4">
-                {/* Type */}
-                <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Type</label>
-                  <div className="flex flex-wrap gap-2">
-                    {Object.entries(TYPE_LABELS).map(([type, label]) => (
-                      <button
-                        key={type}
-                        onClick={() => toggleTypeFilter(type)}
-                        className={`px-3 py-1 text-sm rounded-full ${
-                          selectedTypes.includes(type)
-                            ? TYPE_COLORS[type]
-                            : "bg-gray-200 text-gray-400"
-                        }`}
-                      >
-                        {label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* State */}
-                <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">State</label>
-                  <div className="flex flex-wrap gap-2">
-                    {Object.entries(STATE_LABELS).map(([state, label]) => (
-                      <button
-                        key={state}
-                        onClick={() => toggleStateFilter(state)}
-                        className={`px-3 py-1 text-sm rounded-full ${
-                          selectedStates.includes(state)
-                            ? STATE_COLORS[state as keyof typeof STATE_COLORS]
-                            : "bg-gray-200 text-gray-400"
-                        }`}
-                      >
-                        {label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Tags */}
-                <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Tags</label>
-                  <div className="flex flex-wrap gap-2">
-                    {availableTags.map((tag) => (
-                      <button
-                        key={tag}
-                        onClick={() => toggleTagFilter(tag)}
-                        className={`px-3 py-1 text-sm rounded-full ${
-                          selectedTags.includes(tag)
-                            ? "bg-blue-600 text-white"
-                            : "bg-gray-200 text-gray-700 hover:bg-gray-300"
-                        }`}
-                      >
-                        {tag}
-                      </button>
-                    ))}
-                    {availableTags.length === 0 && (
-                      <p className="text-sm text-gray-500">No tags yet</p>
-                    )}
-                  </div>
-                </div>
-
-                {/* Priority */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Priority</label>
-                  <select
-                    value={selectedPriority}
-                    onChange={(e) => setSelectedPriority(e.target.value)}
-                    className="w-full border rounded px-3 py-2 text-sm"
-                  >
-                    <option value="">All</option>
-                    <option value="high">High</option>
-                    <option value="medium">Medium</option>
-                    <option value="low">Low</option>
-                  </select>
-                </div>
-
-                {/* Complexity */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Complexity
-                  </label>
-                  <select
-                    value={selectedComplexity}
-                    onChange={(e) => setSelectedComplexity(e.target.value)}
-                    className="w-full border rounded px-3 py-2 text-sm"
-                  >
-                    <option value="">All</option>
-                    <option value="easy">Easy</option>
-                    <option value="medium">Medium</option>
-                    <option value="hard">Hard</option>
-                  </select>
-                </div>
-
-                {/* Energy */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Energy</label>
-                  <select
-                    value={selectedEnergy}
-                    onChange={(e) => setSelectedEnergy(e.target.value)}
-                    className="w-full border rounded px-3 py-2 text-sm"
-                  >
-                    <option value="">All</option>
-                    <option value="high">High</option>
-                    <option value="medium">Medium</option>
-                    <option value="low">Low</option>
-                  </select>
-                </div>
-              </div>
+              <FilterPanel
+                selectedTypes={selectedTypes}
+                onToggleType={toggleTypeFilter}
+                availableTypes={["task", "habit", "reminder"]}
+                selectedStates={selectedStates}
+                onToggleState={toggleStateFilter}
+                selectedPriorities={selectedPriorities}
+                onTogglePriority={togglePriorityFilter}
+                selectedComplexities={selectedComplexities}
+                onToggleComplexity={toggleComplexityFilter}
+                selectedEnergies={selectedEnergies}
+                onToggleEnergy={toggleEnergyFilter}
+                selectedTags={selectedTags}
+                onTagsChange={setSelectedTags}
+                availableTags={availableTags}
+              />
             )}
           </div>
 
@@ -631,9 +600,43 @@ function AllTasksContent() {
                               )}
                             </div>
 
+                            {/* Metadata badges: Priority, Complexity, Energy — gated by badge visibility toggles */}
+                            {(showPriorityBadge || showComplexityBadge || showEnergyBadge) &&
+                             (item.priority || item.complexity || item.energy) && (
+                              <div className="flex flex-wrap gap-1 mt-1">
+                                {showPriorityBadge && item.priority && (
+                                  <span className={`text-xs px-1.5 py-0.5 rounded font-medium ${
+                                    item.priority === "high" ? "bg-red-100 text-red-700" :
+                                    item.priority === "medium" ? "bg-orange-100 text-orange-700" :
+                                    "bg-gray-100 text-gray-600"
+                                  }`}>
+                                    {item.priority === "high" ? "↑ High" : item.priority === "medium" ? "Med" : "↓ Low"}
+                                  </span>
+                                )}
+                                {showComplexityBadge && item.complexity && (
+                                  <span className={`text-xs px-1.5 py-0.5 rounded font-medium ${
+                                    item.complexity === "hard" ? "bg-red-50 text-red-600" :
+                                    item.complexity === "medium" ? "bg-yellow-50 text-yellow-700" :
+                                    "bg-green-50 text-green-700"
+                                  }`}>
+                                    {item.complexity === "hard" ? "Hard" : item.complexity === "medium" ? "Med" : "Easy"}
+                                  </span>
+                                )}
+                                {showEnergyBadge && item.energy && (
+                                  <span className={`text-xs px-1.5 py-0.5 rounded font-medium ${
+                                    item.energy === "high" ? "bg-purple-50 text-purple-700" :
+                                    item.energy === "medium" ? "bg-blue-50 text-blue-700" :
+                                    "bg-slate-100 text-slate-600"
+                                  }`}>
+                                    ⚡{item.energy === "high" ? "High" : item.energy === "medium" ? "Med" : "Low"}
+                                  </span>
+                                )}
+                              </div>
+                            )}
+
                             {/* Tags */}
                             {item.tags && item.tags.length > 0 && (
-                              <div className="flex flex-wrap gap-1.5 mt-1.5">
+                              <div className="flex flex-wrap gap-1.5 mt-1">
                                 {item.tags.map((tag) => (
                                   <span
                                     key={tag}
@@ -646,11 +649,8 @@ function AllTasksContent() {
                             )}
                           </div>
 
-                          {/* Right side: Priority indicator and checkbox */}
+                          {/* Right side: Checkbox */}
                           <div className="flex items-center gap-2 shrink-0">
-                            {item.priority === "high" && (
-                              <span className="text-red-500 text-lg">!</span>
-                            )}
                             {/* Checkbox */}
                             <button
                               onClick={(e) => toggleCompletion(item, e)}

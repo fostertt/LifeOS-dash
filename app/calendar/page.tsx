@@ -1,13 +1,14 @@
 "use client";
 
-import React, { useEffect, useState, Suspense, useMemo, useContext } from "react";
+import React, { useEffect, useState, Suspense, useMemo, useContext, useCallback } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import Header from "@/components/Header";
 import { SwipeContext } from "@/components/SwipeContainer";
 import EventDetailModal, { CalendarEvent } from "@/components/EventDetailModal";
+import FilterPanel from "@/components/FilterPanel";
 import TagInput from "@/components/TagInput";
-import { extractUniqueTags } from "@/lib/tags";
+import { extractUniqueTags, itemMatchesTags } from "@/lib/tags";
 import { useRefreshOnFocus } from "@/lib/useRefreshOnFocus";
 import {
   DndContext,
@@ -121,6 +122,11 @@ function HomeContent() {
     new Set(["habit", "task", "reminder", "event"])
   );
   const [showFilterMenu, setShowFilterMenu] = useState(false);
+  // Additional item-level filters (priority/complexity/energy/tags) — layered on top of filterTypes
+  const [selectedPriorities, setSelectedPriorities] = useState<string[]>([]);
+  const [selectedComplexities, setSelectedComplexities] = useState<string[]>([]);
+  const [selectedEnergies, setSelectedEnergies] = useState<string[]>([]);
+  const [selectedCalendarTags, setSelectedCalendarTags] = useState<string[]>([]);
   const [showViewSwitcher, setShowViewSwitcher] = useState(false); // Phase 3.5.3: View switcher sidebar
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(
     null
@@ -224,6 +230,16 @@ function HomeContent() {
       setSelectedDate(urlDate);
     }
   }, [searchParams]);
+
+  /** Back button / swipe-back closes filter panel instead of navigating away */
+  useEffect(() => {
+    if (showFilterMenu) {
+      window.history.pushState({ filterOpen: true }, '');
+      const handlePopState = () => setShowFilterMenu(false);
+      window.addEventListener('popstate', handlePopState);
+      return () => window.removeEventListener('popstate', handlePopState);
+    }
+  }, [showFilterMenu]);
 
   /** Format a Date to YYYY-MM-DD string for URL params */
   const formatDateStr = (date: Date): string => {
@@ -1068,9 +1084,18 @@ function HomeContent() {
     }
   };
 
+  /** Returns true if item passes the additional (non-type) filters */
+  const passesAdditionalFilters = useCallback((item: Item): boolean => {
+    if (selectedPriorities.length > 0 && item.priority && !selectedPriorities.includes(item.priority)) return false;
+    if (selectedComplexities.length > 0 && item.complexity && !selectedComplexities.includes(item.complexity)) return false;
+    if (selectedEnergies.length > 0 && item.energy && !selectedEnergies.includes(item.energy)) return false;
+    if (selectedCalendarTags.length > 0 && !itemMatchesTags(item.tags, selectedCalendarTags)) return false;
+    return true;
+  }, [selectedPriorities, selectedComplexities, selectedEnergies, selectedCalendarTags]);
+
   const todayItems = items.filter(isScheduledForDate);
   const filteredItems = todayItems.filter((item) =>
-    filterTypes.has(item.itemType)
+    filterTypes.has(item.itemType) && passesAdditionalFilters(item)
   );
 
   // Filter events based on filter settings
@@ -1086,6 +1111,9 @@ function HomeContent() {
   // Combine items and events, then sort chronologically
   const allDisplayItems = [...filteredItems, ...filteredEventsForDay];
   const sortedItems = sortItemsChronologically(filteredItems);
+
+  // Available tags for the filter panel
+  const availableCalendarTags = useMemo(() => extractUniqueTags(items), [items]);
 
   const getItemTypeLabel = (type: ItemType) => {
     return type.charAt(0).toUpperCase() + type.slice(1);
@@ -1562,7 +1590,7 @@ function HomeContent() {
           })}
 
           {/* Render scheduled items with time */}
-          {categorizedData.scheduled.filter((item) => filterTypes.has(item.itemType)).map((item) => {
+          {categorizedData.scheduled.filter((item) => filterTypes.has(item.itemType) && passesAdditionalFilters(item)).map((item) => {
             const itemTime = getItemTime(item);
             if (!itemTime) return null;
 
@@ -2097,45 +2125,29 @@ function HomeContent() {
               </button>
             </div>
 
-            {/* Filter dropdown menu (triggered from header) */}
+            {/* Filter panel (triggered from header) — bubble UI */}
             {showFilterMenu && (
-              <div className="fixed top-16 right-4 w-48 bg-white rounded-lg shadow-xl border border-gray-200 py-2 z-50">
-                {(["habit", "task", "reminder", "event"] as ItemType[]).map(
-                  (type) => (
-                    <button
-                      key={type}
-                      onClick={() => toggleFilter(type)}
-                      className="w-full px-4 py-2 text-left hover:bg-gray-50 flex items-center gap-2"
-                    >
-                      <div
-                        className={`w-4 h-4 border-2 rounded ${
-                          filterTypes.has(type)
-                            ? "bg-purple-600 border-purple-600"
-                            : "border-gray-300"
-                        }`}
-                      >
-                        {filterTypes.has(type) && (
-                          <svg
-                            className="w-3 h-3 text-white"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={3}
-                              d="M5 13l4 4L19 7"
-                            />
-                          </svg>
-                        )}
-                      </div>
-                      <span className="text-sm text-gray-700">
-                        {getItemTypeLabel(type)}s
-                      </span>
-                    </button>
-                  )
-                )}
+              <div className="bg-white rounded-lg shadow border border-gray-200 px-4 pb-4 mb-2">
+                <FilterPanel
+                  selectedTypes={Array.from(filterTypes)}
+                  onToggleType={(type) => toggleFilter(type as ItemType)}
+                  availableTypes={["task", "habit", "reminder", "event"]}
+                  selectedPriorities={selectedPriorities}
+                  onTogglePriority={(p) => setSelectedPriorities((prev) =>
+                    prev.includes(p) ? prev.filter((x) => x !== p) : [...prev, p]
+                  )}
+                  selectedComplexities={selectedComplexities}
+                  onToggleComplexity={(c) => setSelectedComplexities((prev) =>
+                    prev.includes(c) ? prev.filter((x) => x !== c) : [...prev, c]
+                  )}
+                  selectedEnergies={selectedEnergies}
+                  onToggleEnergy={(e) => setSelectedEnergies((prev) =>
+                    prev.includes(e) ? prev.filter((x) => x !== e) : [...prev, e]
+                  )}
+                  selectedTags={selectedCalendarTags}
+                  onTagsChange={setSelectedCalendarTags}
+                  availableTags={availableCalendarTags}
+                />
               </div>
             )}
 
@@ -2516,7 +2528,8 @@ function HomeContent() {
                     weekDateStrs.includes(item.dueDate.substring(0, 10)) &&
                     !item.dueTime &&
                     !item.isCompleted &&
-                    filterTypes.has(item.itemType)
+                    filterTypes.has(item.itemType) &&
+                    passesAdditionalFilters(item)
                   );
                   return noTimeItems.length > 0 ? (
                     <div className="flex-shrink-0 mt-1">
@@ -2858,7 +2871,7 @@ function HomeContent() {
                         ))}
 
                         {/* Scheduled items as cards */}
-                        {categorizedData.scheduled.filter(item => filterTypes.has(item.itemType)).map((item) => renderItemCard(item, item.isOverdue || false, "timeline-scheduled-list"))}
+                        {categorizedData.scheduled.filter(item => filterTypes.has(item.itemType) && passesAdditionalFilters(item)).map((item) => renderItemCard(item, item.isOverdue || false, "timeline-scheduled-list"))}
                       </div>
                     )}
                   </>

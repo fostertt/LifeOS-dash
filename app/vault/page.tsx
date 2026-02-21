@@ -10,6 +10,7 @@ import NoteForm from "@/components/NoteForm";
 import ListCard from "@/components/ListCard";
 import FAB from "@/components/FAB";
 import { useRefreshOnFocus } from "@/lib/useRefreshOnFocus";
+import TagInput from "@/components/TagInput";
 
 interface ListItem {
   id: number;
@@ -64,6 +65,7 @@ export default function NotesAndListsPage() {
   // Filter and sort state
   const [filterType, setFilterType] = useState<"all" | "notes" | "lists">("all");
   const [sortBy, setSortBy] = useState<"recent" | "alphabetical">("recent");
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
 
   // Form state for lists
   const [formName, setFormName] = useState("");
@@ -324,8 +326,16 @@ export default function NotesAndListsPage() {
   };
 
   // Apply filters
-  const filteredNotes = filterType === "lists" ? [] : notes;
-  const filteredLists = filterType === "notes" ? [] : lists;
+  const filteredNotes = (filterType === "lists" ? [] : notes).filter((note) => {
+    if (selectedTags.length === 0) return true;
+    const noteTags = (note.tags as string[]) || [];
+    return selectedTags.every((t) => noteTags.includes(t));
+  });
+  const filteredLists = (filterType === "notes" ? [] : lists).filter((list) => {
+    if (selectedTags.length === 0) return true;
+    const listTags = list.tags || [];
+    return selectedTags.every((t) => listTags.includes(t));
+  });
 
   // Apply sorting
   const sortItems = <T extends { createdAt?: string; name?: string; title?: string | null; pinned: boolean }>(
@@ -367,25 +377,25 @@ export default function NotesAndListsPage() {
         <div className="max-w-5xl mx-auto p-4">
           {!insideSwipe && <Header onFilterClick={() => setShowFilterMenu(!showFilterMenu)} />}
 
-          {/* Filter and Sort dropdown menu */}
+          {/* Filter and Sort panel — horizontal bubble UI */}
           {showFilterMenu && (
-            <div className="fixed top-16 right-4 w-56 bg-white rounded-lg shadow-xl border border-gray-200 py-2 z-50">
-              {/* Filter options */}
-              <div className="px-4 py-2 border-b">
-                <div className="text-xs font-semibold text-gray-500 uppercase mb-2">Show</div>
-                <div className="space-y-1">
+            <div className="bg-white rounded-lg shadow border border-gray-200 px-4 py-3 mb-4 space-y-3">
+              {/* Show row */}
+              <div>
+                <div className="text-xs font-semibold text-gray-500 uppercase mb-1.5">Show</div>
+                <div className="flex gap-2 flex-wrap">
                   {[
                     { value: "all" as const, label: "All" },
-                    { value: "notes" as const, label: "Notes Only" },
-                    { value: "lists" as const, label: "Lists Only" },
+                    { value: "notes" as const, label: "Notes" },
+                    { value: "lists" as const, label: "Lists" },
                   ].map((option) => (
                     <button
                       key={option.value}
                       onClick={() => setFilterType(option.value)}
-                      className={`w-full text-left px-3 py-2 rounded text-sm transition-colors ${
+                      className={`px-3 py-1 text-sm rounded-full font-medium transition-colors ${
                         filterType === option.value
-                          ? "bg-purple-100 text-purple-900 font-medium"
-                          : "text-gray-700 hover:bg-gray-100"
+                          ? "bg-purple-100 text-purple-900"
+                          : "bg-gray-100 text-gray-500 hover:bg-gray-200"
                       }`}
                     >
                       {option.label}
@@ -394,10 +404,10 @@ export default function NotesAndListsPage() {
                 </div>
               </div>
 
-              {/* Sort options */}
-              <div className="px-4 py-2">
-                <div className="text-xs font-semibold text-gray-500 uppercase mb-2">Sort By</div>
-                <div className="space-y-1">
+              {/* Sort row */}
+              <div>
+                <div className="text-xs font-semibold text-gray-500 uppercase mb-1.5">Sort By</div>
+                <div className="flex gap-2 flex-wrap">
                   {[
                     { value: "recent" as const, label: "Most Recent" },
                     { value: "alphabetical" as const, label: "Alphabetical" },
@@ -405,10 +415,10 @@ export default function NotesAndListsPage() {
                     <button
                       key={option.value}
                       onClick={() => setSortBy(option.value)}
-                      className={`w-full text-left px-3 py-2 rounded text-sm transition-colors ${
+                      className={`px-3 py-1 text-sm rounded-full font-medium transition-colors ${
                         sortBy === option.value
-                          ? "bg-purple-100 text-purple-900 font-medium"
-                          : "text-gray-700 hover:bg-gray-100"
+                          ? "bg-purple-100 text-purple-900"
+                          : "bg-gray-100 text-gray-500 hover:bg-gray-200"
                       }`}
                     >
                       {option.label}
@@ -416,6 +426,19 @@ export default function NotesAndListsPage() {
                   ))}
                 </div>
               </div>
+
+              {/* Tag filter */}
+              {allTags.length > 0 && (
+                <div>
+                  <div className="text-xs font-semibold text-gray-500 uppercase mb-1.5">Filter by Tag</div>
+                  <TagInput
+                    tags={selectedTags}
+                    availableTags={allTags}
+                    onTagsChange={setSelectedTags}
+                    placeholder="Search tags..."
+                  />
+                </div>
+              )}
             </div>
           )}
 
