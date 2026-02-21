@@ -6,6 +6,7 @@ interface NoteCardProps {
   content: string;
   tags?: string[] | null;
   pinned: boolean;
+  color?: string | null;
   createdAt: string;
   onClick: () => void;
   onPin: () => void;
@@ -27,6 +28,7 @@ export default function NoteCard({
   content,
   tags,
   pinned,
+  color,
   createdAt,
   onClick,
   onPin,
@@ -38,6 +40,7 @@ export default function NoteCard({
   return (
     <div
       className="border-2 border-gray-100 rounded-xl p-5 hover:shadow-md hover:border-purple-300 transition-all cursor-pointer bg-white relative"
+      style={color ? { borderLeftColor: color, borderLeftWidth: "4px" } : undefined}
       onClick={onClick}
     >
       {/* Pin indicator */}

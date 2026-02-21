@@ -101,6 +101,7 @@ export async function PATCH(
     if (body.description !== undefined) updateData.description = body.description || null;
     if (body.color !== undefined) updateData.color = body.color;
     if (body.pinned !== undefined) updateData.pinned = body.pinned;
+    if (body.tags !== undefined) updateData.tags = body.tags || null;
     if (body.filterCriteria !== undefined && existingList.listType === "smart") {
       updateData.filterCriteria = JSON.stringify(body.filterCriteria);
     }

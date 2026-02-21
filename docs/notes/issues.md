@@ -121,6 +121,13 @@
 **Screenshot:** `docs/screenshots/task1.jpg`
 **File:** `components/TaskForm.tsx`
 
+### UX-010: Note/List Editor Bottom Panel Should Be Fixed
+**Discovered:** Feb 21, 2026
+**Priority:** High
+**Description:** Color picker, tags, pin toggle, and Save/Delete buttons are currently inline in the editor body. They scroll with the content, which means you have to scroll down to hit Update on short notes (buttons float in middle of page) and on long notes (have to scroll past all content). Should be pinned to the bottom of the viewport with content scrolling above it. Needs to account for BottomTabBar height on mobile.
+**Reference:** `docs/screenshots/note-list.jpg`
+**Files:** `app/vault/notes/[id]/page.tsx`, `app/vault/lists/[id]/page.tsx`
+
 ### UX-009: No Complete Button in Edit Task Modal
 **Discovered:** Feb 21, 2026
 **Priority:** Medium

@@ -38,7 +38,7 @@ export async function GET(
 
 /**
  * PATCH /api/notes/[id] - Update a note
- * Body: { title?: string, content?: string, tags?: string[], pinned?: boolean }
+ * Body: { title?: string, content?: string, tags?: string[], pinned?: boolean, color?: string }
  */
 export async function PATCH(
   request: NextRequest,
@@ -77,6 +77,7 @@ export async function PATCH(
     }
     if (body.tags !== undefined) updateData.tags = body.tags || null;
     if (body.pinned !== undefined) updateData.pinned = body.pinned;
+    if (body.color !== undefined) updateData.color = body.color || null;
 
     const updatedNote = await prisma.note.update({
       where: { id: noteId },

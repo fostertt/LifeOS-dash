@@ -37,7 +37,7 @@ export async function GET() {
 
 /**
  * POST /api/notes - Create a new note
- * Body: { title?: string, content: string, tags?: string[], pinned?: boolean }
+ * Body: { title?: string, content: string, tags?: string[], pinned?: boolean, color?: string }
  */
 export async function POST(request: NextRequest) {
   try {
@@ -50,7 +50,7 @@ export async function POST(request: NextRequest) {
     const userId = session.user.id;
     const body = await request.json();
 
-    const { title, content, tags, pinned } = body;
+    const { title, content, tags, pinned, color } = body;
 
     // Content is required
     if (!content || content.trim() === "") {
@@ -67,6 +67,7 @@ export async function POST(request: NextRequest) {
         content,
         tags: tags || null,
         pinned: pinned || false,
+        color: color || null,
       },
     });
 

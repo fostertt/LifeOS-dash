@@ -214,6 +214,38 @@ Should we replace "smart lists" concept with:
 3. Consider context-aware vs. universal approach
 4. Implement in Phase 2.6 or 2.7
 
+### ADR-015: Keep-Style Note & List Editors (2026-02-21)
+
+**Context:**
+- Notes used modal-based editing which felt clunky on mobile
+- Lists required a two-step create-then-add-items flow
+- No color or tag support exposed in the UI for lists (schema had tags field but unused)
+- Notes had no color field at all
+
+**Decision:**
+Replace modals with full-page inline editors for both notes and lists:
+- **Layout:** Back arrow at top (cancel/no save), title input, content/items area, then color/tags/pin/buttons pinned at bottom
+- **Save model:** Explicit Save/Update button (not auto-save on back). Back = cancel.
+- **New lists:** "Add item" input always visible; eagerly creates list on server when first item is added (no two-step flow)
+- **Colors:** Added `color` field to Note model. Shared `VAULT_COLORS` constant. Color swatches inline in editor.
+- **Tags on lists:** Wired existing `tags` JSON field to UI via inline TagInput. Tags show as chips on ListCard.
+- **Navigation:** Vault page cards navigate to `/vault/notes/[id]` and `/vault/lists/[id]`. FAB removed from vault page (BottomTabBar already has Note/List in create menu).
+- **Old modals deleted:** NoteForm.tsx, ListForm.tsx removed. GlobalCreateManager updated to navigate instead of opening modals.
+- **Legacy redirect:** `/vault/[id]` redirects to `/vault/lists/[id]`
+
+**TODO:** Pin color/tags/buttons section to bottom of viewport so content scrolls independently (currently inline, scrolls with content).
+
+**Key Files:**
+- `app/vault/notes/[id]/page.tsx` — Note editor
+- `app/vault/lists/[id]/page.tsx` — List editor
+- `lib/constants.ts` — VAULT_COLORS shared constant
+- `prisma/schema.prisma` — color field on Note model
+
+**Consequences:**
+- Mobile UX significantly improved — full-page editors feel native
+- Consistent experience between notes and lists
+- Tags now usable on lists (were schema-only before)
+
 ### ADR-014: Recurring Task Completion Models (2026-02-21)
 
 **Context:**

@@ -6,6 +6,7 @@ interface ListCardProps {
   listType: "simple" | "smart";
   description?: string;
   color?: string;
+  tags?: string[];
   pinned: boolean;
   stats: string;
   createdAt?: string;
@@ -31,6 +32,7 @@ export default function ListCard({
   listType,
   description,
   color,
+  tags,
   pinned,
   stats,
   onClick,
@@ -63,6 +65,20 @@ export default function ListCard({
 
       {/* Stats */}
       <p className="text-sm text-gray-600 mb-3">{stats}</p>
+
+      {/* Tags */}
+      {tags && tags.length > 0 && (
+        <div className="flex flex-wrap gap-1 mb-3">
+          {tags.map((tag) => (
+            <span
+              key={tag}
+              className="inline-block px-2 py-1 text-xs bg-blue-200 text-blue-900 font-medium rounded-full"
+            >
+              {tag}
+            </span>
+          ))}
+        </div>
+      )}
 
       {/* Footer with actions */}
       <div className="flex items-center justify-end text-xs text-gray-500 pt-3 border-t border-gray-100">

@@ -4,17 +4,15 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import FAB from "./FAB";
 import TaskForm from "./TaskForm";
-import NoteForm from "./NoteForm";
-import ListForm from "./ListForm";
 
 type CreateType = "task" | "habit" | "reminder" | "note" | "list" | null;
 
 /**
  * GlobalCreateManager
  *
- * Manages the global creation FAB and all creation modals.
- * Allows creating Tasks, Habits, Reminders, Notes, and Lists from anywhere in the app.
- * Refreshes the page data after successful creation.
+ * Manages the global creation FAB and creation flows.
+ * Tasks/Habits/Reminders use modal forms. Notes and Lists navigate to
+ * full-page Keep-style editors.
  */
 export default function GlobalCreateManager() {
   const router = useRouter();
@@ -23,12 +21,22 @@ export default function GlobalCreateManager() {
   // Listen for create events dispatched by BottomTabBar (mobile nav)
   useEffect(() => {
     function handleCreate(e: Event) {
-      setActiveModal((e as CustomEvent<{ type: string }>).detail.type as CreateType);
+      const type = (e as CustomEvent<{ type: string }>).detail.type as CreateType;
+      // Notes and lists navigate to full-page editors instead of opening modals
+      if (type === "note") {
+        router.push("/vault/notes/new");
+        return;
+      }
+      if (type === "list") {
+        router.push("/vault/lists/new");
+        return;
+      }
+      setActiveModal(type);
     }
     window.addEventListener('lifeos:create', handleCreate);
     return () => window.removeEventListener('lifeos:create', handleCreate);
-  }, []);
-  
+  }, [router]);
+
   // Tag support is currently placeholder until we implement global tag fetching
   const availableTags: string[] = [];
 
@@ -36,7 +44,7 @@ export default function GlobalCreateManager() {
     try {
       // Determine itemType based on activeModal
       const itemType = activeModal === "habit" ? "habit" : activeModal === "reminder" ? "reminder" : "task";
-      
+
       const res = await fetch("/api/items", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -47,48 +55,12 @@ export default function GlobalCreateManager() {
       });
 
       if (!res.ok) throw new Error(`Failed to create ${itemType}`);
-      
+
       router.refresh(); // Refresh server components
       setActiveModal(null);
     } catch (error) {
       console.error("Error saving item:", error);
       alert("Failed to save item");
-    }
-  };
-
-  const handleSaveNote = async (noteData: any) => {
-    try {
-      const res = await fetch("/api/notes", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(noteData),
-      });
-
-      if (!res.ok) throw new Error("Failed to create note");
-
-      router.refresh();
-      setActiveModal(null);
-    } catch (error) {
-      console.error("Error saving note:", error);
-      alert("Failed to save note");
-    }
-  };
-
-  const handleSaveList = async (listData: any) => {
-    try {
-      const res = await fetch("/api/lists", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(listData),
-      });
-
-      if (!res.ok) throw new Error("Failed to create list");
-
-      router.refresh();
-      setActiveModal(null);
-    } catch (error) {
-      console.error("Error saving list:", error);
-      alert("Failed to save list");
     }
   };
 
@@ -124,12 +96,12 @@ export default function GlobalCreateManager() {
           {
             label: "Note",
             icon: <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>,
-            onClick: () => setActiveModal("note"),
+            onClick: () => router.push("/vault/notes/new"),
           },
           {
             label: "List",
             icon: <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg>,
-            onClick: () => setActiveModal("list"),
+            onClick: () => router.push("/vault/lists/new"),
           },
         ]}
       />
@@ -146,21 +118,6 @@ export default function GlobalCreateManager() {
           itemType={activeModal}
         />
       )}
-
-      {/* Note Form */}
-      <NoteForm
-        isOpen={activeModal === "note"}
-        onClose={() => setActiveModal(null)}
-        onSave={handleSaveNote}
-        availableTags={availableTags}
-      />
-
-      {/* List Form */}
-      <ListForm
-        isOpen={activeModal === "list"}
-        onClose={() => setActiveModal(null)}
-        onSave={handleSaveList}
-      />
     </>
   );
 }

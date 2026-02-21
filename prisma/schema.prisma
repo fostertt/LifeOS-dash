@@ -270,6 +270,7 @@ model Note {
   content      String   // Freeform text content
   tags         Json?    @db.JsonB // Array of tag strings for organization
   pinned       Boolean  @default(false) // Pin note to top of view
+  color        String?  // Phase 4.8: Color accent for Keep-style notes
   parentNoteId Int?     @map("parent_note_id") // Phase 3.6: For nested content (ADR-018)
   createdAt    DateTime @default(now()) @map("created_at")
   updatedAt    DateTime @updatedAt @map("updated_at")
