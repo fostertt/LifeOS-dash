@@ -27,15 +27,21 @@
 
 ### Core Domain
 - **Item** (The "Task" model):
-  - Used for Tasks and To-Dos.
-  - **Key Fields**: `priority`, `effort`, `dueDate`, `isCompleted`.
+  - Used for Tasks, Habits, and Reminders (unified via `itemType` discriminator).
+  - **States**: `backlog` | `active` | `completed` (ADR-019, 3-state model)
+  - **Key Fields**: `priority`, `complexity`, `energy`, `dueDate`, `isCompleted`, `source`, `reviewedAt`.
   - **Recursive**: Can have sub-items via `parentItemId`.
-- **Habit**: 
-  - Tracks recurring habits.
-  - **Key Fields**: `scheduleType`, `scheduleDays`.
-  - **Tracking**: Logs history in `HabitCompletion` model.
-- **List / ListItem**: 
-  - Generic checklist functionality separate from robust "Items".
+- **Note**:
+  - Freeform text notes with color and tags.
+  - **Inbox fields**: `source`, `reviewedAt`, `projectId` (ADR-020)
+- **List / ListItem**:
+  - Checklist functionality with inline editing.
+  - **Inbox fields**: `source`, `reviewedAt`, `projectId` (ADR-020)
+- **Inbox System** (ADR-020):
+  - Items with `source IS NOT NULL AND reviewedAt IS NULL` appear in inbox
+  - Sources: `voice` | `quick_capture` | `system` | null (manual/legacy)
+  - API: `GET /api/inbox` (aggregated view), `PATCH /api/inbox` (confirm/review)
+  - Bottom tab bar: Inbox replaces Home, badge shows unreviewed count
 
 ### Auth & Multi-Tenancy
 - **User**: Standard NextAuth user extended with `firstName`, `lastName`.
@@ -56,6 +62,10 @@
 - `/prisma` - Schema and migrations
 
 ## Recent Updates
+- **2026-02-21**: ADR-019 — State collapse: 3 states (backlog/active/completed), removed in_progress
+- **2026-02-21**: ADR-020 — Inbox system: `source`/`reviewedAt`/`projectId` fields on Item/Note/List. Inbox page replaces Home tab. Inline TaskForm editing from inbox. Badge count on tab bar.
+- **2026-02-21**: Today view: Scheduled (No Time) section moved above time grid
+- **2026-02-21**: Architecture session: ADRs 016-020 decided (inbox, states, drag-drop, today layout, rollups)
 - **2026-01-28**: Phase 1 visual cleanup - unified priority indicators, gray checkboxes, removed clutter
 - **2026-01-28**: Filter button added to desktop nav bar and mobile header
 - **2026-01-28**: Completed task reordering (moves to bottom automatically)

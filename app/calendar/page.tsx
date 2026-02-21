@@ -57,7 +57,7 @@ interface Item {
   durationMinutes?: number; // Phase 3.4: Actual duration in minutes for timeline
   energy?: string; // Renamed from 'focus'
   // Phase 3.1: New fields
-  state?: string; // backlog | active | in_progress | completed
+  state?: string; // backlog | active | completed (ADR-019)
   tags?: string[]; // Array of tag strings
   // Phase 3.4: Calendar display fields
   showOnCalendar?: boolean; // Pin to today's calendar view
@@ -81,7 +81,6 @@ interface Toast {
 interface CategorizedCalendarData {
   reminders: Item[];
   overdue: Item[];
-  inProgress: Item[];
   scheduled: Item[];
   scheduledNoTime: Item[];
   pinned: Item[];
@@ -1019,7 +1018,6 @@ function HomeContent() {
       ...(categorizedData?.overdue || []),
       ...(categorizedData?.scheduledNoTime || []),
       ...(categorizedData?.scheduled || []),
-      ...(categorizedData?.inProgress || []),
     ];
 
     const item = allItems.find((i) => i.id === taskId);
@@ -1319,12 +1317,6 @@ function HomeContent() {
               {!isOverdue && item.priority === "low" && (
                 <span className="text-gray-400 text-lg flex-shrink-0" title="Low priority">
                   -
-                </span>
-              )}
-              {/* State badge for in_progress */}
-              {item.state === "in_progress" && (
-                <span className="px-2 py-0.5 text-xs font-medium rounded-full bg-blue-100 text-blue-700">
-                  In Progress
                 </span>
               )}
               <h3
@@ -2205,7 +2197,6 @@ function HomeContent() {
             ) : !categorizedData || (
               categorizedData.reminders.length === 0 &&
               categorizedData.overdue.length === 0 &&
-              categorizedData.inProgress.length === 0 &&
               categorizedData.scheduled.length === 0 &&
               categorizedData.scheduledNoTime.length === 0 &&
               categorizedData.pinned.length === 0 &&
@@ -2808,18 +2799,6 @@ function HomeContent() {
                   </DroppableSection>
                 )}
 
-                {/* In Progress Section (above timeline) */}
-                {categorizedData && categorizedData.inProgress.length > 0 && filterTypes.has("task") && (
-                  <>
-                    {renderSectionHeader("In Progress", "text-blue-700", "🔵")}
-                    {!isSectionCollapsed("In Progress") && (
-                    <div className="space-y-3">
-                      {categorizedData.inProgress.map((item) => renderItemCard(item, false, "timeline-inprogress"))}
-                    </div>
-                    )}
-                  </>
-                )}
-
                 {/* Habits Section */}
                 {categorizedData && categorizedData.habits && categorizedData.habits.length > 0 && filterTypes.has("habit") && (
                   <>
@@ -2830,6 +2809,18 @@ function HomeContent() {
                     </div>
                     )}
                   </>
+                )}
+
+                {/* Scheduled (no time) Section — above timeline so untimed tasks are visible first */}
+                {categorizedData && categorizedData.scheduledNoTime.length > 0 && filterTypes.has("task") && (
+                  <DroppableSection id="scheduled-no-time">
+                    {renderSectionHeader("Scheduled (No Time)", "text-gray-600")}
+                    {!isSectionCollapsed("Scheduled (No Time)") && (
+                    <div className="space-y-3">
+                      {categorizedData.scheduledNoTime.map((item) => renderItemCard(item, item.isOverdue || false, "timeline-notime"))}
+                    </div>
+                    )}
+                  </DroppableSection>
                 )}
 
                 {/* Today Section — 3-state: grid (time grid) → list (card list) → collapsed. Always shown so user can access the timeline even on empty days. */}
@@ -2946,18 +2937,6 @@ function HomeContent() {
                       </div>
                     )}
                   </>
-                )}
-
-                {/* Scheduled (no time) Section (below timeline) */}
-                {categorizedData && categorizedData.scheduledNoTime.length > 0 && filterTypes.has("task") && (
-                  <DroppableSection id="scheduled-no-time">
-                    {renderSectionHeader("Scheduled (No Time)", "text-gray-600")}
-                    {!isSectionCollapsed("Scheduled (No Time)") && (
-                    <div className="space-y-3">
-                      {categorizedData.scheduledNoTime.map((item) => renderItemCard(item, item.isOverdue || false, "timeline-notime"))}
-                    </div>
-                    )}
-                  </DroppableSection>
                 )}
 
                 {/* Pinned / Quick Captures Section (below timeline) */}

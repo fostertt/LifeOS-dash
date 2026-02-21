@@ -14,7 +14,6 @@ import { prisma } from "@/lib/prisma";
  * {
  *   reminders: Item[]       // Reminders with date <= today
  *   overdue: Item[]         // Scheduled tasks with date < today
- *   inProgress: Item[]      // Tasks with state='in_progress'
  *   scheduled: Item[]       // Tasks scheduled for the specified date (with time)
  *   scheduledNoTime: Item[] // Tasks scheduled for the specified date (without time)
  *   pinned: Item[]          // Tasks with showOnCalendar=true
@@ -72,15 +71,10 @@ export async function GET(request: NextRequest) {
               lte: targetDate,
             },
           },
-          // Tasks in 'active' state (formerly scheduled)
+          // Tasks in 'active' state (ADR-019: only 3 states now)
           {
             itemType: "task",
             state: "active",
-          },
-          // Tasks in 'in_progress' state
-          {
-            itemType: "task",
-            state: "in_progress",
           },
           // Tasks in 'backlog' state
           {
@@ -166,7 +160,6 @@ export async function GET(request: NextRequest) {
     // Categorize items
     const reminders: any[] = [];
     const overdue: any[] = [];
-    const inProgress: any[] = [];
     const scheduled: any[] = [];
     const scheduledNoTime: any[] = [];
     const pinned: any[] = [];
@@ -206,12 +199,6 @@ export async function GET(request: NextRequest) {
       // Backlog
       if (item.state === "backlog") {
         backlog.push(item);
-        continue;
-      }
-
-      // In Progress: Always show on today
-      if (item.state === "in_progress") {
-        inProgress.push(item);
         continue;
       }
 
@@ -269,7 +256,6 @@ export async function GET(request: NextRequest) {
         const alreadyCategorized =
           reminders.includes(item) ||
           overdue.includes(item) ||
-          inProgress.includes(item) ||
           scheduled.includes(item) ||
           scheduledNoTime.includes(item) ||
           backlog.includes(item);
@@ -303,7 +289,6 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       reminders,
       overdue,
-      inProgress,
       scheduled,
       scheduledNoTime,
       pinned,

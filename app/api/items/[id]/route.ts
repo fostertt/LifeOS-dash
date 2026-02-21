@@ -196,7 +196,7 @@ export async function PATCH(
     }
 
     // Phase 3.1: Handle state and tags if provided
-    // ADR-012 Revised: Use 4-state model (backlog, active, in_progress, completed)
+    // ADR-019: 3-state model (backlog, active, completed)
     if (body.state !== undefined) {
       updateData.state = body.state;
 

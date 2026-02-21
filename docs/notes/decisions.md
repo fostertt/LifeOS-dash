@@ -1,6 +1,150 @@
 # LifeOS Architecture Decisions
 
-### ADR-007: Mobile-First Visual Simplification (2026-01-28)
+### ADR-020: Voice Capture Inbox & Triage (2026-02-21)
+
+**Context:**
+- Voice pipeline creates items directly in their classified location (task → Items, note → Vault)
+- No review step — misclassified items get lost
+- No single view of "what did I capture today via voice"
+- Quick Add (UX-004/ADR-010) is too complex — 8 fields for a simple capture
+- These two problems have a shared solution
+
+**Decision:**
+Add `source String?` and `reviewedAt DateTime?` fields to Item, Note, and List models. Build an Inbox view that shows all unreviewed items (`WHERE source IS NOT NULL AND reviewedAt IS NULL`).
+
+**Schema changes:**
+```
+// Added to Item, Note, and List models:
+source        String?    // "voice" | "quick_capture" | "system" | null (legacy)
+reviewedAt    DateTime?  // null = unreviewed, timestamp = when confirmed
+projectId     Int?       // Pre-work for future Projects feature (no FK yet)
+```
+
+**Key design decisions:**
+- Items land in their classified location AND the inbox simultaneously. Inbox is a filtered overlay, not a holding pen.
+- "Confirm" sets `reviewedAt = now()` — item stays where it is, just leaves the inbox.
+- Tapping an inbox item opens the full editor for that type. User can change type, add metadata, then confirm.
+- Quick Add (ADR-010) becomes title-only. Creates `type: "task"`, `state: "active"`, `source: "quick_capture"`. Triaged later in inbox.
+- Voice captures also land as `state: "active"` — capture implies intent.
+- `source` is a string (not enum) for extensibility without migrations.
+- `reviewedAt` as DateTime (not boolean) gives timestamp for rollup features.
+
+**Migration note:** Existing records get `reviewedAt = createdAt` so they don't flood the inbox.
+
+**UI:** Inbox replaces Home tab in bottom nav bar. Badge count shows unreviewed items.
+
+**Resolves:** FEAT-004, ADR-010 (Quick Add), UX-004
+
+**Consequences:**
+- Inbox is additive — if you never open it, items still work normally
+- Voice pipeline only needs to send one extra field (`source: "voice"`)
+- Quick capture workflow is fast (title only) without losing metadata (add during triage)
+- Three-table query for inbox is fine at single-user scale; add composite index on `(source, reviewedAt, createdAt)` if needed
+
+### ADR-019: Collapse Item States to Three (2026-02-21)
+
+**Context:**
+- Current states: `backlog` | `active` | `in_progress` | `completed`
+- `active` vs `in_progress` distinction is meaningful on team kanban boards but redundant for single-user productivity
+- Users don't need the system to track "I've started this" — if you're working on it, you know
+- Extra state adds cognitive load to the UI (state labels, filter options, section headers)
+
+**Decision:**
+Collapse to three states: `backlog` | `active` | `completed`. Migrate all `in_progress` records to `active`.
+
+**State semantics:**
+- `backlog` — Someday/maybe. Not on my radar right now. Hidden from Today view.
+- `active` — I intend to do this. Shows in Today view (if dated today or undated).
+- `completed` — Done. Sorted to bottom in lists.
+
+**Migration:** `UPDATE items SET state = 'active' WHERE state = 'in_progress';`
+
+**Impact on Today view:** Active items with today's date (timed or untimed) + active items with no date = shown. Backlog items never shown. No state section labels in Today context.
+
+**Consequences:**
+- Simpler mental model — two real choices: "do I want to do this?" (active) or "not yet" (backlog)
+- Cleaner Today view without In Progress / Active section headers
+- One fewer filter option, one fewer form field value
+- If "started" tracking is ever needed, add `startedAt DateTime?` instead of a state
+
+### ADR-018: Drag and Drop Rescheduling (2026-02-21)
+
+**Context:**
+- Today and Week views show items on a time grid but rescheduling requires opening the edit form
+- Want drag-to-reschedule for time changes and cross-day moves
+
+**Decision:**
+Use `@dnd-kit/core` for drag-and-drop on time grid views.
+
+**Library choice reasoning:**
+- `react-beautiful-dnd` — deprecated, no React 19 support. Rejected.
+- Native HTML5 drag — no mobile touch support without polyfills. Rejected.
+- `@dnd-kit/core` — actively maintained, React 19 compatible, first-class touch/pointer support, built-in snap grid modifiers. Chosen.
+
+**Behavior:**
+- **Today view:** Vertical drag only (change time, same day). 15-minute snap grid via `createSnapModifier`.
+- **Week view:** 2D drag — vertical = time, horizontal across day columns = date change. Standard calendar behavior.
+- **Google Calendar events:** Read-only, not draggable. Visual distinction: lock icon or different border style.
+- **Resize handles:** Deferred until drag is solid and tested.
+
+**GCal write-back:** OAuth scope already includes `calendar.events` write access. Implement as a follow-up phase — not in initial drag release. No silent local-only divergence allowed (ADR principle).
+
+**Consequences:**
+- Single library handles both touch (mobile) and pointer (desktop)
+- Snap grid keeps times clean (no 10:07 AM scheduling)
+- GCal events are clearly non-interactive, avoiding user confusion
+
+### ADR-017: Today View Layout Reorder (2026-02-21)
+
+**Context:**
+- Today view layout: Overdue → Time grid → "Scheduled No Time" at bottom
+- Unscheduled items buried at bottom are easy to miss
+- State section labels (In Progress, Active) add noise in a single-day context
+
+**Decision:**
+Reorder Today view: **Overdue → Unscheduled → Time grid**. Remove state section labels from Today context.
+
+**What counts as "unscheduled" in Today:**
+- Active items with today's date but no time
+- Active items with no date at all (undated = available today)
+- Backlog items are excluded (not relevant to "today")
+
+**Sections are collapsible** — tap header to toggle. Once reviewed, compress and get straight to the time grid.
+
+**Consequences:**
+- Most actionable items (overdue + unscheduled) are immediately visible
+- Time grid starts lower but that's correct — timed items have their time slot, they don't need to be "above the fold"
+- Collapsible sections prevent clutter when sections are large
+
+### ADR-016: Daily Briefing & Voice Rollup (2026-02-21)
+
+**Context:**
+- Tyrrell asks Claude to summarize voice captures manually — wants it automated
+- Voice captures are contextually different from manually created items and deserve their own summary
+- A broader daily briefing (all scheduled + overdue + completed) is also valuable
+- These are two related but distinct features
+
+**Decision:**
+Two rollup features, both LifeOS-native (no external API calls):
+
+**1. Voice capture rollup:**
+- Query: `WHERE source = 'voice' AND createdAt` within period
+- Creates a Note with `source: "system"` summarizing voice captures
+- Priority: after Inbox is built (depends on `source` field)
+
+**2. Daily briefing:**
+- Cron job at 2:00 AM, creates a Note with `source: "system"`
+- Sections: today's scheduled items, overdue items, yesterday's completions, voice captures
+- Pure database query — no Gemini, no external API calls
+- Priority: lower, nice-to-have after inbox and voice rollup
+
+**Consequences:**
+- Zero API cost — both features are DB queries formatted as markdown notes
+- Voice rollup preserves the "what did I say today" context that feels different from typed tasks
+- Daily briefing replaces the manual "ask Claude to summarize" workflow
+- Both create Notes, so they're browsable in Vault with `source: "system"` filter
+
+### ADR-015: Keep-Style Note & List Editors (2026-02-21)
 
 **Context:**
 - Mobile views were cluttered with icons, badges, and buttons
@@ -164,55 +308,11 @@ Should we replace "smart lists" concept with:
 3. Test with real tasks to validate approach
 4. Choose option and implement in Phase 2.6
 
-### ADR-010: Quick Add UI Simplification (PENDING)
+### ADR-010: Quick Add UI Simplification — RESOLVED by ADR-020
 
-**Context:**
-- Current + button shows all fields: title, date, time, priority, effort, focus, duration, recurrence
-- Real-world usage: Most quick captures only need title + maybe date
-- 8 fields is overwhelming for "I just want to jot this down"
-- Mobile screen space is precious
+**Status:** RESOLVED — Superseded by Inbox/Triage design (ADR-020, 2026-02-21)
 
-**Proposal:**
-- Default quick add: Title + Date only (minimal)
-- "Advanced" button/toggle reveals: Time, Priority, Effort, Focus, Duration, Recurrence
-- Save space, reduce cognitive load
-- Power users can still access all fields
-
-**Alternatives:**
-
-**Option A: Two-Step Quick Add**
-- Step 1: Title only (inline input, like Google Keep)
-- Step 2: Click created item to add metadata
-- Pros: Fastest capture possible
-- Cons: Extra step for users who want to add priority immediately
-
-**Option B: Smart Defaults with Progressive Disclosure**
-- Show: Title, Date (with calendar icon)
-- Hide by default: Time, Priority, Effort, Focus, Duration, Recurrence
-- "Show more" link reveals additional fields
-- Pros: Balance of speed and power
-- Cons: Need to design good progressive disclosure UI
-
-**Option C: Context-Aware Quick Add**
-- Today view: Show date, hide others
-- Week view: Show date + time, hide others
-- Lists view: Show title only, hide others
-- Pros: Adapts to context
-- Cons: Inconsistent across views
-
-**Impact:**
-- Affects + button modal design
-- Changes quick capture workflow
-- Mobile UX significantly improved
-- Desktop users may prefer full form
-
-**Status:** PENDING - Need to design and test approach
-
-**Next Steps:**
-1. Design mockup of simplified quick add
-2. Test with real usage patterns
-3. Consider context-aware vs. universal approach
-4. Implement in Phase 2.6 or 2.7
+**Resolution:** Quick Add becomes title-only capture. Creates `type: "task"`, `state: "active"`, `source: "quick_capture"`. Item goes to Inbox for triage where metadata is added. No progressive disclosure needed — the Inbox IS the second step.
 
 ### ADR-015: Keep-Style Note & List Editors (2026-02-21)
 

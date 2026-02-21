@@ -13,14 +13,12 @@ const TYPE_COLORS: Record<string, { active: string; inactive: string }> = {
 const STATE_COLORS: Record<string, { active: string; inactive: string }> = {
   backlog:     { active: "bg-gray-200 text-gray-800",     inactive: "bg-gray-100 text-gray-400" },
   active:      { active: "bg-blue-100 text-blue-800",     inactive: "bg-gray-100 text-gray-400" },
-  in_progress: { active: "bg-yellow-100 text-yellow-800", inactive: "bg-gray-100 text-gray-400" },
   completed:   { active: "bg-green-100 text-green-800",   inactive: "bg-gray-100 text-gray-400" },
 };
 
 const STATE_LABELS: Record<string, string> = {
   backlog: "Backlog",
   active: "Active",
-  in_progress: "In Progress",
   completed: "Completed",
 };
 

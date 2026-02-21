@@ -139,6 +139,8 @@ export async function POST(request: NextRequest) {
       showOnCalendar,
       // Sub-items
       subItems,
+      // ADR-020: Inbox source tracking
+      source,
     } = body;
 
     // Validate required fields
@@ -229,6 +231,9 @@ export async function POST(request: NextRequest) {
         energy: energy || null,
         // Phase 3.4: Calendar display
         showOnCalendar: finalShowOnCalendar,
+        // ADR-020: Inbox source tracking — items with a source start unreviewed
+        source: source || null,
+        reviewedAt: source ? null : new Date(), // Manual creates are auto-reviewed
       },
     });
 

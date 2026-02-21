@@ -145,8 +145,12 @@ model Item {
   description        String?
 
   // Phase 3.1: Task state and organization
-  state              String               @default("backlog") // backlog | active | in_progress | completed
+  state              String               @default("backlog") // backlog | active | completed (ADR-019)
   tags               Json?                @db.JsonB // Array of tag strings for project/context organization
+
+  // ADR-020: Inbox & triage
+  source             String?              // "voice" | "quick_capture" | "system" | null (legacy/manual)
+  reviewedAt         DateTime?            @map("reviewed_at") // null = unreviewed (shows in inbox), timestamp = confirmed
 
   // Schedule and timing
   scheduleType       String?              @map("schedule_type")
@@ -238,6 +242,11 @@ model List {
   tags           Json?      @db.JsonB // Array of tag strings for organization
   pinned         Boolean    @default(false) // Pin list to top of view
 
+  // ADR-020: Inbox & triage
+  source         String?    // "voice" | "quick_capture" | "system" | null (legacy/manual)
+  reviewedAt     DateTime?  @map("reviewed_at")
+  projectId      Int?       @map("project_id") // Pre-work for future Projects feature
+
   createdAt      DateTime   @default(now()) @map("created_at")
   updatedAt      DateTime   @updatedAt @map("updated_at")
   items          ListItem[]
@@ -272,6 +281,11 @@ model Note {
   pinned       Boolean  @default(false) // Pin note to top of view
   color        String?  // Phase 4.8: Color accent for Keep-style notes
   parentNoteId Int?     @map("parent_note_id") // Phase 3.6: For nested content (ADR-018)
+
+  // ADR-020: Inbox & triage
+  source       String?  // "voice" | "quick_capture" | "system" | null (legacy/manual)
+  reviewedAt   DateTime? @map("reviewed_at")
+  projectId    Int?     @map("project_id") // Pre-work for future Projects feature
   createdAt    DateTime @default(now()) @map("created_at")
   updatedAt    DateTime @updatedAt @map("updated_at")
 

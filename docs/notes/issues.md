@@ -1,47 +1,30 @@
 # LifeOS Issues & Enhancements
 
-**Last Updated:** February 19, 2026
+**Last Updated:** February 21, 2026
 
 ---
 
 ## 🐛 Bugs (Blocking Real Usage)
 
-### BUG-001: Cannot Edit List Items
-**Discovered:** Jan 30, 2026 (real-world usage testing)
-**Severity:** High - core functionality missing
-**Description:** List items cannot be edited after creation. Must delete and recreate.
-**Expected:** Click list item → edit modal → save changes
-**Actual:** No edit interface exists for list items
-**Related:** Phase 2.6 - Lists & Input UX Polish
+### ~~BUG-001: Cannot Edit List Items~~ FIXED
+**Discovered:** Jan 30, 2026 | **Fixed:** Feb 21, 2026
+**Resolution:** Implemented Keep-style full-page list editor at `/vault/lists/[id]`. Inline checklist editing with add/remove/check/uncheck. (Phase 4 Group 8)
 
 ---
 
 ## 🔧 UX Issues (Real-World Friction)
 
-### UX-001: List Input Not Smooth
-**Discovered:** Jan 30, 2026
-**Priority:** High
-**Description:** Current list input requires modal, separate actions. Should be inline like Google Keep.
-**Current Flow:** Click + → Modal → Type → Save → Repeat
-**Desired Flow:** Type in inline field → Enter → Next item appears
-**Reference:** `docs/screenshots/google_keep_list.png`
-**Related:** Phase 2.6
+### ~~UX-001: List Input Not Smooth~~ FIXED
+**Discovered:** Jan 30, 2026 | **Fixed:** Feb 21, 2026
+**Resolution:** Keep-style inline list editor — type an item, press Enter, next field appears. No modal required. (Phase 4 Group 8)
 
-### UX-002: List Text Doesn't Wrap
-**Discovered:** Jan 30, 2026
-**Priority:** Medium
-**Description:** Long list text overflows horizontally, making it unreadable on mobile.
-**Expected:** Text wraps to multiple lines, full content visible
-**Actual:** Text cuts off or scrolls horizontally
-**Related:** Phase 2.6
+### ~~UX-002: List Text Doesn't Wrap~~ FIXED
+**Discovered:** Jan 30, 2026 | **Fixed:** Feb 21, 2026
+**Resolution:** Full-page list editor uses proper flex layout with text-wrap. No more horizontal overflow. (Phase 4 Group 8)
 
-### UX-003: Filter Button Missing Most Options
-**Discovered:** Jan 30, 2026
-**Priority:** Medium
-**Description:** Filter only shows item types (task/reminder/event/routine). Missing all metadata fields.
-**Missing Filters:** Priority, Effort, Focus, Duration, Date range, Completion status
-**Impact:** Can't use smart list filtering effectively
-**Related:** Phase 2.6, Smart Lists rethink
+### ~~UX-003: Filter Button Missing Most Options~~ FIXED
+**Discovered:** Jan 30, 2026 | **Fixed:** Feb 2026
+**Resolution:** Expanded filter panel on All page covers Priority, State, Type, Tags, and sorting. Unified filter pattern across Calendar and All views. (Phase 4 Group 4)
 
 ### UX-004: Quick Add Too Complex
 **Discovered:** Jan 30, 2026
@@ -52,81 +35,36 @@
 **Use Case:** Most captures are just "title + maybe date", don't need 8 fields
 **Related:** Pending ADR-010 in decisions.md
 
-### UX-005: Date/Time Picker Not Intuitive
-**Discovered:** Jan 30, 2026
-**Priority:** Low
-**Description:** Current date/time are separate text inputs. Should be calendar widget like Google Calendar.
-**Desired:** Calendar icon → picker modal → date/time/recurrence in one interface
-**Benefits:** Saves space, more familiar UX, groups related fields
-**Related:** Phase 2.5 (scheduled)
-
----
-
-## ✨ Feature Requests (Missing Capabilities)
-
-### FEAT-001: Lists Need Notes Field
-**Discovered:** Jan 30, 2026
-**Priority:** High
-**Description:** List items should support longer-form notes/descriptions beyond just the title.
-**Use Case:** Grocery list item "Chicken" → note: "3 lbs, organic if available, for Sunday dinner"
-**Related:** FEAT-002 (all items need this)
-
-### FEAT-002: Tasks Need Description/Notes Field
-**Discovered:** Jan 30, 2026
-**Priority:** High
-**Description:** Tasks (and all items added via + button) need free-text description field.
-**Use Case:** Task "Fix deck" → notes: "Loose boards near steps, need 10 screws, check for rot"
-**Applies To:** Tasks, Events, Reminders, Routines (all item types)
-**Related:** Phase 2.6
+### ~~UX-005: Date/Time Picker Not Intuitive~~ FIXED
+**Discovered:** Jan 30, 2026 | **Fixed:** Phase 2.5
+**Resolution:** Date/Time icon buttons trigger native pickers directly via `showPicker()`. Compact, no extra modal. (Phase 4 Group 2)
 
 ### ~~UX-006: No Delete Button When Viewing a Task Detail (All Page)~~ FIXED
 **Discovered:** Feb 18, 2026 | **Fixed:** Feb 18, 2026
 **Resolution:** Added `onDelete` prop to `TaskForm` component with confirmation dialog. Wired up in All page.
 
-### ~~UX-008: Cannot Delete Notes~~ FIXED
-**Discovered:** Feb 19, 2026 | **Fixed:** Feb 19, 2026
-**Resolution:** Added `onDelete` prop to `NoteForm` with confirmation dialog. DELETE API endpoint already existed but was never wired to UI. Same pattern as UX-006 task delete fix.
-
-### ~~UX-009: Tag Chips Too Faint on Mobile~~ FIXED
-**Discovered:** Feb 19, 2026 | **Fixed:** Feb 19, 2026
-**Resolution:** Bumped tag chip styling from `bg-blue-100 text-blue-800` to `bg-blue-200 text-blue-900 font-medium` in TagInput and NoteCard. Added explicit `text-gray-900` to input field. Also improved autocomplete dropdown: larger tap targets (`py-3`), `text-base font-medium text-gray-900` for suggestion text.
-
-### ~~UX-010: Tag Autocomplete Not Showing Existing Tags~~ FIXED
-**Discovered:** Feb 19, 2026 | **Fixed:** Feb 19, 2026
-**Resolution:** TagInput only showed suggestions when typing (`inputValue.length > 0`). Added focus state tracking so all available tags show on focus with "Existing tags" header. Tags stay visible while adding multiple in a row.
-
-### ~~UX-011: Data Doesn't Refresh Without Page Reload~~ FIXED
-**Discovered:** Feb 19, 2026 | **Fixed:** Feb 19, 2026
-**Resolution:** Created `useRefreshOnFocus` hook (`lib/useRefreshOnFocus.ts`) using `visibilitychange` + `focus` events with 5s throttle. Applied to all 4 pages (vault, all, week, calendar). Built as simple hook for easy upgrade to SWR/React Query later if multi-user is needed.
-
-### FEAT-003: Rich Text / Markdown Support in Notes
-**Discovered:** Feb 19, 2026
-**Priority:** Medium
-**Description:** Notes are plain text only (textarea). Would benefit from markdown support for headers, bold, lists, etc.
-**Approach:** Markdown with preview recommended over full rich text editor (lighter weight). Needs ADR.
-**File:** `components/NoteForm.tsx`
-
 ### UX-007: No Multi-Select for Bulk Delete on All Page
 **Discovered:** Feb 18, 2026
 **Priority:** Low
-**Description:** No way to select multiple tasks at once for bulk deletion or other bulk actions. Would be useful for clearing out many completed/unwanted tasks quickly.
-**Idea:** Long-press or checkbox mode to select multiple tasks, then a bulk delete action.
-**Status:** Approach not decided yet — needs design consideration before implementing.
+**Description:** No way to select multiple tasks at once for bulk deletion or other bulk actions.
+**Idea:** Long-press or checkbox mode to select multiple, then bulk delete.
+**Status:** Approach not decided — needs design consideration before implementing.
 **File:** `app/all/page.tsx`
 
-### UX-008: Pin to Today Cut Off on Mobile Task Form
+### ~~UX-008: Cannot Delete Notes~~ FIXED
+**Discovered:** Feb 19, 2026 | **Fixed:** Feb 19, 2026
+**Resolution:** Added `onDelete` prop to `NoteForm` with confirmation dialog. DELETE API endpoint already existed but was never wired to UI.
+
+### UX-008: Pin to Today Checkbox Cut Off on Mobile Task Form
 **Discovered:** Feb 21, 2026
 **Priority:** Medium
 **Description:** On mobile, the "Pin to Today" checkbox is off-screen to the right of the recurrence dropdown. User has to scroll horizontally to see/access it. Need a more compact representation — possibly a pin icon button instead of checkbox+text.
 **Screenshot:** `docs/screenshots/task1.jpg`
 **File:** `components/TaskForm.tsx`
 
-### UX-010: Note/List Editor Bottom Panel Should Be Fixed
-**Discovered:** Feb 21, 2026
-**Priority:** High
-**Description:** Color picker, tags, pin toggle, and Save/Delete buttons are currently inline in the editor body. They scroll with the content, which means you have to scroll down to hit Update on short notes (buttons float in middle of page) and on long notes (have to scroll past all content). Should be pinned to the bottom of the viewport with content scrolling above it. Needs to account for BottomTabBar height on mobile.
-**Reference:** `docs/screenshots/note-list.jpg`
-**Files:** `app/vault/notes/[id]/page.tsx`, `app/vault/lists/[id]/page.tsx`
+### ~~UX-009: Tag Chips Too Faint on Mobile~~ FIXED
+**Discovered:** Feb 19, 2026 | **Fixed:** Feb 19, 2026
+**Resolution:** Bumped tag chip styling from `bg-blue-100 text-blue-800` to `bg-blue-200 text-blue-900 font-medium`. Also improved autocomplete dropdown: larger tap targets (`py-3`), `text-base font-medium text-gray-900`.
 
 ### UX-009: No Complete Button in Edit Task Modal
 **Discovered:** Feb 21, 2026
@@ -134,48 +72,105 @@
 **Description:** When opening a task from month view (or any view) via the edit modal, there's no way to mark it complete without going back to a list view. Should have a "Complete" checkbox in the modal header row, next to "Edit Task" title.
 **File:** `components/TaskForm.tsx`
 
+### ~~UX-010: Tag Autocomplete Not Showing Existing Tags~~ FIXED
+**Discovered:** Feb 19, 2026 | **Fixed:** Feb 19, 2026
+**Resolution:** TagInput only showed suggestions when typing. Added focus state tracking so all available tags show on focus with "Existing tags" header.
+
+### UX-010: Note/List Editor Bottom Panel Should Be Fixed
+**Discovered:** Feb 21, 2026
+**Priority:** High
+**Description:** Color picker, tags, pin toggle, and Save/Delete buttons are currently inline in the editor body and scroll with content. Should be pinned to the bottom of the viewport with content scrolling above it. Must account for BottomTabBar height on mobile.
+**Reference:** `docs/screenshots/note-list.jpg`
+**Files:** `app/vault/notes/[id]/page.tsx`, `app/vault/lists/[id]/page.tsx`
+
+### ~~UX-011: Data Doesn't Refresh Without Page Reload~~ FIXED
+**Discovered:** Feb 19, 2026 | **Fixed:** Feb 19, 2026
+**Resolution:** Created `useRefreshOnFocus` hook (`lib/useRefreshOnFocus.ts`) using `visibilitychange` + `focus` events with 5s throttle. Applied to all 4 pages. Still unreliable on Android (see phase4 plan item 1.1).
+
+---
+
+## ✨ Feature Requests (Missing Capabilities)
+
+### ~~FEAT-001: Lists Need Notes Field~~ FIXED
+**Discovered:** Jan 30, 2026 | **Fixed:** Feb 21, 2026
+**Resolution:** Keep-style list editor supports full item content. (Phase 4 Group 8)
+
+### ~~FEAT-002: Tasks Need Description/Notes Field~~ FIXED
+**Discovered:** Jan 30, 2026 | **Fixed:** Feb 21, 2026
+**Resolution:** TaskForm has a Description field visible in the main form area. Notes stored as `description` on the Item model. (Phase 4 Group 2)
+
+### FEAT-003: Rich Text / Markdown Support in Notes
+**Discovered:** Feb 19, 2026
+**Priority:** Medium
+**Description:** Notes are plain text only (textarea). Would benefit from markdown support for headers, bold, lists, etc.
+**Approach:** Markdown with preview recommended over full rich text editor. Needs ADR.
+**File:** `components/NoteForm.tsx`
+
+### FEAT-004: Voice Capture Inbox / Triage View — ADR DECIDED
+**Discovered:** Feb 21, 2026 | **Architecture decided:** Feb 21, 2026
+**Priority:** High — next major feature
+**ADR:** ADR-020 (Voice Capture Inbox & Triage)
+**Summary:** `source String?` + `reviewedAt DateTime?` + `projectId Int?` on Item, Note, List. Inbox replaces Home tab. Quick capture (title-only) also flows through inbox. See ADR-020 for full details.
+**Status:** Ready for implementation
+
+### FEAT-005: Drag and Drop to Reschedule (Week + Today Views)
+**Discovered:** Feb 21, 2026
+**Priority:** Medium
+**Description:** Drag items on the time grid to reschedule them. Resize handles to change duration (defer until drag is solid).
+**Google Calendar events:** Either read-only for dragging OR implement GCal write via Calendar API. Do not allow silent state divergence between local and GCal.
+**Files:** `app/week/page.tsx`, `app/calendar/page.tsx`
+
+### UX-012: Unscheduled Items at Top of Today View — ADR DECIDED
+**Discovered:** Feb 21, 2026 | **Architecture decided:** Feb 21, 2026
+**Priority:** Medium
+**ADR:** ADR-017 (Today View Layout Reorder)
+**Summary:** Reorder to Overdue → Unscheduled → Time grid. Both sections collapsible. Unscheduled = active items with today-no-time OR no date. Backlog excluded. State labels removed from Today context.
+**Status:** Ready for implementation
+**File:** `app/calendar/page.tsx`
+
 ---
 
 ## 🤔 Architectural Questions (Need Discussion)
 
-### ARCH-001: Smart Lists Rethink
-**Discovered:** Jan 30, 2026
-**Current Behavior:** Smart lists are separate filtered views
-**Observation:** "Smart lists are basically just a filter of my other tasks"
-**Proposed:**
-- Add "All" section showing everything
-- Apply filters to see "smart list" results
-- Create premade filter options (Quick Wins, Deep Work, etc.)
-- Remove separate "smart list" concept
-**Impact:** Significant UX change, affects Lists view architecture
-**Status:** Needs ADR-009 in decisions.md
+### ~~ARCH-001: Smart Lists Rethink~~ DECIDED
+**Discovered:** Jan 30, 2026 | **Decided:** Feb 2026
+**Resolution:** Separate smart list concept removed. All page now has comprehensive filtering (Priority, State, Type, Tags, sorting). Smart lists were just saved filters — not implemented as a separate concept. (Phase 4 Group 4)
 
-### ARCH-002: Effort vs Focus Redundancy
-**Discovered:** Jan 30, 2026
-**Question:** "I think effort and focus might be the same thing...get rid of one?"
-**Current:**
-- Effort: How hard the task is
-- Focus: How much concentration required
-**Observation:** These may overlap in practice
-**Need To:** Review actual usage data, decide if consolidation makes sense
-**Impact:** Data model change, affects filters and UI
-**Status:** Needs ADR-011 in decisions.md
+### ~~ARCH-002: Effort vs Focus Redundancy~~ DECIDED
+**Discovered:** Jan 30, 2026 | **Decided:** Feb 2026
+**Resolution:** Keeping both fields for now. Usage data doesn't yet justify removing either. Revisit if real-world usage shows consistent redundancy.
 
 ---
 
 ## 📋 Implementation Checklist
 
 **Phase 2.6 Priorities:**
-1. [ ] Fix BUG-001 (can't edit lists) - BLOCKING
-2. [ ] Add notes field to all item types (FEAT-001, FEAT-002)
-3. [ ] Implement Google Keep-style list input (UX-001)
-4. [ ] Fix text wrapping in lists (UX-002)
-5. [ ] Expand filter options (UX-003)
-6. [ ] Decide on smart lists architecture (ARCH-001)
-7. [ ] Decide on effort/focus consolidation (ARCH-002)
-8. [ ] Implement quick add simplification (UX-004) - pending ADR-010
-9. [ ] Calendar-style date/time picker (UX-005) - Phase 2.5
+1. [X] Fix BUG-001 (can't edit lists) - BLOCKING
+2. [X] Add notes field to all item types (FEAT-001, FEAT-002)
+3. [X] Implement Google Keep-style list input (UX-001)
+4. [X] Fix text wrapping in lists (UX-002)
+5. [X] Expand filter options (UX-003)
+6. [X] Decide on smart lists architecture (ARCH-001)
+7. [X] Decide on effort/focus consolidation (ARCH-002)
+8. [X] Implement quick add simplification (UX-004) - resolved by ADR-020 inbox (quick capture → inbox triage)
+9. [X] Calendar-style date/time picker (UX-005) - Phase 2.5
 
----
+**Phase 4 Remaining (see docs/plans/phase4-ux-improvements.md):**
+1. [~] Fix auto-refresh on Android (1.1)
+2. [ ] Click-to-add on week view — verify working (6.3)
+3. [ ] UX-008: Pin to Today mobile overflow fix
+4. [ ] UX-009: Complete button in task edit modal
+5. [ ] UX-010: Pin bottom panel to viewport (HIGH)
+6. [ ] UX-004: Quick add simplification (pending ADR-010)
+7. [⏸] Enter key sub-item advancement (Android keyboard blocker)
 
-**Note:** Issues discovered through real-world usage testing (Jan 30, 2026) after deploying mobile-responsive Phase 2 improvements.
+**Architecture Decided — Implementation Status (ADRs in decisions.md):**
+1. [X] FEAT-004: Voice capture inbox/triage (ADR-020) — schema + inbox UI + inline TaskForm editing (2026-02-21)
+2. [X] State collapse: backlog/active/completed (ADR-019) — migration + UI cleanup (2026-02-21)
+3. [ ] FEAT-005: Drag and drop to reschedule (ADR-018) — @dnd-kit on Today + Week
+4. [~] UX-012: Today view reorder (ADR-017) — Scheduled No Time moved above time grid. Full Overdue → Unscheduled → Time grid still TODO.
+5. [ ] Daily briefing + voice rollup (ADR-016) — lower priority, after inbox
+
+**Future (No ADR Yet):**
+1. [ ] Voice pipeline → calendar auto-create (deferred)
+2. [ ] Pattern detection on captures (needs data volume)

@@ -752,7 +752,6 @@ export default function TaskForm({
                   >
                     <option value="backlog">Backlog</option>
                     <option value="active">Active</option>
-                    <option value="in_progress">In Progress</option>
                     <option value="completed">Completed</option>
                   </select>
                 </div>

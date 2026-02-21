@@ -36,7 +36,7 @@ interface Item {
 type GroupBy = "none" | "state" | "type" | "tag" | "complexity" | "energy" | "priority";
 
 // Preferred section order
-const STATE_ORDER = ["In Progress", "Active", "Backlog", "Completed"];
+const STATE_ORDER = ["Active", "Backlog", "Completed"];
 
 // Item type colors (for the type indicator on cards)
 const TYPE_COLORS: Record<string, string> = {
@@ -48,7 +48,6 @@ const TYPE_COLORS: Record<string, string> = {
 const STATE_LABELS: Record<string, string> = {
   backlog: "Backlog",
   active: "Active",
-  in_progress: "In Progress",
   completed: "Completed",
 };
 
