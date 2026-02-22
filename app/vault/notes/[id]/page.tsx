@@ -12,7 +12,7 @@ const DEFAULT_BG = "#FAFAF8";
 interface Note {
   id: number;
   title?: string | null;
-  content: string;
+  content?: string | null;
   tags?: string[] | null;
   pinned: boolean;
   color?: string | null;
@@ -55,7 +55,7 @@ export default function NoteEditorPage() {
         if (!res.ok) { router.push("/vault"); return; }
         const note: Note = await res.json();
         setTitle(note.title || "");
-        setContent(note.content);
+        setContent(note.content || "");
         setTags((note.tags as string[]) || []);
         setPinned(note.pinned);
         setColor(note.color || null);
@@ -95,10 +95,10 @@ export default function NoteEditorPage() {
 
   /** Save note (create or update) */
   const handleSave = async () => {
-    if (!content.trim()) return;
+    if (!title.trim() && !content.trim()) return;
     setSaving(true);
     try {
-      const body = { title: title.trim() || null, content: content.trim(), tags, pinned, color };
+      const body = { title: title.trim() || null, content: content.trim() || null, tags, pinned, color };
       if (isNew) {
         const res = await fetch("/api/notes", {
           method: "POST",
@@ -258,7 +258,7 @@ export default function NoteEditorPage() {
             )}
             <button
               onClick={handleSave}
-              disabled={!content.trim() || saving}
+              disabled={(!title.trim() && !content.trim()) || saving}
               className="px-6 py-2.5 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-medium text-sm disabled:opacity-50"
             >
               {saving ? "Saving..." : isNew ? "Create" : "Update"}

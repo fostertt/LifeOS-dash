@@ -34,7 +34,7 @@ interface List {
 interface Note {
   id: number;
   title?: string | null;
-  content: string;
+  content?: string | null;
   tags?: string[] | null;
   pinned: boolean;
   color?: string | null;

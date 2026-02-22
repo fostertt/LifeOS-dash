@@ -1,3 +1,25 @@
+### Resolved Bug: Quick Capture Fails to Save (2026-02-22)
+
+- **Status:** RESOLVED (Feb 22, 2026)
+- **Root cause:** Client sent `title` field but items API expects `name`. Validation rejected the payload.
+- **Fix:** Changed `title` to `name` in the Quick Capture POST body.
+- **File:** `components/GlobalCreateManager.tsx`
+
+### Resolved Bug: Title-Only Notes Fail to Create (2026-02-22)
+
+- **Status:** RESOLVED (Feb 22, 2026)
+- **Root cause:** Two client-side issues in note editor: (1) `handleSave` had `if (!content.trim()) return` bail-out, (2) save button was `disabled={!content.trim()}`. API was never reached. Additionally, `NoteCard` crashed on null content (`.length`/`.substring()` on null), taking down the entire vault page.
+- **Fix:** Changed guards to require title OR content. Sent `null` instead of empty string for content. Updated `Note` interface and `NoteCard` to handle optional content.
+- **Files:** `app/vault/notes/[id]/page.tsx`, `components/NoteCard.tsx`, `app/vault/page.tsx`
+
+### Resolved Bug: Quick Capture Input Text Nearly Invisible (2026-02-22)
+
+- **Status:** RESOLVED (Feb 22, 2026)
+- **Fix:** Added `text-gray-900 placeholder-gray-400` to the Quick Capture input element.
+- **File:** `components/GlobalCreateManager.tsx`
+
+---
+
 ### Resolved Bug: Today View Checkboxes Open Edit Modal (2026-02-22)
 
 - **Status:** RESOLVED (Feb 22, 2026)

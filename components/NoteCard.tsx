@@ -3,7 +3,7 @@
 interface NoteCardProps {
   id: number;
   title?: string | null;
-  content: string;
+  content?: string | null;
   tags?: string[] | null;
   pinned: boolean;
   color?: string | null;
@@ -35,7 +35,7 @@ export default function NoteCard({
 }: NoteCardProps) {
   // Truncate content for preview (first 150 characters)
   const contentPreview =
-    content.length > 150 ? content.substring(0, 150) + "..." : content;
+    (content || "").length > 150 ? (content || "").substring(0, 150) + "..." : (content || "");
 
   return (
     <div

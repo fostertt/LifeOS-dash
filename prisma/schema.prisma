@@ -276,7 +276,7 @@ model Note {
   id           Int      @id @default(autoincrement())
   userId       String   @map("user_id")
   title        String?  // Optional title
-  content      String   // Freeform text content
+  content      String?  // Freeform text content (optional for quick captures)
   tags         Json?    @db.JsonB // Array of tag strings for organization
   pinned       Boolean  @default(false) // Pin note to top of view
   color        String?  // Phase 4.8: Color accent for Keep-style notes

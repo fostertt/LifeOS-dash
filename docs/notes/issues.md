@@ -158,18 +158,20 @@
 - [X] UX-008: Pin to Today icon button
 - [X] UX-009: Complete button in task edit modal
 - [X] UX-010: Bottom panel pinned in note/list editors
+- [X] Vault Polish (Phase 7) — compact Keep-style grid layout
+- [X] FAB Redesign (Phase 8) — clean Lucide SVG icons, animations
+- [X] Voice pipeline to inbox — Items API accepts `source` field (ADR-020)
+- [X] Drag and drop — Today + Week views (ADR-018)
 
 **Next Up:**
-- [ ] Vault polish (Phase 7) — compact layout, note refresh fix, content optional
-- [ ] FAB redesign (Phase 8) — Lucide icons, clean popup
-- [ ] Wire voice pipeline to inbox — pipeline sends `source: "voice"`
-- [ ] Drag and drop to reschedule (ADR-018) — @dnd-kit on Today + Week
+- [ ] Projects UI — `projectId` exists, needs page + TaskForm integration
+- [ ] Recipes & Meal Planning — needs schema design + architecture discussion
 - [ ] Daily briefing + voice rollup (ADR-016) — after inbox is battle-tested
 
 **Backlog:**
 - [~] Auto-refresh on Android — unreliable, may need polling/service worker
-- [ ] Click-to-add on week view — implemented, unverified
 - [⏸] Enter key sub-item advancement — Android keyboard blocker
 - [ ] Voice pipeline → calendar auto-create
-- [ ] Projects UI
-- [ ] Recipes & meal planning
+- [ ] DnD: 15-min snap grid, drag handles for week pills, resize handles
+- [ ] Notes/Lists POST handlers missing `source` field pass-through
+- [ ] Note content should be optional (currently required in API validation)

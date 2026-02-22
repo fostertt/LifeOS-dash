@@ -87,7 +87,7 @@ export async function POST(request: NextRequest) {
     const userId = session.user.id;
     const body = await request.json();
 
-    const { name, listType, filterCriteria, color } = body;
+    const { name, listType, filterCriteria, color, source } = body;
 
     if (!name || !listType) {
       return NextResponse.json(
@@ -110,6 +110,9 @@ export async function POST(request: NextRequest) {
         listType,
         filterCriteria: filterCriteria ? JSON.stringify(filterCriteria) : null,
         color: color || null,
+        // ADR-020: Inbox source tracking — lists with a source start unreviewed
+        source: source || null,
+        reviewedAt: source ? null : new Date(),
       },
       include: {
         items: true,

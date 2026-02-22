@@ -5,18 +5,21 @@ import { useRouter } from "next/navigation";
 import FAB from "./FAB";
 import TaskForm from "./TaskForm";
 
-type CreateType = "task" | "habit" | "reminder" | "note" | "list" | null;
+type CreateType = "task" | "habit" | "reminder" | "note" | "list" | "quick_capture" | null;
 
 /**
  * GlobalCreateManager
  *
  * Manages the global creation FAB and creation flows.
+ * Quick Capture: title-only prompt → creates task with source="quick_capture" → inbox.
  * Tasks/Habits/Reminders use modal forms. Notes and Lists navigate to
  * full-page Keep-style editors.
  */
 export default function GlobalCreateManager() {
   const router = useRouter();
   const [activeModal, setActiveModal] = useState<CreateType>(null);
+  const [quickCaptureTitle, setQuickCaptureTitle] = useState("");
+  const [quickCaptureSaving, setQuickCaptureSaving] = useState(false);
 
   // Listen for create events dispatched by BottomTabBar (mobile nav)
   useEffect(() => {
@@ -39,6 +42,32 @@ export default function GlobalCreateManager() {
 
   // Tag support is currently placeholder until we implement global tag fetching
   const availableTags: string[] = [];
+
+  /** Quick Capture — title-only task routed to inbox for triage */
+  const handleQuickCapture = async () => {
+    if (!quickCaptureTitle.trim()) return;
+    setQuickCaptureSaving(true);
+    try {
+      const res = await fetch("/api/items", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: quickCaptureTitle.trim(),
+          itemType: "task",
+          source: "quick_capture",
+        }),
+      });
+      if (!res.ok) throw new Error("Failed to create quick capture");
+      setQuickCaptureTitle("");
+      setActiveModal(null);
+      router.refresh();
+    } catch (error) {
+      console.error("Quick capture error:", error);
+      alert("Failed to save");
+    } finally {
+      setQuickCaptureSaving(false);
+    }
+  };
 
   const handleSaveTask = async (taskData: any) => {
     try {
@@ -79,6 +108,11 @@ export default function GlobalCreateManager() {
       <FAB
         options={[
           {
+            label: "Quick Capture",
+            icon: <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>,
+            onClick: () => setActiveModal("quick_capture"),
+          },
+          {
             label: "Task",
             icon: <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>,
             onClick: () => setActiveModal("task"),
@@ -106,6 +140,41 @@ export default function GlobalCreateManager() {
         ]}
       />
       </div>
+
+      {/* Quick Capture Modal — title-only input, routes to inbox */}
+      {activeModal === "quick_capture" && (
+        <div className="fixed inset-0 z-50 flex items-start justify-center pt-24 px-4">
+          <div className="fixed inset-0 bg-black/30" onClick={() => { setActiveModal(null); setQuickCaptureTitle(""); }} />
+          <div className="relative bg-white rounded-xl shadow-2xl w-full max-w-md p-4">
+            <h3 className="text-sm font-semibold text-gray-500 mb-2">Quick Capture</h3>
+            <input
+              type="text"
+              autoFocus
+              value={quickCaptureTitle}
+              onChange={(e) => setQuickCaptureTitle(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Enter") handleQuickCapture(); }}
+              placeholder="What's on your mind?"
+              className="w-full text-lg text-gray-900 placeholder-gray-400 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+            />
+            <div className="flex justify-end gap-2 mt-3">
+              <button
+                onClick={() => { setActiveModal(null); setQuickCaptureTitle(""); }}
+                className="px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleQuickCapture}
+                disabled={!quickCaptureTitle.trim() || quickCaptureSaving}
+                className="px-4 py-1.5 text-sm bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 transition-colors"
+              >
+                {quickCaptureSaving ? "Saving..." : "Capture"}
+              </button>
+            </div>
+            <p className="text-xs text-gray-400 mt-2">Goes to inbox for triage</p>
+          </div>
+        </div>
+      )}
 
       {/* Shared Task/Habit/Reminder Form */}
       {(activeModal === "task" || activeModal === "habit" || activeModal === "reminder") && (

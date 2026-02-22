@@ -37,7 +37,7 @@ export async function GET() {
 
 /**
  * POST /api/notes - Create a new note
- * Body: { title?: string, content: string, tags?: string[], pinned?: boolean, color?: string }
+ * Body: { title?: string, content?: string, tags?: string[], pinned?: boolean, color?: string, source?: string }
  */
 export async function POST(request: NextRequest) {
   try {
@@ -50,12 +50,12 @@ export async function POST(request: NextRequest) {
     const userId = session.user.id;
     const body = await request.json();
 
-    const { title, content, tags, pinned, color } = body;
+    const { title, content, tags, pinned, color, source } = body;
 
-    // Content is required
-    if (!content || content.trim() === "") {
+    // At least title or content is required
+    if ((!title || title.trim() === "") && (!content || content.trim() === "")) {
       return NextResponse.json(
-        { error: "Content is required" },
+        { error: "Title or content is required" },
         { status: 400 }
       );
     }
@@ -64,10 +64,13 @@ export async function POST(request: NextRequest) {
       data: {
         userId,
         title: title || null,
-        content,
+        content: content || null,
         tags: tags || null,
         pinned: pinned || false,
         color: color || null,
+        // ADR-020: Inbox source tracking — notes with a source start unreviewed
+        source: source || null,
+        reviewedAt: source ? null : new Date(),
       },
     });
 

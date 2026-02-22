@@ -58,51 +58,61 @@ Personal productivity dashboard — single place for tasks, notes, lists, habits
 - Work email routing (say "work" → tags + emails)
 - **Not yet wired:** pipeline doesn't send `source: "voice"` yet — inbox won't show voice items until this is done
 
-### UI Polish (Phases 1–6.5 complete)
+### Drag and Drop (ADR-018)
+- Today view: vertical drag with ghost pill overlay, color-coded by item type
+- Week view: 2D drag (time + day columns), click-to-create on empty cells
+- Google Calendar events read-only (not draggable)
+- Drop auto-advances backlog → active
+- 3px activation distance for small targets
+
+### UI Polish (Phases 1–8 complete)
 - Swipe navigation removed, bottom tab bar, compact task cards, chronological sorting
 - Collapsible sections, filter panels, compact headers
 - Month view with navigation, week numbers, fiscal weeks
 - View consolidation (5 views → 4, "Today" replaces "Timeline"/"Compact")
+- Vault compact Google Keep-style grid layout
+- FAB redesign: clean Lucide SVG icons, rotation animation
 
 ---
 
 ## Roadmap: What's Next
 
-### Tier 1: Immediate (Next 1–2 Sessions)
+### Completed Tiers
 
-**Vault Polish (Phase 7)**
-- Compact layout like Google Keep (reduce padding, tighter grid)
-- Fix new notes not showing after create (GlobalCreateManager → event dispatch)
-- Make Content field optional on notes
-- Verify click behavior after swipe removal
-- **Files:** `app/vault/page.tsx`, `components/NoteForm.tsx`, `components/GlobalCreateManager.tsx`
+**Vault Polish (Phase 7)** — DONE (Feb 2026)
+- Compact Google Keep-style grid layout with filtering/sorting
+- FAB clean Lucide icons + animations (Phase 8) — DONE
 
-**FAB Redesign (Phase 8)**
-- Replace emoji pill buttons with clean Lucide icons
-- Subtle animations, backdrop blur, monochrome with accent colors
-- **File:** `components/FAB.tsx`
+**Drag and Drop (ADR-018)** — DONE (Feb 2026)
+- Today view: vertical drag with DragOverlay ghost pill
+- Week view: 2D drag (time + day columns) + click-to-create on empty cells
+- Google Calendar events: read-only, not draggable
+- Drop logic: sets date/time, auto-advances backlog → active
+- **Known DnD issues (not blocking):**
+  - Week view pills very small — drag awkward on mobile. Needs drag handles or press-to-enlarge UX.
+  - 15-minute snap grid not yet implemented (items land on nearest hour).
+  - Resize handles deferred.
 
-**Wire Voice Pipeline to Inbox**
-- Pipeline sends `source: "voice"` in POST body — one-line change on pipeline side
-- Test inbox shows voice captures correctly
-- **LifeOS side:** Already done (API accepts `source` field)
+**Voice Pipeline to Inbox** — MOSTLY DONE (Feb 2026)
+- Items API accepts `source` field and routes to inbox correctly
+- **Small gaps:** Notes and Lists POST handlers don't pass `source` field yet. Note content still required (should be optional).
 
-### Tier 2: Next Major Feature — Drag and Drop (ADR-018)
+### Tier 1: Next Major Features
 
-**Library:** `@dnd-kit/core` (React 19 compatible, touch support, snap grid)
+**Projects UI**
+- `/projects` page with list + detail views
+- Project properties: name, description, status, priority, color, tags, task count
+- Task assignment: dropdown in TaskForm, filter by project on All page
+- `projectId` already on Item, Note, List (added in ADR-020 schema)
+- **Not started** — database column exists but UI is placeholder
 
-**Scope:**
-- **Today view:** Vertical drag, 15-minute snap grid
-- **Week view:** 2D drag (time + day columns)
-- **Google Calendar events:** Read-only, not draggable (lock icon / different border)
-- **Drop logic:** Sets date/time only. If backlog → auto-advance to active first.
-- **Resize handles:** Deferred until drag is solid
+**Recipes & Meal Planning**
+- Recipe CRUD (ingredients, instructions, tags, ratings)
+- Meal planning: assign recipes to calendar dates (breakfast/lunch/dinner)
+- Grocery list integration (add ingredients to Vault list)
+- **Not started** — needs schema design and architecture discussion
 
-**GCal write-back:** OAuth scope already includes write. Implement as follow-up, not initial release.
-
-**Files:** `app/calendar/page.tsx`, `app/week/page.tsx`
-
-### Tier 3: Daily Briefing & Voice Rollup (ADR-016)
+### Tier 2: Daily Briefing & Voice Rollup (ADR-016)
 
 **After inbox is battle-tested.**
 
@@ -110,23 +120,11 @@ Personal productivity dashboard — single place for tasks, notes, lists, habits
 - **Daily briefing:** Cron at 2 AM → Note with today's scheduled, overdue, yesterday's completions, voice captures
 - Both are pure DB queries formatted as markdown. Zero API cost.
 
-### Tier 4: Projects UI
+### Tier 3: Future / Backlog
 
-- `/projects` page with list + detail views
-- Project properties: name, description, status, priority, color, tags, task count
-- Task assignment: dropdown in TaskForm, filter by project on All page
-- `projectId` already on Item, Note, List (added in ADR-020 schema)
-- **Not started** — database models exist but UI is placeholder
-
-### Tier 5: Recipes & Meal Planning
-
-- Recipe CRUD (ingredients, instructions, tags, ratings)
-- Meal planning: assign recipes to calendar dates (breakfast/lunch/dinner)
-- Grocery list integration (add ingredients to Vault list)
-- **Not started** — schema designed in old implementation plan but not migrated
-
-### Tier 6: Future / Backlog
-
+- **15-min snap grid** for DnD timeline drag
+- **DnD drag handles / press-to-enlarge** for week view small pills
+- **GCal write-back** — OAuth scope already includes write, implement as follow-up
 - **Rich text notes** (FEAT-003) — markdown editor with preview
 - **Dark mode** — full app (currently only partial)
 - **Calendar auto-create from voice** — pipeline calls GCal API on datetime captures
@@ -136,6 +134,8 @@ Personal productivity dashboard — single place for tasks, notes, lists, habits
 - **Bulk operations** — multi-select on All page (UX-007)
 - **Habit streaks/analytics**
 - **Recipe URL scraping**
+- **Notes/Lists source field** — add `source` to POST handlers for `/api/notes` and `/api/lists`
+- **Note content optional** — remove required validation on note content field
 
 ---
 
@@ -195,7 +195,7 @@ See `prisma/schema.prisma` for full schema. Key models:
 | `app/vault/page.tsx` | Vault (notes + lists cards) |
 | `app/vault/notes/[id]/page.tsx` | Note editor |
 | `app/vault/lists/[id]/page.tsx` | List editor |
-| `app/week/page.tsx` | Week view (separate route) |
+| ~~`app/week/page.tsx`~~ | Deleted — week view consolidated into `app/calendar/page.tsx` |
 | `components/TaskForm.tsx` | Task/habit/reminder create+edit form |
 | `components/BottomTabBar.tsx` | Mobile bottom navigation with inbox badge |
 | `components/Header.tsx` | Desktop nav, mobile compact header (customMobileContent prop) |
