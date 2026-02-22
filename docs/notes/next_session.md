@@ -8,19 +8,22 @@
 
 ## What Just Happened (Feb 22, 2026)
 
-Fixed 3 bugs from previous session:
+1. **Wired voice pipeline to inbox** — Added `source: "voice"` to all 5 INSERT statements in `/home/fostertt/voice-pipeline/pipeline.py` (tasks, notes, reminders, meeting notes, fallback notes). Committed to voice-pipeline repo (no remote). Service restarted. Pending test with LilyGo recording.
 
-1. **Checkbox opening modal** — added `onClick` stopPropagation on Today view checkbox
-2. **Weekly recurring won't complete** — added `daily`/`weekly`/`monthly` to advancing recurrence branch with date math (+1d/+7d/+1mo). Fixed completions API to return all ItemCompletions (removed `scheduleType: "daily"` filter).
-3. **All view flicker on complete** — optimistic update + silent background refresh
+2. Fixed 3 bugs from earlier in the day:
+   - **Checkbox opening modal** — added `onClick` stopPropagation on Today view checkbox
+   - **Weekly recurring won't complete** — added `daily`/`weekly`/`monthly` to advancing recurrence branch with date math (+1d/+7d/+1mo). Fixed completions API to return all ItemCompletions (removed `scheduleType: "daily"` filter).
+   - **All view flicker on complete** — optimistic update + silent background refresh
 
 Also cleaned up docs: consolidated 7 planning/session docs into `docs/plans/lifeos-roadmap.md`.
 
 ---
 
-## What To Do Now: Wire Voice Pipeline to Inbox
+## What To Do Now: Test Voice → Inbox Flow
 
-**One-line change on pipeline side** — POST body includes `source: "voice"`. LifeOS API already accepts it (ADR-020 implemented Feb 21). Test that inbox shows voice captures.
+Record a voice note on the LilyGo and confirm it appears in LifeOS Inbox with the "Voice" badge. Watch logs: `sudo journalctl -u voice-pipeline -f`
+
+If that works, voice → inbox is done (ADR-020 complete end-to-end).
 
 ---
 
