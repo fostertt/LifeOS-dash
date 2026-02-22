@@ -1500,6 +1500,7 @@ function HomeContent() {
             <input
               type="checkbox"
               checked={isCompleted}
+              onClick={(e) => e.stopPropagation()}
               onChange={(e) => {
                 e.stopPropagation();
                 toggleItem(item.id);

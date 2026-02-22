@@ -206,9 +206,31 @@ function AllTasksContent() {
     }
   };
 
+  /** Silent refresh — fetches items without showing the loading spinner */
+  const silentRefresh = async () => {
+    try {
+      const response = await fetch("/api/items");
+      if (!response.ok) throw new Error("Failed to fetch items");
+      const allItems = await response.json();
+      setItems(allItems);
+    } catch (err) {
+      // Silently ignore — optimistic state is already shown
+    }
+  };
+
   // Toggle completion
   const toggleCompletion = async (item: Item, e: React.MouseEvent) => {
     e.stopPropagation();
+
+    // Optimistic update: immediately flip local state
+    setItems((prev) =>
+      prev.map((i) =>
+        i.id === item.id
+          ? { ...i, isCompleted: !i.isCompleted, state: !i.isCompleted ? "completed" : "active" }
+          : i
+      )
+    );
+
     try {
       const res = await fetch(`/api/items/${item.id}/toggle`, {
         method: "POST",
@@ -216,9 +238,18 @@ function AllTasksContent() {
         body: JSON.stringify({ date: item.dueDate || new Date().toISOString().split("T")[0] }),
       });
       if (!res.ok) throw new Error("Failed to toggle completion");
-      await loadData();
+      // Silent refresh to sync with server truth
+      await silentRefresh();
     } catch (error) {
       console.error("Error toggling completion:", error);
+      // Revert optimistic update on failure
+      setItems((prev) =>
+        prev.map((i) =>
+          i.id === item.id
+            ? { ...i, isCompleted: item.isCompleted, state: item.state }
+            : i
+        )
+      );
     }
   };
 

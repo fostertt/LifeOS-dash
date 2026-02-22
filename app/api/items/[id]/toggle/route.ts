@@ -52,11 +52,11 @@ export async function POST(
     }
 
     // Determine completion model:
-    // Per-date recurring (habits, daily/weekly/monthly tasks): use ItemCompletion table
-    // Advancing recurring (every_n_days, every_n_weeks, days_after_completion): advance dueDate
+    // Per-date recurring (habits with scheduleType): use ItemCompletion table
+    // Advancing recurring (daily/weekly/monthly, every_n_days, every_n_weeks, days_after_completion): advance dueDate
     const isPerDateRecurring = item.scheduleType && item.scheduleType !== "";
     const isAdvancingRecurring = item.recurrenceType &&
-      ['every_n_days', 'every_n_weeks', 'days_after_completion'].includes(item.recurrenceType);
+      ['daily', 'weekly', 'monthly', 'every_n_days', 'every_n_weeks', 'days_after_completion'].includes(item.recurrenceType);
 
     if (isAdvancingRecurring) {
       // Advancing recurrence: complete, record history, then advance dueDate and uncomplete
@@ -69,12 +69,20 @@ export async function POST(
 
         // Calculate next due date based on recurrence type
         let nextDueDate: Date;
-        if (item.recurrenceType === 'every_n_days') {
-          const currentDue = item.dueDate ? new Date(item.dueDate) : now;
+        const currentDue = item.dueDate ? new Date(item.dueDate) : now;
+        if (item.recurrenceType === 'daily') {
+          nextDueDate = new Date(currentDue);
+          nextDueDate.setDate(nextDueDate.getDate() + 1);
+        } else if (item.recurrenceType === 'weekly') {
+          nextDueDate = new Date(currentDue);
+          nextDueDate.setDate(nextDueDate.getDate() + 7);
+        } else if (item.recurrenceType === 'monthly') {
+          nextDueDate = new Date(currentDue);
+          nextDueDate.setMonth(nextDueDate.getMonth() + 1);
+        } else if (item.recurrenceType === 'every_n_days') {
           nextDueDate = new Date(currentDue);
           nextDueDate.setDate(nextDueDate.getDate() + interval);
         } else if (item.recurrenceType === 'every_n_weeks') {
-          const currentDue = item.dueDate ? new Date(item.dueDate) : now;
           nextDueDate = new Date(currentDue);
           nextDueDate.setDate(nextDueDate.getDate() + (interval * 7));
         } else {

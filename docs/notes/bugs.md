@@ -1,34 +1,27 @@
-### Active Bug: Today View Checkboxes Open Edit Modal (2026-02-22)
+### Resolved Bug: Today View Checkboxes Open Edit Modal (2026-02-22)
 
-- **Status:** UNRESOLVED
-- **Symptom:** Clicking the checkbox on a task card in the Today (timeline) view opens the edit modal instead of toggling completion. If you close the modal with the back button, the task IS completed — the toggle did fire server-side, but the modal opened simultaneously.
-- **Root cause:** The checkbox's `onChange` handler calls `e.stopPropagation()`, but that only stops the `change` event from bubbling. The parent card `div` has an `onClick` that fires from the `click` event, which propagates before `onChange`. Fix is to add `onClick={(e) => e.stopPropagation()}` to the checkbox element.
-- **Files:** `app/calendar/page.tsx` — `renderItemCard` function, checkbox input (~line 1503)
-
----
-
-### Active Bug: Weekly Recurring Task Won't Complete (2026-02-22)
-
-- **Status:** UNRESOLVED
-- **Symptom:** A task with "every Sunday" recurrence (recurrenceType: "weekly") doesn't visually check when you click the checkbox or set state to Completed in the edit modal.
-- **Root cause (3 places):**
-  1. **Toggle route** (`app/api/items/[id]/toggle/route.ts`): `isPerDateRecurring` only checks `item.scheduleType` (a habit field), not `recurrenceType`. Weekly tasks fall into the non-recurring `else` branch and get `isCompleted = true, state = "completed"` — permanently completing them (wrong) instead of recording a date-specific completion and letting them reappear.
-  2. **`renderItemCard`** (`app/calendar/page.tsx`): `isRecurring` only checks `item.scheduleType`, not `item.recurrenceType`. So weekly tasks use `item.isCompleted` (false) instead of `completedToday.has(id)`.
-  3. **Completions API** (`app/api/completions/route.ts`): Hardcodes `scheduleType: "daily"` — only returns daily habits. Weekly recurring tasks are never in the `completedToday` set.
-- **Fix direction:**
-  - Toggle route: `isPerDateRecurring = (item.scheduleType && item.scheduleType !== "") || (item.recurrenceType && ['daily', 'weekly', 'monthly'].includes(item.recurrenceType))`
-  - `renderItemCard`: same pattern for `isRecurring`
-  - Completions API: query `itemCompletion` for all completions within the target date range (remove the `scheduleType: "daily"` filter — just query by `item.userId` and date range)
+- **Status:** RESOLVED (Feb 22, 2026)
+- **Fix:** Added `onClick={(e) => e.stopPropagation()}` to checkbox input in `renderItemCard`. The `click` event was bubbling to the parent card's `onClick` before `onChange` fired.
+- **File:** `app/calendar/page.tsx`
 
 ---
 
-### Active Bug: All View Requires Pull-to-Refresh After Completing (2026-02-22)
+### Resolved Bug: Weekly Recurring Task Won't Complete (2026-02-22)
 
-- **Status:** UNRESOLVED
-- **Symptom:** Checking a task complete in the All view sometimes works instantly, other times the item appears to stay unchecked until the user pulls down to refresh. Unchecking (from completed → active) works reliably.
-- **Root cause:** `loadData()` calls `setLoading(true)` which hides the entire item list (`{loading && <div>Loading...</div>}` / `{!loading && ... items}`). This causes a visible flicker. The items disappear briefly while re-fetching, which the user interprets as "didn't work." There's also no optimistic update.
-- **Fix direction:** Add optimistic update to `toggleCompletion` in `app/all/page.tsx` — immediately update the item's local state before the API call, then do a silent background refresh (fetch without calling `setLoading(true)`).
-- **File:** `app/all/page.tsx` — `toggleCompletion` function (~line 210), `loadData` function (~line 87)
+- **Status:** RESOLVED (Feb 22, 2026)
+- **Symptom:** Tasks with `recurrenceType: "weekly"` (e.g., every Sunday) didn't advance their due date on completion.
+- **Root cause:** Toggle route only recognized `every_n_days`/`every_n_weeks`/`days_after_completion` as advancing recurrence. `daily`/`weekly`/`monthly` recurrenceTypes fell into the non-recurring branch and got permanently completed.
+- **Fix:** Added `daily`/`weekly`/`monthly` to `isAdvancingRecurring` with proper date math (+1 day, +7 days, +1 month). Also broadened completions API to return all ItemCompletions for the user (removed `scheduleType: "daily"` filter).
+- **Note:** Previous session's analysis incorrectly suggested these should use per-date (ItemCompletion) model like habits. They should advance the due date, same as `every_n_days`.
+- **Files:** `app/api/items/[id]/toggle/route.ts`, `app/api/completions/route.ts`
+
+---
+
+### Resolved Bug: All View Requires Pull-to-Refresh After Completing (2026-02-22)
+
+- **Status:** RESOLVED (Feb 22, 2026)
+- **Fix:** Added optimistic update to `toggleCompletion` — immediately flips `isCompleted`/`state` in local state. Added `silentRefresh()` that fetches without `setLoading(true)` to avoid full-list flicker. Reverts on API failure.
+- **File:** `app/all/page.tsx`
 
 ---
 
