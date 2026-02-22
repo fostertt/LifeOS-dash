@@ -25,7 +25,7 @@ export default function Header({ onFilterClick, customMobileContent }: HeaderPro
   }
 
   // Show filter button on Calendar, All, and Vault pages
-  const showFilter = pathname === "/calendar" || pathname === "/week" || pathname === "/all" || pathname === "/tasks" || pathname?.startsWith("/vault") || pathname?.startsWith("/lists");
+  const showFilter = pathname === "/calendar" || pathname === "/all" || pathname === "/tasks" || pathname?.startsWith("/vault") || pathname?.startsWith("/lists");
 
   return (
     <>
@@ -144,7 +144,7 @@ export default function Header({ onFilterClick, customMobileContent }: HeaderPro
           <Link
             href="/calendar"
             className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-              pathname === "/calendar" || pathname === "/week"
+              pathname === "/calendar"
                 ? "bg-purple-600 text-white"
                 : "bg-gray-100 text-gray-700 hover:bg-gray-200"
             }`}

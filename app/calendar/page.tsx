@@ -216,7 +216,7 @@ function HomeContent() {
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
-        distance: 8, // 8px movement required to start drag
+        distance: 3, // 3px movement to start drag (works better with small week view pills)
       },
     }),
     useSensor(TouchSensor, {
@@ -1013,13 +1013,14 @@ function HomeContent() {
 
     setActiveId(taskId);
 
-    // Find the dragged item from all possible sources
+    // Find the dragged item from all possible sources (including raw items for week view)
     const allItems = [
       ...(categorizedData?.backlog || []),
       ...(categorizedData?.overdue || []),
       ...(categorizedData?.scheduledNoTime || []),
       ...(categorizedData?.undated || []),
       ...(categorizedData?.scheduled || []),
+      ...items, // Week view uses raw items array
     ];
 
     const item = allItems.find((i) => i.id === taskId);
@@ -1029,13 +1030,19 @@ function HomeContent() {
   };
 
   const handleDragEnd = async (event: DragEndEvent) => {
-    const { over } = event;
+    const { active, over } = event;
 
     setActiveId(null);
     const tempDraggedItem = draggedItem; // Save reference before clearing
     setDraggedItem(null);
 
-    if (!over || !tempDraggedItem) return;
+    if (!over) return;
+
+    // Extract item ID from the draggable ID ("task-{context}-{id}" or "task-{id}")
+    const activeIdStr = active.id as string;
+    const activeParts = activeIdStr.split("-");
+    const itemId = tempDraggedItem?.id || parseInt(activeParts[activeParts.length - 1]);
+    if (!itemId || isNaN(itemId)) return;
 
     // Extract drop target ID (format: "time-slot-{hour}", "scheduled-no-time", or "backlog-drop-zone")
     const droppableId = over.id as string;
@@ -1043,7 +1050,23 @@ function HomeContent() {
     try {
       let updateData: any = {};
 
-      if (droppableId.startsWith("time-slot-")) {
+      if (droppableId.startsWith("week-slot-")) {
+        // Dropped on week view time grid — parse "week-slot-{YYYY-MM-DD}-{hour}"
+        const parts = droppableId.replace("week-slot-", "").split("-");
+        const dayStr = `${parts[0]}-${parts[1]}-${parts[2]}`;
+        const hour = parseInt(parts[3]);
+        updateData = {
+          dueDate: dayStr,
+          dueTime: `${String(hour).padStart(2, "0")}:00`,
+        };
+      } else if (droppableId.startsWith("week-notime-")) {
+        // Dropped on week view no-time row — parse "week-notime-{YYYY-MM-DD}"
+        const dayStr = droppableId.replace("week-notime-", "");
+        updateData = {
+          dueDate: dayStr,
+          dueTime: null,
+        };
+      } else if (droppableId.startsWith("time-slot-")) {
         // Dropped on timeline - set date and time
         const hour = parseInt(droppableId.replace("time-slot-", ""));
 
@@ -1092,7 +1115,7 @@ function HomeContent() {
       }
 
       // Update the task
-      const response = await fetch(`/api/items/${tempDraggedItem.id}`, {
+      const response = await fetch(`/api/items/${itemId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(updateData),
@@ -2401,14 +2424,15 @@ function HomeContent() {
                     {!isSectionCollapsed("Overdue") && (
                     <div className="flex flex-wrap gap-1.5">
                       {categorizedData.overdue.map((item) => (
-                        <div
-                          key={`week-overdue-${item.id}`}
-                          onClick={() => openEditModal(item)}
-                          className="text-xs px-2 py-1 rounded-md bg-red-100 text-red-800 border border-red-200 cursor-pointer hover:bg-red-200 transition-colors truncate max-w-[180px]"
-                          title={item.name}
-                        >
-                          ⚠ {item.name}
-                        </div>
+                        <DraggableTaskCard key={`week-overdue-${item.id}`} id={item.id} data={item} context="week-overdue">
+                          <div
+                            onClick={() => openEditModal(item)}
+                            className="text-xs px-2 py-1 rounded-md bg-red-100 text-red-800 border border-red-200 cursor-grab active:cursor-grabbing hover:bg-red-200 transition-colors truncate max-w-[180px]"
+                            title={item.name}
+                          >
+                            ⚠ {item.name}
+                          </div>
+                        </DraggableTaskCard>
                       ))}
                     </div>
                     )}
@@ -2516,22 +2540,31 @@ function HomeContent() {
                             isItemScheduledForDay(item, dayStr, day)
                           );
                           return (
-                            <div key={`notime-${dayStr}`} className="bg-white dark:bg-gray-800 px-0.5 py-0.5 min-h-[20px]">
-                              {dayNoTimeItems.map(item => {
-                                const bgColor = item.itemType === 'reminder' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
-                                  : item.priority === 'high' ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
-                                  : 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200';
-                                return (
-                                  <div
-                                    key={`notime-${item.id}`}
-                                    onClick={() => openEditModal(item)}
-                                    className={`text-[10px] leading-tight px-1 py-0.5 mb-0.5 rounded cursor-pointer ${bgColor} truncate`}
-                                    title={item.name}
-                                  >
-                                    {item.name}
-                                  </div>
-                                );
-                              })}
+                            <div key={`notime-${dayStr}`} className="bg-white dark:bg-gray-800 min-h-[20px]">
+                              <DroppableTimeSlot
+                                id={`week-notime-${dayStr}`}
+                                time=""
+                                date={day}
+                              >
+                                <div className="px-0.5 py-0.5">
+                                {dayNoTimeItems.map(item => {
+                                  const bgColor = item.itemType === 'reminder' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
+                                    : item.priority === 'high' ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
+                                    : 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200';
+                                  return (
+                                    <DraggableTaskCard key={`week-notime-${item.id}`} id={item.id} data={item} context={`week-notime-${dayStr}`}>
+                                      <div
+                                        onClick={(e) => { e.stopPropagation(); openEditModal(item); }}
+                                        className={`text-[10px] leading-tight px-1 py-0.5 mb-0.5 rounded cursor-grab active:cursor-grabbing ${bgColor} truncate`}
+                                        title={item.name}
+                                      >
+                                        {item.name}
+                                      </div>
+                                    </DraggableTaskCard>
+                                  );
+                                })}
+                                </div>
+                              </DroppableTimeSlot>
                             </div>
                           );
                         })}
@@ -2579,37 +2612,53 @@ function HomeContent() {
                               return (
                                 <div
                                   key={`${dayStr}-${hour}`}
-                                  className={`bg-white dark:bg-gray-800 px-0.5 py-0.5 h-12 overflow-hidden ${isToday ? 'bg-blue-50/50 dark:bg-blue-900/10' : ''}`}
+                                  className={`bg-white dark:bg-gray-800 h-12 cursor-pointer ${isToday ? 'bg-blue-50/50 dark:bg-blue-900/10' : ''}`}
+                                  onClick={() => {
+                                    if (activeId !== null) return;
+                                    openCreateModal("task", {
+                                      time: `${String(hour).padStart(2, '0')}:00`,
+                                      date: dayStr,
+                                    });
+                                  }}
                                 >
-                                  {/* Show events */}
-                                  {hourEvents.map((event) => (
-                                    <div
-                                      key={event.id}
-                                      onClick={() => setSelectedEvent(event)}
-                                      className="text-[10px] leading-tight px-1 py-0.5 mb-0.5 rounded cursor-pointer bg-green-400 dark:bg-green-600 text-white truncate"
-                                      title={event.title}
-                                    >
-                                      {event.title}
-                                    </div>
-                                  ))}
-
-                                  {/* Show items */}
-                                  {hourItems.map((item) => {
-                                    const bgColor = item.itemType === 'habit' ? 'bg-purple-400 dark:bg-purple-600' :
-                                                   item.itemType === 'reminder' ? 'bg-yellow-400 dark:bg-yellow-600' :
-                                                   item.priority === 'high' ? 'bg-red-400 dark:bg-red-600' :
-                                                   'bg-orange-400 dark:bg-orange-600';
-                                    return (
+                                  <DroppableTimeSlot
+                                    id={`week-slot-${dayStr}-${hour}`}
+                                    time={`${hour}:00`}
+                                    date={day}
+                                  >
+                                    <div className="px-0.5 py-0.5 h-full">
+                                    {/* Show events (read-only, not draggable per ADR-018) */}
+                                    {hourEvents.map((event) => (
                                       <div
-                                        key={item.id}
-                                        onClick={() => openEditModal(item)}
-                                        className={`text-[10px] leading-tight px-1 py-0.5 mb-0.5 rounded cursor-pointer ${bgColor} text-white truncate`}
-                                        title={item.name}
+                                        key={event.id}
+                                        onClick={(e) => { e.stopPropagation(); setSelectedEvent(event); }}
+                                        className="text-[10px] leading-tight px-1 py-0.5 mb-0.5 rounded cursor-pointer bg-green-400 dark:bg-green-600 text-white truncate"
+                                        title={event.title}
                                       >
-                                        {item.name}
+                                        {event.title}
                                       </div>
-                                    );
-                                  })}
+                                    ))}
+
+                                    {/* Show items (draggable) */}
+                                    {hourItems.map((item) => {
+                                      const bgColor = item.itemType === 'habit' ? 'bg-purple-400 dark:bg-purple-600' :
+                                                     item.itemType === 'reminder' ? 'bg-yellow-400 dark:bg-yellow-600' :
+                                                     item.priority === 'high' ? 'bg-red-400 dark:bg-red-600' :
+                                                     'bg-orange-400 dark:bg-orange-600';
+                                      return (
+                                        <DraggableTaskCard key={`week-${item.id}`} id={item.id} data={item} context={`week-${dayStr}`}>
+                                          <div
+                                            onClick={(e) => { e.stopPropagation(); openEditModal(item); }}
+                                            className={`text-[10px] leading-tight px-1 py-0.5 mb-0.5 rounded cursor-grab active:cursor-grabbing ${bgColor} text-white truncate`}
+                                            title={item.name}
+                                          >
+                                            {item.name}
+                                          </div>
+                                        </DraggableTaskCard>
+                                      );
+                                    })}
+                                    </div>
+                                  </DroppableTimeSlot>
                                 </div>
                               );
                           });
@@ -3040,6 +3089,19 @@ function HomeContent() {
           onClose={() => setShowViewSwitcher(false)}
         />
       </div>
+      {/* DragOverlay — shows a ghost preview of the dragged item */}
+      <DragOverlay>
+        {draggedItem ? (
+          <div className={`text-xs px-2 py-1 rounded-md shadow-lg text-white truncate max-w-[160px] pointer-events-none ${
+            draggedItem.itemType === 'habit' ? 'bg-purple-500' :
+            draggedItem.itemType === 'reminder' ? 'bg-yellow-500' :
+            draggedItem.priority === 'high' ? 'bg-red-500' :
+            'bg-orange-500'
+          }`}>
+            {draggedItem.name}
+          </div>
+        ) : null}
+      </DragOverlay>
       </DndContext>
     </ProtectedRoute>
   );

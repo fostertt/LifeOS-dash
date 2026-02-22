@@ -58,7 +58,7 @@ const VAULT_TAB = {
   ),
 };
 
-const isCalendarActive = (p: string) => p === '/calendar' || p === '/week';
+const isCalendarActive = (p: string) => p === '/calendar';
 
 const CALENDAR_VIEWS = [
   { id: 'timeline', label: 'Today',    description: 'Single day schedule' },
