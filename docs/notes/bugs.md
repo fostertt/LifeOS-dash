@@ -1,3 +1,37 @@
+### Active Bug: Today View Checkboxes Open Edit Modal (2026-02-22)
+
+- **Status:** UNRESOLVED
+- **Symptom:** Clicking the checkbox on a task card in the Today (timeline) view opens the edit modal instead of toggling completion. If you close the modal with the back button, the task IS completed — the toggle did fire server-side, but the modal opened simultaneously.
+- **Root cause:** The checkbox's `onChange` handler calls `e.stopPropagation()`, but that only stops the `change` event from bubbling. The parent card `div` has an `onClick` that fires from the `click` event, which propagates before `onChange`. Fix is to add `onClick={(e) => e.stopPropagation()}` to the checkbox element.
+- **Files:** `app/calendar/page.tsx` — `renderItemCard` function, checkbox input (~line 1503)
+
+---
+
+### Active Bug: Weekly Recurring Task Won't Complete (2026-02-22)
+
+- **Status:** UNRESOLVED
+- **Symptom:** A task with "every Sunday" recurrence (recurrenceType: "weekly") doesn't visually check when you click the checkbox or set state to Completed in the edit modal.
+- **Root cause (3 places):**
+  1. **Toggle route** (`app/api/items/[id]/toggle/route.ts`): `isPerDateRecurring` only checks `item.scheduleType` (a habit field), not `recurrenceType`. Weekly tasks fall into the non-recurring `else` branch and get `isCompleted = true, state = "completed"` — permanently completing them (wrong) instead of recording a date-specific completion and letting them reappear.
+  2. **`renderItemCard`** (`app/calendar/page.tsx`): `isRecurring` only checks `item.scheduleType`, not `item.recurrenceType`. So weekly tasks use `item.isCompleted` (false) instead of `completedToday.has(id)`.
+  3. **Completions API** (`app/api/completions/route.ts`): Hardcodes `scheduleType: "daily"` — only returns daily habits. Weekly recurring tasks are never in the `completedToday` set.
+- **Fix direction:**
+  - Toggle route: `isPerDateRecurring = (item.scheduleType && item.scheduleType !== "") || (item.recurrenceType && ['daily', 'weekly', 'monthly'].includes(item.recurrenceType))`
+  - `renderItemCard`: same pattern for `isRecurring`
+  - Completions API: query `itemCompletion` for all completions within the target date range (remove the `scheduleType: "daily"` filter — just query by `item.userId` and date range)
+
+---
+
+### Active Bug: All View Requires Pull-to-Refresh After Completing (2026-02-22)
+
+- **Status:** UNRESOLVED
+- **Symptom:** Checking a task complete in the All view sometimes works instantly, other times the item appears to stay unchecked until the user pulls down to refresh. Unchecking (from completed → active) works reliably.
+- **Root cause:** `loadData()` calls `setLoading(true)` which hides the entire item list (`{loading && <div>Loading...</div>}` / `{!loading && ... items}`). This causes a visible flicker. The items disappear briefly while re-fetching, which the user interprets as "didn't work." There's also no optimistic update.
+- **Fix direction:** Add optimistic update to `toggleCompletion` in `app/all/page.tsx` — immediately update the item's local state before the API call, then do a silent background refresh (fetch without calling `setLoading(true)`).
+- **File:** `app/all/page.tsx` — `toggleCompletion` function (~line 210), `loadData` function (~line 87)
+
+---
+
 ### Resolved Bug: Week View Time Numbers Invisible on Phone Dark Mode
 - **Status:** RESOLVED (Feb 19, 2026)
 - **Fix:** Changed time labels to `text-gray-800 font-bold` — dark text on the white background area, readable regardless of OS dark mode. Applied to both week view and timeline view time columns.
