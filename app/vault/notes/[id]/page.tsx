@@ -23,7 +23,8 @@ interface Note {
  *
  * [id]="new" for creation, numeric for editing.
  * Back arrow = cancel (no save). Explicit Save button at bottom.
- * Color swatches, tags, and pin toggle are inline in the editor body.
+ * UX-010: Bottom panel (color/tags/pin/buttons) is fixed to viewport bottom;
+ *          content scrolls above it. Accounts for BottomTabBar on mobile.
  */
 export default function NoteEditorPage() {
   const params = useParams();
@@ -135,7 +136,7 @@ export default function NoteEditorPage() {
   if (loading) {
     return (
       <ProtectedRoute>
-        <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: DEFAULT_BG }}>
+        <div className="fixed inset-0 flex items-center justify-center" style={{ backgroundColor: DEFAULT_BG }}>
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
         </div>
       </ProtectedRoute>
@@ -144,9 +145,10 @@ export default function NoteEditorPage() {
 
   return (
     <ProtectedRoute>
-      <div className="min-h-screen flex flex-col" style={{ backgroundColor: DEFAULT_BG }}>
+      {/* UX-010: fixed inset-0 so content scrolls and bottom panel pins to viewport */}
+      <div className="fixed inset-0 flex flex-col overflow-hidden" style={{ backgroundColor: DEFAULT_BG }}>
         {/* Top bar — back arrow (cancel) */}
-        <div className="flex items-center px-4 py-3 sticky top-0 z-30" style={{ backgroundColor: DEFAULT_BG }}>
+        <div className="flex-shrink-0 flex items-center px-4 py-3 z-30" style={{ backgroundColor: DEFAULT_BG }}>
           <button
             onClick={() => router.back()}
             className="p-2 -ml-2 rounded-full hover:bg-black/5 transition-colors"
@@ -158,8 +160,8 @@ export default function NoteEditorPage() {
           </button>
         </div>
 
-        {/* Editor body */}
-        <div className="flex-1 px-4 pb-8 max-w-2xl mx-auto w-full">
+        {/* Scrollable editor content */}
+        <div className="flex-1 overflow-y-auto px-4 max-w-2xl mx-auto w-full">
           {/* Title input */}
           <input
             type="text"
@@ -179,11 +181,14 @@ export default function NoteEditorPage() {
             autoFocus={isNew}
           />
 
-          {/* Divider */}
-          <div className="border-t border-gray-200 my-6" />
+          {/* Spacer so content isn't hidden behind bottom panel */}
+          <div className="h-8" />
+        </div>
 
+        {/* Bottom panel — pinned to viewport bottom. pb-16 clears BottomTabBar (md:hidden) on mobile */}
+        <div className="flex-shrink-0 border-t border-gray-200 px-4 pt-3 pb-16 md:pb-4 max-w-2xl mx-auto w-full">
           {/* Color picker */}
-          <div className="mb-5">
+          <div className="mb-4">
             <div className="text-xs font-semibold text-gray-500 uppercase mb-2">Color</div>
             <div className="flex items-center gap-2">
               {/* No color option */}
@@ -220,7 +225,7 @@ export default function NoteEditorPage() {
           </div>
 
           {/* Tags */}
-          <div className="mb-5">
+          <div className="mb-4">
             <div className="text-xs font-semibold text-gray-500 uppercase mb-2">Tags</div>
             <TagInput
               tags={tags}
@@ -230,8 +235,8 @@ export default function NoteEditorPage() {
             />
           </div>
 
-          {/* Pin toggle */}
-          <div className="mb-6">
+          {/* Pin toggle + action buttons in one row */}
+          <div className="flex items-center gap-3">
             <label className="flex items-center gap-2 cursor-pointer">
               <input
                 type="checkbox"
@@ -241,10 +246,7 @@ export default function NoteEditorPage() {
               />
               <span className="text-sm text-gray-700">Pin to top</span>
             </label>
-          </div>
-
-          {/* Action buttons */}
-          <div className="flex gap-3">
+            <div className="flex-1" />
             {!isNew && (
               <button
                 onClick={() => setShowDeleteConfirm(true)}
@@ -254,7 +256,6 @@ export default function NoteEditorPage() {
                 Delete
               </button>
             )}
-            <div className="flex-1" />
             <button
               onClick={handleSave}
               disabled={!content.trim() || saving}
@@ -264,31 +265,31 @@ export default function NoteEditorPage() {
             </button>
           </div>
         </div>
+      </div>
 
-        {/* Delete confirmation overlay */}
-        {showDeleteConfirm && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-2xl p-6 max-w-sm w-full mx-4">
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">Delete note?</h3>
-              <p className="text-gray-600 mb-4 text-sm">This cannot be undone.</p>
-              <div className="flex gap-3">
-                <button
-                  onClick={() => setShowDeleteConfirm(false)}
-                  className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleDelete}
-                  className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg"
-                >
-                  Delete
-                </button>
-              </div>
+      {/* Delete confirmation overlay */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-2xl p-6 max-w-sm w-full mx-4">
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">Delete note?</h3>
+            <p className="text-gray-600 mb-4 text-sm">This cannot be undone.</p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowDeleteConfirm(false)}
+                className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDelete}
+                className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg"
+              >
+                Delete
+              </button>
             </div>
           </div>
-        )}
-      </div>
+        </div>
+      )}
     </ProtectedRoute>
   );
 }
