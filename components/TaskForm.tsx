@@ -53,6 +53,7 @@ interface TaskFormProps {
     recurrenceAnchor?: string;
     showOnCalendar?: boolean;
     isOverdue?: boolean;
+    isCompleted?: boolean;
     subItems?: any[];
   } | null;
   availableTags: string[];
@@ -398,9 +399,38 @@ export default function TaskForm({
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-2xl p-5 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
-        <h2 className="text-xl font-bold text-gray-900 mb-4">
-          {title || (existingTask ? `Edit ${itemType === 'habit' ? 'Habit' : itemType === 'reminder' ? 'Reminder' : 'Task'}` : `New ${itemType === 'habit' ? 'Habit' : itemType === 'reminder' ? 'Reminder' : 'Task'}`)}
-        </h2>
+        {/* Header row: title + complete toggle (edit mode only) */}
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-xl font-bold text-gray-900">
+            {title || (existingTask ? `Edit ${itemType === 'habit' ? 'Habit' : itemType === 'reminder' ? 'Reminder' : 'Task'}` : `New ${itemType === 'habit' ? 'Habit' : itemType === 'reminder' ? 'Reminder' : 'Task'}`)}
+          </h2>
+          {/* UX-009: Complete button — only visible when editing a task/reminder */}
+          {existingTask && itemType !== 'habit' && (
+            <button
+              onClick={async () => {
+                const today = new Date();
+                const dateStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+                await fetch(`/api/items/${existingTask.id}/toggle`, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ date: dateStr }),
+                });
+                onClose();
+              }}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                existingTask.isCompleted
+                  ? 'bg-green-100 text-green-700 hover:bg-green-200'
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
+              title={existingTask.isCompleted ? 'Mark as active' : 'Mark as complete'}
+            >
+              <svg className="w-4 h-4" fill={existingTask.isCompleted ? 'currentColor' : 'none'} stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+              {existingTask.isCompleted ? 'Done' : 'Complete'}
+            </button>
+          )}
+        </div>
 
         <div className="space-y-3">
           {/* Task name */}

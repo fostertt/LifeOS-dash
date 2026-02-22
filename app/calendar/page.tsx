@@ -2965,7 +2965,7 @@ function HomeContent() {
         {/* TaskForm — handles create and edit for tasks, habits, reminders */}
         <TaskForm
           isOpen={showTaskForm}
-          onClose={() => setShowTaskForm(false)}
+          onClose={() => { setShowTaskForm(false); loadData(); }}
           onSave={handleTaskFormSave}
           onDelete={taskFormItem ? handleTaskFormDelete : undefined}
           existingTask={taskFormItem}
