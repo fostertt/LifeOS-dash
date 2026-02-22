@@ -606,16 +606,21 @@ export default function TaskForm({
                     <option value="days_after_completion">___ days after completion</option>
                   </select>
 
-                  {/* Pin to Today */}
-                  <label className="flex items-center gap-2 cursor-pointer shrink-0">
-                    <input
-                      type="checkbox"
-                      checked={showOnCalendar}
-                      onChange={(e) => setShowOnCalendar(e.target.checked)}
-                      className="w-4 h-4 text-purple-600 rounded focus:ring-2 focus:ring-purple-500"
-                    />
-                    <span className="text-sm text-gray-700">Pin to Today</span>
-                  </label>
+                  {/* UX-008: Pin to Today — compact icon button to avoid mobile overflow */}
+                  <button
+                    type="button"
+                    onClick={() => setShowOnCalendar(!showOnCalendar)}
+                    className={`flex-shrink-0 p-2 rounded-lg transition-colors border ${
+                      showOnCalendar
+                        ? 'bg-purple-100 border-purple-400 text-purple-700'
+                        : 'bg-white border-gray-300 text-gray-400 hover:border-gray-400'
+                    }`}
+                    title={showOnCalendar ? 'Unpin from Today' : 'Pin to Today'}
+                  >
+                    <svg className="w-4 h-4" fill={showOnCalendar ? 'currentColor' : 'none'} stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
+                    </svg>
+                  </button>
                 </div>
 
                 {/* Type-specific controls */}
