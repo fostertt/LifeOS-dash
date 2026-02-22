@@ -1,6 +1,6 @@
 # LifeOS Issues & Enhancements
 
-**Last Updated:** February 21, 2026
+**Last Updated:** February 22, 2026
 
 ---
 
@@ -142,35 +142,34 @@
 
 ---
 
-## 📋 Implementation Checklist
+## 📋 Implementation Status
 
-**Phase 2.6 Priorities:**
-1. [X] Fix BUG-001 (can't edit lists) - BLOCKING
-2. [X] Add notes field to all item types (FEAT-001, FEAT-002)
-3. [X] Implement Google Keep-style list input (UX-001)
-4. [X] Fix text wrapping in lists (UX-002)
-5. [X] Expand filter options (UX-003)
-6. [X] Decide on smart lists architecture (ARCH-001)
-7. [X] Decide on effort/focus consolidation (ARCH-002)
-8. [X] Implement quick add simplification (UX-004) - resolved by ADR-020 inbox (quick capture → inbox triage)
-9. [X] Calendar-style date/time picker (UX-005) - Phase 2.5
+**See `docs/plans/lifeos-roadmap.md` for full roadmap.**
 
-**Phase 4 Remaining (see docs/plans/phase4-ux-improvements.md):**
-1. [~] Fix auto-refresh on Android (1.1)
-2. [ ] Click-to-add on week view — verify working (6.3)
-3. [ ] UX-008: Pin to Today mobile overflow fix
-4. [ ] UX-009: Complete button in task edit modal
-5. [ ] UX-010: Pin bottom panel to viewport (HIGH)
-6. [ ] UX-004: Quick add simplification (pending ADR-010)
-7. [⏸] Enter key sub-item advancement (Android keyboard blocker)
+**Completed (Feb 2026):**
+- [X] UI Polish Phases 1–6.5 (All page, Calendar views, compact headers, view consolidation)
+- [X] Habits/reminders integration, type filters, sub-tasks
+- [X] Google Calendar integration (read, display, timezone fix)
+- [X] Keep-style note/list editors (ADR-015)
+- [X] Recurring task options — 6 types, two completion models (ADR-014)
+- [X] Inbox system — source/reviewedAt fields, inbox replaces Home tab (ADR-020)
+- [X] State collapse — backlog/active/completed (ADR-019)
+- [X] Today view reorder — Overdue → Unscheduled → Time grid (ADR-017)
+- [X] UX-008: Pin to Today icon button
+- [X] UX-009: Complete button in task edit modal
+- [X] UX-010: Bottom panel pinned in note/list editors
 
-**Architecture Decided — Implementation Status (ADRs in decisions.md):**
-1. [X] FEAT-004: Voice capture inbox/triage (ADR-020) — schema + inbox UI + inline TaskForm editing (2026-02-21)
-2. [X] State collapse: backlog/active/completed (ADR-019) — migration + UI cleanup (2026-02-21)
-3. [ ] FEAT-005: Drag and drop to reschedule (ADR-018) — @dnd-kit on Today + Week
-4. [~] UX-012: Today view reorder (ADR-017) — Scheduled No Time moved above time grid. Full Overdue → Unscheduled → Time grid still TODO.
-5. [ ] Daily briefing + voice rollup (ADR-016) — lower priority, after inbox
+**Next Up:**
+- [ ] Vault polish (Phase 7) — compact layout, note refresh fix, content optional
+- [ ] FAB redesign (Phase 8) — Lucide icons, clean popup
+- [ ] Wire voice pipeline to inbox — pipeline sends `source: "voice"`
+- [ ] Drag and drop to reschedule (ADR-018) — @dnd-kit on Today + Week
+- [ ] Daily briefing + voice rollup (ADR-016) — after inbox is battle-tested
 
-**Future (No ADR Yet):**
-1. [ ] Voice pipeline → calendar auto-create (deferred)
-2. [ ] Pattern detection on captures (needs data volume)
+**Backlog:**
+- [~] Auto-refresh on Android — unreliable, may need polling/service worker
+- [ ] Click-to-add on week view — implemented, unverified
+- [⏸] Enter key sub-item advancement — Android keyboard blocker
+- [ ] Voice pipeline → calendar auto-create
+- [ ] Projects UI
+- [ ] Recipes & meal planning

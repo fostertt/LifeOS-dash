@@ -1,217 +1,106 @@
-# Next Session - Start Here
+# Next Session — Start Here
 
-**Last Updated:** February 21, 2026
-**Current Status:** Phase 4 Group 7 COMPLETE ✅ — Recurring Task Options
+**Last Updated:** 2026-02-22
 **Branch:** master (committed & pushed)
-**Production:** <https://lifeos-dev.foster-home.net> (PM2 on port 3002)
+**Master Plan:** `docs/plans/lifeos-roadmap.md`
 
 ---
 
-## ✅ COMPLETED: Phase 4 Group 7 — Recurring Task Options (Feb 21, 2026)
+## What Just Happened (Feb 22, 2026)
 
-1. ✅ **Recurrence picker UI** — Replaced simple "Recurring" checkbox with dropdown: daily, every N days, weekly on days, every N weeks, monthly on day, N days after completion. Day-of-week pills for weekly, number inputs for intervals, human-readable summary below.
-2. ✅ **Two completion models** — Per-date (daily/weekly/monthly) uses ItemCompletion table like habits. Advancing (every_n_days/every_n_weeks/days_after_completion) advances dueDate on completion.
-3. ✅ **Day-matching logic** — Week view (`/week`) and calendar API both handle all 6 recurrence types for showing tasks on correct days.
-4. ✅ **Calendar week view: per-day no-time row** — Items with date but no time now appear in their correct day column (between all-day row and time grid), replacing the old flat "SCHEDULED (NO TIME)" bottom section.
-5. ✅ **API validation** — Light guardrails on recurrence fields (interval >= 1, valid day names, day 1-31).
-6. ✅ **Number input UX fix** — Changed from type="number" to type="text" with inputMode="numeric" so values can be cleared and retyped on mobile.
+Fixed 3 bugs from previous session:
+1. **Checkbox opening modal** — added `onClick` stopPropagation on Today view checkbox
+2. **Weekly recurring won't complete** — added `daily`/`weekly`/`monthly` to advancing recurrence branch with date math (+1d/+7d/+1mo). Fixed completions API to return all ItemCompletions (removed `scheduleType: "daily"` filter).
+3. **All view flicker on complete** — optimistic update + silent background refresh
 
-**New issues captured (not yet fixed):**
-- **UX-008**: Pin to Today cut off on mobile task form — needs pin icon instead of checkbox+text
-- **UX-009**: No complete button in edit task modal — needs checkbox in header row
-
-**ADR-014:** Recurring Task Completion Models — documents the two-model approach
-
-**Files Changed:** `components/TaskForm.tsx`, `app/api/items/[id]/toggle/route.ts`, `app/week/page.tsx`, `app/api/calendar/items/route.ts`, `app/calendar/page.tsx`, `app/api/items/route.ts`, `app/api/items/[id]/route.ts`
+Also cleaned up docs: consolidated 7 planning/session docs into `docs/plans/lifeos-roadmap.md`.
 
 ---
 
-## ✅ COMPLETED: Calendar Bug Fixes — Dark Mode + Google Calendar Day Assignment (Feb 19, 2026)
+## What To Do Now: Vault Polish (Phase 7) + FAB Redesign (Phase 8)
 
-1. ✅ **Dark mode time labels** — Changed to `text-gray-800 font-bold` on both week and timeline views; readable on white background regardless of OS dark mode
-2. ✅ **Google Calendar events on wrong days** — Fixed 3 interconnected bugs:
-   - API route now uses America/New_York timezone boundaries (server runs UTC)
-   - All-day date-only strings no longer parsed through `new Date()` (avoided UTC shift)
-   - Added client-side `filteredEventsForDay` as safety net for timeline/today views
-3. ✅ **All-day events in week view** — Excluded from hourly grid, added dedicated "ALL" row above time grid
-4. ✅ **Multi-day event fetching** — Week/month/schedule views now fetch correct date ranges instead of single day
+These are the last remaining UI polish items. Both are medium complexity, ~2-3 hours total.
 
-**Files Changed:** `app/calendar/page.tsx`, `app/api/calendar/events/route.ts`
+### Phase 7: Vault Improvements
 
----
+**Goal:** Make vault more compact like Google Keep.
 
-## ✅ COMPLETED: Habits/Reminders Integration & All Page Overhaul (Feb 18, 2026)
+**7.1 Compact layout** (`app/vault/page.tsx`)
+- Reduce outer padding: `p-8` → `p-4`
+- Reduce grid gap: `gap-4` → `gap-2 md:gap-3`
+- Reduce card padding: `p-5` → `p-3`
+- Simpler cards: minimal borders, rely on subtle shadows
+- Reference: Google Keep (`docs/screenshots/keep1.jpg`)
 
-1. ✅ **All page loads all item types** — Removed `?type=task` filter; shows tasks, habits, and reminders
-2. ✅ **Type filter on All page** — Toggle Task/Habit/Reminder visibility, "By Type" grouping option
-3. ✅ **Delete button in task detail modal** — `TaskForm` now has `onDelete` prop with confirmation dialog
-4. ✅ **Habit recurrence options** — Frequency picker: Daily, Weekdays, Weekends, Specific days (day-of-week pills)
-5. ✅ **Habits default to Active state** — API and form both default habits to "active" instead of "backlog"
-6. ✅ **State selector for all item types** — Was tasks-only, now visible for habits and reminders too
-7. ✅ **Sub-tasks restored in TaskForm** — Add/edit/remove sub-items for tasks, habits, and reminders
-8. ✅ **Habits in calendar views** — Today view has "Habits" section; Schedule view shows habits per-day
-9. ✅ **Calendar schedule matching** — All views handle daily/weekdays/weekends/specific_days schedule types
-10. ✅ **Wiped test data** — Script at `scripts/wipe-test-data.mjs` clears all items/lists/notes, preserves auth
+**7.2 Fix new notes not showing** (`app/vault/page.tsx`, `components/GlobalCreateManager.tsx`)
+- After creating a note/list, GlobalCreateManager dispatches `window.dispatchEvent(new Event('notes-updated'))`
+- Vault page listens: `window.addEventListener('notes-updated', loadNotes)`
+- Clean up listener on unmount
 
-**Files Changed:** `app/all/page.tsx`, `app/calendar/page.tsx`, `app/week/page.tsx`, `app/api/items/route.ts`, `app/api/calendar/items/route.ts`, `components/TaskForm.tsx`
+**7.3 Make Content field optional** (`app/vault/notes/[id]/page.tsx` or relevant note API)
+- Remove content validation — allow saving note with just title
+- Verify API `/api/notes` accepts empty content
 
----
+**7.4 Verify click behavior**
+- Ensure direct click opens editor after Phase 1 swipe removal (likely already works)
 
-## 🎯 NEXT UP: Phase 7 — Vault Improvements (MEDIUM)
+### Phase 8: FAB Redesign
 
-**Goal:** Make vault more compact like Google Keep and fix data refresh bug.
+**Goal:** Clean up the plus button popup.
 
-**What needs to happen:**
-1. **Compact layout** — Reduce padding, tighter grid, minimal card borders (reference `keep1.jpg`)
-2. **Fix new notes not showing** — GlobalCreateManager creates note but Vault doesn't refresh
-3. **Make Content field optional** — Allow saving note with just a title
-4. **Verify click behavior** — Ensure direct click opens modal after Phase 1 swipe removal
+**File:** `components/FAB.tsx` (or `components/GlobalCreateManager.tsx` — check which renders the popup)
 
-**Key files:** `app/vault/page.tsx`, `components/NoteForm.tsx`, `components/GlobalCreateManager.tsx`
-
-**See:** `docs/notes/ui-polish-plan.md` Phase 7 for detailed implementation notes.
+- Replace emoji icons with Lucide React icons
+- Clean typography: `text-sm font-medium`
+- Monochrome with subtle color accents
+- Fade + slide-up animation
+- `shadow-lg` with backdrop blur
 
 ---
 
-## ⏳ Future Calendar Polish
-- Day header event count badges in week view
-- ~~Full dark mode support (week view has dark: classes, rest of app doesn't — causes mismatch on phones with dark mode)~~ FIXED Feb 19 (used dark-on-white text)
-- Google Calendar dateless events showing on today (see bugs.md)
-- Consider merging Schedule view into Today view as a 4th state (collapsed → list → multi-day list → grid) to reduce view count from 4 to 3
+## After Vault/FAB: Wire Voice Pipeline to Inbox
+
+**One-line change on pipeline side** — POST body includes `source: "voice"`. LifeOS API already accepts it (ADR-020 implemented Feb 21). Test that inbox shows voice captures.
 
 ---
 
-## ✅ COMPLETED: UI Polish Phase 6.5 (Feb 11, 2026)
+## Then: Drag and Drop (ADR-018) — The Big One
 
-**Phase 6.5 — Calendar View Consolidation & Polish:**
+This is the next major feature. Details in `docs/plans/lifeos-roadmap.md` Tier 2.
 
-1. ✅ **Merged compact into timeline** — 5 views → 4 (today, schedule, week, month)
-2. ✅ **Renamed to "Today"** — View switcher shows "Today" instead of "Timeline"/"Compact"
-3. ✅ **3-state "Today" section** — Collapsed → list (events + scheduled as cards) → grid (time grid) → collapsed
-4. ✅ **Default state** — Overdue collapsed, Today in list mode on page load
-5. ✅ **Compact mobile headers for all views** — Today and schedule now have `[☰] [←] Wed, Feb 11 [→] [⊞] [▽]`
-6. ✅ **Today view scroll fix** — Pinned header like week view (`h-screen overflow-hidden`)
-7. ✅ **Timeline time labels** — Removed AM/PM, hour number only, darker font (`text-gray-700 font-semibold`)
-8. ✅ **Week view time labels** — 12px, `text-black font-bold`, wider column (`w-9`)
-9. ✅ **Week view dark mode bug** — FIXED Feb 19 (text-gray-800 font-bold)
-
-**Files Changed:** `app/calendar/page.tsx`, `components/ViewSwitcherSidebar.tsx`
+- Library: `@dnd-kit/core`
+- Today view: vertical drag, 15-min snap
+- Week view: 2D drag (time + day)
+- GCal events: read-only
+- Resize: deferred
 
 ---
 
-## ✅ COMPLETED: UI Polish Phase 6 (Feb 11, 2026)
+## Known Bugs (Not Blocking)
 
-**Phase 6 — Calendar Week View Improvements:**
+| Bug | Where |
+|-----|-------|
+| Mobile width overflow on All page | `app/all/page.tsx` — needs dev tools inspection |
+| Voice note rename re-triggers processing | Pipeline side — file watcher issue |
+| Google Calendar dateless events on Today | `app/calendar/page.tsx` — deferred |
+| Auto-refresh unreliable on Android | `lib/useRefreshOnFocus.ts` — may need polling |
 
-1. ✅ **Compact mobile header** — `[☰] [←] February FW7 [→] [⊞ view] [▽ filter]` (same pattern as month)
-2. ✅ **Tight time column** — w-7 (28px), 10px font, hour numbers only, 48px rows
-3. ✅ **Overdue as compact pills** — Small wrapping `⚠ Task name` tags instead of full cards
-4. ✅ **Week header navigation** — "February FW7" format, arrows navigate by week, tap to go to today
-5. ✅ **Fixed viewport scroll** — `h-screen overflow-hidden` layout; only time grid scrolls, headers stay pinned
-6. ✅ **Edge-to-edge layout** — Reduced padding (`px-1`, `p-1`) for maximum screen usage
-7. ✅ **Section arrows moved right** — All collapsible sections (calendar + All page) have chevron on far right
-8. ✅ **Fixed dueDate comparison bug** — ISO date vs YYYY-MM-DD mismatch fixed across week, schedule, and month views
-9. ✅ **Week-aware "Scheduled No Time"** — Shows items for full week, not just selected day
-
-**Files Changed:** `app/calendar/page.tsx`, `app/all/page.tsx`
+See `docs/notes/bugs.md` for full details.
 
 ---
 
-## ✅ COMPLETED: UI Polish Phase 5 (Feb 11, 2026)
+## Key Architecture Decisions
 
-**Phase 5 — Calendar Month View Improvements:**
+- **ADR-020:** Inbox (source + reviewedAt fields, replaces Home tab)
+- **ADR-019:** 3 states (backlog / active / completed)
+- **ADR-018:** Drag-and-drop (@dnd-kit, pending implementation)
+- **ADR-017:** Today view reorder (Overdue → Unscheduled → Time grid)
+- **ADR-014:** Two recurrence completion models
 
-### Phase 5a (earlier session):
-1. ✅ Compact month cells — smaller date numbers, tighter padding, smaller item pills
-2. ✅ Month header shows "February 2026" with month-level arrow navigation
-3. ✅ Day clicking navigates to THAT day's timeline view
-4. ✅ Week number clicking navigates to THAT week's view
-5. ✅ Week numbers as small badges inside Monday cells
-
-### Phase 5b:
-1. ✅ **Compact mobile header** — Single sticky row: `[☰] [←] February 2026 [→] [⊞ view] [▽ filter]`
-2. ✅ **Header.tsx `customMobileContent` prop** — Render prop for page-specific mobile headers (zero impact on other pages)
-3. ✅ **Redundant rows hidden** — Date nav card + mobile view switcher hidden on mobile in month view
-4. ✅ **Grid icon for view switcher** — 4-square icon distinguishes it from hamburger
-5. ✅ **Month text = "Today" button** — Tapping month name goes to today; purple text when not current month
-6. ✅ **Taller cells (110px)** — More room for event/item pills
-7. ✅ **Smaller pill fonts (9px)** — Shows time OR title (not both) to fit more content
-8. ✅ **Compact overdue indicator** — `⚠️ 5` instead of `⚠️ 5 pending`
-9. ✅ **4 items per cell** — Up from 3, with "+N more" overflow
-10. ✅ **Back button fix** — Month nav uses `router.replace()` to avoid stacking history entries
-11. ✅ **URL↔state sync** — `useEffect` on `searchParams` so browser back properly restores view+date
-
-**Files Changed:** `components/Header.tsx`, `app/calendar/page.tsx`
+All ADRs in `docs/notes/decisions.md`.
 
 ---
 
-## ✅ Earlier Phases (1-4, 3.5.3) — See ui-polish-plan.md for details
+## PM2
 
----
-
-## Remaining UI Polish Phases
-
-| Phase | Description | Status | Complexity |
-|-------|------------|--------|------------|
-| 7 | Vault Improvements | **NEXT** | Medium |
-| 8 | FAB Redesign | Pending | Easy |
-
----
-
-## PM2 Configuration
-
-PM2 runs `npm start` → `next start -p 3002`. Port is baked into `package.json` `start` script (fixed Feb 18, 2026 after power loss caused restart on wrong port). Just `pm2 restart lifeos-dev` is sufficient.
-
----
-
-## Important Files to Know
-
-- `app/calendar/page.tsx` — All calendar views (~3200 lines, Phase 6 complete)
-- `app/all/page.tsx` — All tasks page (Phase 4 complete)
-- `app/vault/page.tsx` — Vault page (Phase 7 target)
-- `components/FAB.tsx` — Plus button (Phase 8 target)
-- `app/globals.css` — Global styles (has `overflow-x: hidden` on body)
-- `components/Header.tsx` — Desktop nav bar, mobile compact header, `customMobileContent` render prop
-- `components/ClientRootLayout.tsx` — Simplified layout wrapper
-
----
-
-## Known Issues
-
-- ~~**Google Calendar token expired** — `invalid_grant` errors in PM2 logs.~~ FIXED by re-auth (Feb 19)
-- ~~**No delete in task detail (All page)** — UX-006 in issues.md.~~ FIXED Feb 18
-- **No multi-select/bulk delete (All page)** — UX-007 in issues.md. Approach not decided.
-- **Voice pipeline: rename re-triggers processing** — Renaming a voice note file causes it to be re-sent through the pipeline. See bugs.md.
-- **Phase 4 Group 2 — Enter key in sub-items on Android (2.4 deferred):** `onKeyDown` doesn't fire for Enter on Android (keyCode 229 / Unidentified). Added `beforeinput` event listener (`inputType === 'insertLineBreak'`) but this also doesn't work on Android — unclear if it's a GBoard issue or the listener registration timing. Needs more investigation; Android may need a completely different approach (e.g., textarea rows=1 detecting `\n` in onChange). Desktop Enter works fine.
-- **Phase 4 Group 2 — Habit schedule entry (deferred):** Habit form still has compact icon buttons for time + frequency dropdown, but would benefit from looking more like the Google Keep-style inline entry. Deferred to Group 8 scope.
-- See `docs/notes/bugs.md` for other known issues (server IP changes, OAuth loops, foreign key violations).
-
-## Voice Pipeline Status (Feb 19, 2026)
-- Pipeline is operational and working well. Work email routing added (say "work" → tags items + sends email to work address).
-- Known bug: renaming a voice note re-processes it — see bugs.md.
-
-### Voice Pipeline → LifeOS Integration Ideas (backlog)
-
-These require work in both projects. Not prioritized yet — capturing for when LifeOS focus shifts to integrations.
-
-**Calendar auto-creation via natural language (medium effort)**
-Gemini already extracts `due_date` with time. Pipeline could call Google Calendar API when a datetime is present — create an event automatically. Needs: OAuth token on pipeline side, decision on which calendar to use.
-Voice memo (2026-02-21): "schedule the birthday party between 2 and 4 on Saturday" → creates calendar event. Natural language time parsing is the core ask.
-
-**Voice notes in Vault (medium effort)**
-Add a "Voice" section or filter in Vault to browse processed voice note transcripts/summaries. Pipeline already writes JSON output per note — LifeOS would need a `voice_notes` table or a notes tag filter. Good for searchability.
-
-**Rollup summaries as LifeOS notes (easy once decided)**
-Daily or weekly cron on pipeline that summarizes all processed notes for the period and pushes a single LifeOS note. Needs: schedule decision, summary format, whether it also emails.
-
-**Pattern detection (future — needs data volume)**
-Analyze LifeOS items created via voice over time — surface recurring themes, stalled tasks, capture frequency. Needs months of data before it's useful. Good someday-maybe candidate.
-
----
-
-## Architecture Decisions to Remember
-
-- ADR-012: 4-state model (backlog, active, in_progress, completed)
-- ADR-013: Overdue persistence (isOverdue flag)
-- ADR-007: Mobile-first visual simplification
-- Tailwind v4 — use `wrap-break-word` not `break-words`, use `bg-linear-to-r` not `bg-gradient-to-r`
+`pm2 restart lifeos-dev` — runs `next start -p 3002`. Port baked into package.json start script.
