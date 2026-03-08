@@ -238,6 +238,10 @@ export async function PATCH(
       updateData.tags = body.tags;
     }
 
+    if (body.projectId !== undefined) {
+      updateData.projectId = body.projectId ?? null;
+    }
+
     // Update the item
     const updatedItem = await prisma.item.update({
       where: { id: itemId },

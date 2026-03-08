@@ -141,6 +141,8 @@ export async function POST(request: NextRequest) {
       subItems,
       // ADR-020: Inbox source tracking
       source,
+      // Projects
+      projectId,
     } = body;
 
     // Validate required fields
@@ -234,6 +236,7 @@ export async function POST(request: NextRequest) {
         // ADR-020: Inbox source tracking — items with a source start unreviewed
         source: source || null,
         reviewedAt: source ? null : new Date(), // Manual creates are auto-reviewed
+        projectId: projectId ?? null,
       },
     });
 

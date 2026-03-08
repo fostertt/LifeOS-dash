@@ -323,7 +323,7 @@ model Project {
   userId      String    @map("user_id")
   name        String    // Project name
   description String?   // Optional description
-  status      String    @default("backlog") // backlog | in_progress | on_hold | completed
+  status      String    @default("active") // backlog | active | completed
   blockedBy   Json?     @db.JsonB @map("blocked_by") // Array of project IDs this project depends on
   targetDate  DateTime? @map("target_date") // Optional target completion date
   tags        Json?     @db.JsonB // Array of tag strings for organization

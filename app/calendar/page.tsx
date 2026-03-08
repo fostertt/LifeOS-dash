@@ -67,6 +67,7 @@ interface Item {
   recurrenceType?: string;
   recurrenceInterval?: number;
   recurrenceAnchor?: string;
+  projectId?: number | null;
   subItems?: SubItem[];
   completions?: Array<{ completionDate: string }>;
 }

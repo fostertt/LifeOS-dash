@@ -3,6 +3,11 @@
 import { useState, useEffect, useRef } from "react";
 import TagInput from "./TagInput";
 
+interface Project {
+  id: number;
+  name: string;
+}
+
 interface SubItem {
   id?: number;
   name: string;
@@ -30,6 +35,7 @@ interface TaskFormProps {
     recurrenceAnchor?: string;
     showOnCalendar?: boolean;
     isOverdue?: boolean;
+    projectId?: number | null;
     subItems?: SubItem[];
   }) => Promise<void>;
   onDelete?: () => Promise<void>;
@@ -54,6 +60,7 @@ interface TaskFormProps {
     showOnCalendar?: boolean;
     isOverdue?: boolean;
     isCompleted?: boolean;
+    projectId?: number | null;
     subItems?: any[];
   } | null;
   availableTags: string[];
@@ -121,6 +128,13 @@ export default function TaskForm({
 
   const [saving, setSaving] = useState(false);
 
+  // Project assignment
+  const [projectId, setProjectId] = useState<number | null>(null);
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [showNewProject, setShowNewProject] = useState(false);
+  const [newProjectName, setNewProjectName] = useState("");
+  const [creatingProject, setCreatingProject] = useState(false);
+
   // Advanced section toggle (collapsed by default for new items)
   const [showAdvanced, setShowAdvanced] = useState(false);
 
@@ -135,6 +149,13 @@ export default function TaskForm({
   // Always-current snapshot of subItems used inside async beforeinput handlers
   const subItemsRef = useRef(subItems);
   useEffect(() => { subItemsRef.current = subItems; }, [subItems]);
+
+  // Fetch projects when form opens
+  useEffect(() => {
+    if (isOpen) {
+      fetch("/api/projects").then((r) => r.json()).then(setProjects).catch(() => {});
+    }
+  }, [isOpen]);
 
   // Handle browser back button/gesture to close modal
   useEffect(() => {
@@ -211,6 +232,7 @@ export default function TaskForm({
 
       setShowOnCalendar(existingTask.showOnCalendar || false);
       setIsOverdue(existingTask.isOverdue || false);
+      setProjectId(existingTask.projectId ?? null);
 
       if (existingTask.subItems && existingTask.subItems.length > 0) {
         setSubItems(existingTask.subItems.map((si: any) => ({
@@ -248,6 +270,7 @@ export default function TaskForm({
       setHabitScheduleType("daily");
       setHabitScheduleDays([]);
       setSubItems([]);
+      setProjectId(null);
       setShowDeleteConfirm(false);
       setShowAdvanced(false);
     }
@@ -275,6 +298,7 @@ export default function TaskForm({
         tags,
         showOnCalendar,
         isOverdue,
+        projectId: projectId ?? null,
       };
 
       if (itemType === "habit") {
@@ -460,6 +484,99 @@ export default function TaskForm({
               rows={2}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-white text-gray-900 resize-none"
             />
+          </div>
+
+          {/* Project assignment — always shown, with inline create */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">Project</label>
+            <div className="flex gap-2 items-center">
+              <select
+                value={projectId ?? ""}
+                onChange={(e) => setProjectId(e.target.value ? parseInt(e.target.value) : null)}
+                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-white text-gray-900 text-sm"
+              >
+                <option value="">No project</option>
+                {projects.map((p) => (
+                  <option key={p.id} value={p.id}>{p.name}</option>
+                ))}
+              </select>
+              <button
+                type="button"
+                onClick={() => { setShowNewProject(true); setNewProjectName(""); }}
+                className="p-2 text-gray-400 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-colors"
+                title="Create new project"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                </svg>
+              </button>
+            </div>
+            {/* Inline new project input */}
+            {showNewProject && (
+              <div className="flex gap-2 mt-2">
+                <input
+                  type="text"
+                  value={newProjectName}
+                  onChange={(e) => setNewProjectName(e.target.value)}
+                  placeholder="Project name"
+                  autoFocus
+                  onKeyDown={async (e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      if (!newProjectName.trim() || creatingProject) return;
+                      setCreatingProject(true);
+                      try {
+                        const res = await fetch("/api/projects", {
+                          method: "POST",
+                          headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({ name: newProjectName.trim(), status: "active" }),
+                        });
+                        const created = await res.json();
+                        setProjects((prev) => [...prev, { id: created.id, name: created.name }]);
+                        setProjectId(created.id);
+                        setShowNewProject(false);
+                      } catch { /* ignore */ } finally {
+                        setCreatingProject(false);
+                      }
+                    } else if (e.key === "Escape") {
+                      setShowNewProject(false);
+                    }
+                  }}
+                  className="flex-1 px-3 py-1.5 text-sm border border-purple-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-white text-gray-900"
+                />
+                <button
+                  type="button"
+                  onClick={async () => {
+                    if (!newProjectName.trim() || creatingProject) return;
+                    setCreatingProject(true);
+                    try {
+                      const res = await fetch("/api/projects", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ name: newProjectName.trim(), status: "active" }),
+                      });
+                      const created = await res.json();
+                      setProjects((prev) => [...prev, { id: created.id, name: created.name }]);
+                      setProjectId(created.id);
+                      setShowNewProject(false);
+                    } catch { /* ignore */ } finally {
+                      setCreatingProject(false);
+                    }
+                  }}
+                  disabled={!newProjectName.trim() || creatingProject}
+                  className="px-3 py-1.5 bg-purple-600 text-white text-sm rounded-lg hover:bg-purple-700 disabled:opacity-50 transition-colors"
+                >
+                  {creatingProject ? "…" : "Add"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowNewProject(false)}
+                  className="px-2 py-1.5 text-sm text-gray-500 hover:text-gray-800"
+                >
+                  ✕
+                </button>
+              </div>
+            )}
           </div>
 
           {/* Schedule section — compact icon buttons for date/time, same style for all item types */}

@@ -30,6 +30,7 @@ interface Item {
   tags?: string[];
   showOnCalendar?: boolean;
   isOverdue?: boolean;
+  projectId?: number | null;
   subItems?: any[];
 }
 
