@@ -7,7 +7,9 @@
 
 ## What LifeOS Is
 
-Personal productivity dashboard — single place for tasks, notes, lists, habits, reminders, and calendar. Single-user (Tyrrell), mobile-first PWA. Self-hosted on foster-forge.
+Personal productivity dashboard evolving into the **unified brain for every screen and voice device in the house**. Single-user (Tyrrell), mobile-first PWA. Self-hosted on foster-forge.
+
+> **Ecosystem vision (2026-03-26):** See `lifeos-ecosystem-vision.md` for the full architectural direction — AI conversational layer, Jetson/Pi endpoints, family hub view, model routing strategy. That document covers the AI + multi-endpoint layer; this roadmap covers the web app features.
 
 **Production URL:** lifeos.foster-home.net
 **Dev URL:** lifeos-dev.foster-home.net (port 3002)
@@ -106,11 +108,10 @@ Personal productivity dashboard — single place for tasks, notes, lists, habits
 - `projectId` already on Item, Note, List (added in ADR-020 schema)
 - **Not started** — database column exists but UI is placeholder
 
-**Recipes & Meal Planning**
-- Recipe CRUD (ingredients, instructions, tags, ratings)
-- Meal planning: assign recipes to calendar dates (breakfast/lunch/dinner)
-- Grocery list integration (add ingredients to Vault list)
-- **Not started** — needs schema design and architecture discussion
+**Recipes & Meal Planning** — MOVED TO MEALIE (2026-03-27)
+- ~~Recipe CRUD in LifeOS~~ → Use Mealie (self-hosted) instead
+- Wire Mealie API as a data source for the AI conversational layer
+- See ADR-021 and `lifeos-ecosystem-vision.md` for context
 
 ### Tier 2: Daily Briefing & Voice Rollup (ADR-016)
 

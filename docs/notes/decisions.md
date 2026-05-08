@@ -1,5 +1,54 @@
 # LifeOS Architecture Decisions
 
+### ADR-021: AI Conversational Layer — Phase 1 (2026-03-27)
+
+**Context:**
+- LifeOS isn't being used as much as intended because the most useful interactions require an AI with context
+- Currently the only way to get that experience is opening a laptop and talking to Claude Code
+- The goal is a conversational interface accessible from phone, tablet, or voice device
+- Phone is the primary client — it's always with you (yard, store, bed)
+
+**Decision:**
+Add an AI conversational layer to LifeOS. Architecture:
+
+```
+app/api/chat/route.ts          ← HTTP handler (auth, request parsing)
+lib/ai/                        ← Framework-agnostic AI brain
+  ├── router.ts                ← Model routing (Gemini Flash Phase 1, Claude tier later)
+  ├── tools/                   ← Tool definitions + handlers
+  │   ├── index.ts             ← Registry
+  │   ├── tasks.ts             ← Query/create LifeOS tasks
+  │   ├── calendar.ts          ← Google Calendar queries
+  │   └── weather.ts           ← Weather lookups (Open-Meteo, free, no key)
+  └── types.ts                 ← Shared types
+```
+
+**Key design decisions:**
+- **Tool format:** OpenAI-compatible function calling (works with Gemini and Claude APIs natively)
+- **Model:** Gemini Flash (free) for Phase 1. Add Claude API tier later for complex reasoning.
+- **Responses:** Non-streaming for Phase 1. Simpler for all clients.
+- **History:** Stateless per request for Phase 1. Add conversation context later if needed.
+- **Auth:** Session cookie for browser clients, API key (env var) for non-browser clients (Jetson, Pi)
+- **Chat UI:** New `/chat` page, full-screen view (not sidebar/modal), center position in bottom tab bar
+- **API contract:** Clean REST endpoint — not coupled to React frontend. Jetson/Pi can call it directly.
+
+**Three-layer vision (Phase 1 builds layers 1 and 2):**
+1. **Capture** — add things from anywhere (voice notes, quick tasks, photos → forge)
+2. **Retrieve** — pull your own data conversationally (tasks, calendar, recipes, workouts, notes)
+3. **Converse** — reason about your systems with context (project history, homelab notes, session logs)
+
+**Phase 1 data sources:** LifeOS tasks (Prisma), Google Calendar (OAuth), Weather (Open-Meteo)
+**Later data sources:** Mealie (recipes), fitness DB, music DB, homelab notes/markdown files, project docs
+
+**Recipes decision:** Drop recipe CRUD from LifeOS roadmap. Use Mealie (self-hosted) for recipes, wire its API as an AI tool data source.
+
+**Consequences:**
+- LifeOS becomes the orchestration layer, not a monolith rebuilding every app
+- Phone becomes a first-class interaction point (not just a PWA for task CRUD)
+- AI layer grows toward "knows your life context" as more data sources are wired in
+- Gemini Flash handles 95% of intent parsing + tool selection cheaply
+- Clean API means any future hardware endpoint (Jetson, Pi) uses the same backend
+
 ### ADR-020: Voice Capture Inbox & Triage (2026-02-21)
 
 **Context:**
