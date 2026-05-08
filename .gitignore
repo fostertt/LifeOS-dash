@@ -39,3 +39,6 @@ next-env.d.ts
 *.db
 *.db-journal
 docs/screenshots/
+
+# Scratch / next-session draft files
+next_session_tf
